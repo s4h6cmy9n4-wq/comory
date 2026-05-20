@@ -2647,6 +2647,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 150);
     };
 
+    // ── Helpers exposés à initMobileTouch ────────────────────────────────────
+    window._roueEpingle = (on) => {
+        fanPinned = on;
+        roueConteneur.classList.toggle('epingle', on);
+        if (on) { clearTimeout(_fanTimeout); roueConteneur.classList.add('ouvert'); }
+    };
+    window._roueFermerPanel = () => fermerPanel();
+
     // Ouvrir quand la souris entre sur le centre (toujours visible) ou sur le disque (quand ouvert)
     roueCentre.addEventListener('mouseenter', _fanOpen);
     roueConteneur.addEventListener('mouseenter', _fanOpen);
@@ -6317,6 +6325,9 @@ function mettreAJourArrondi() {
             return el.tagName === 'path' ? el : (el.closest ? el.closest('path') : null);
         }
         function fermerRoueMobile() {
+            // Désépingler d'abord, puis nettoyer le panel avant de masquer
+            if (window._roueEpingle) window._roueEpingle(false);
+            if (window._roueFermerPanel) window._roueFermerPanel();
             fireMouseOn(lastPath, 'mouseleave');
             lastPath = null;
             clearTimeout(holdTimer);
@@ -6371,11 +6382,12 @@ function mettreAJourArrondi() {
             const touch = e.changedTouches[0];
             const p = pathUnder(touch.clientX, touch.clientY);
             if (p) {
-                // Outil visé → clic + garder la roue ouverte
+                // Épingler AVANT le mouseleave pour que _fanClose soit no-op
+                rouePinned = true;
+                if (window._roueEpingle) window._roueEpingle(true);
                 fireMouseOn(lastPath, 'mouseleave'); lastPath = null;
                 fireMouseOn(p, 'click');
                 clearTimeout(holdTimer); holdTimer = null;
-                rouePinned = true; // la roue reste visible jusqu'au prochain tap hors d'elle
             } else {
                 fermerRoueMobile(); // relâchement dans le vide → fermer
             }
