@@ -6304,22 +6304,28 @@ function mettreAJourArrondi() {
         if (!window.matchMedia('(max-width: 768px)').matches) return;
         const roue = document.getElementById('roue-conteneur');
         let holdTimer = null;
+        let startX = 0, startY = 0;
 
         document.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Empêche le menu de sélection iOS
-            const x = e.touches[0].clientX;
-            const y = e.touches[0].clientY;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
             holdTimer = setTimeout(() => {
-                const half = roue.offsetWidth / 2;
-                roue.style.left = (x - half) + 'px';
-                roue.style.top  = (y - half) + 'px';
+                const half = (roue.offsetWidth || 180) / 2;
+                roue.style.left = (startX - half) + 'px';
+                roue.style.top  = (startY - half) + 'px';
                 document.body.classList.add('mobile-roue-visible');
             }, 1500);
-        }, { passive: false }); // non-passive pour pouvoir preventDefault
+        }, { passive: true });
 
-        document.addEventListener('touchmove', () => {
-            clearTimeout(holdTimer);
-            holdTimer = null;
+        // Annuler seulement si le doigt se déplace vraiment (> 10px)
+        document.addEventListener('touchmove', (e) => {
+            if (!holdTimer) return;
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            if (Math.sqrt(dx * dx + dy * dy) > 10) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+            }
         }, { passive: true });
 
         document.addEventListener('touchend', () => {
