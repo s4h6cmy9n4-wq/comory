@@ -6306,6 +6306,7 @@ function mettreAJourArrondi() {
         let holdTimer = null;
 
         document.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Empêche le menu de sélection iOS
             const x = e.touches[0].clientX;
             const y = e.touches[0].clientY;
             holdTimer = setTimeout(() => {
@@ -6314,7 +6315,7 @@ function mettreAJourArrondi() {
                 roue.style.top  = (y - half) + 'px';
                 document.body.classList.add('mobile-roue-visible');
             }, 1500);
-        }, { passive: true });
+        }, { passive: false }); // non-passive pour pouvoir preventDefault
 
         document.addEventListener('touchmove', () => {
             clearTimeout(holdTimer);

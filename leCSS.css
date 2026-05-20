@@ -838,6 +838,13 @@ body {
 
 /* ── Mobile : boutons toujours visibles, roue sous le doigt au maintien ── */
 @media (max-width: 768px) {
+    /* Bloquer la sélection native iOS (menu Copier/Chercher/Traduire) */
+    body, .mon-conteneur, canvas {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
+
     /* Masquer toute l'interface */
     .super-conteneur-gauche,
     .tableau-carrousel,
