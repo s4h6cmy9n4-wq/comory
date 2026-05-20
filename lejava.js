@@ -6314,6 +6314,7 @@ function mettreAJourArrondi() {
                 roue.style.left = (startX - half) + 'px';
                 roue.style.top  = (startY - half) + 'px';
                 document.body.classList.add('mobile-roue-visible');
+                roue.classList.add('ouvert'); // ouvrir la roue
             }, 1500);
         }, { passive: true });
 
@@ -6332,12 +6333,14 @@ function mettreAJourArrondi() {
             clearTimeout(holdTimer);
             holdTimer = null;
             document.body.classList.remove('mobile-roue-visible');
+            roue.classList.remove('ouvert');
         });
 
         document.addEventListener('touchcancel', () => {
             clearTimeout(holdTimer);
             holdTimer = null;
             document.body.classList.remove('mobile-roue-visible');
+            roue.classList.remove('ouvert');
         });
     })();
 
