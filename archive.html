@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archives — Mory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ── Même palette et variables que leCSS.css ── */
+:root {
+  --bg:               #e0e5ec;
+  --bg-site:          #f0f4f8;
+  --shadow-light:     #ffffff;
+  --shadow-dark:      #b8bec8;
+  --shadow-outer-dark:  #c0c6d4;
+  --shadow-outer-light: #ffffff;
+  --flamme:           #ff4000;
+  --text-dark:        #1a2535;
+  --text-mid:         #4a5870;
+  --neu-raised:       6px 6px 14px var(--shadow-dark), -4px -4px 10px var(--shadow-light);
+  --neu-flat:         3px 3px 8px  var(--shadow-dark), -3px -3px 8px  var(--shadow-light);
+  --neu-inset:        inset 4px 4px 10px var(--shadow-dark), inset -4px -4px 10px var(--shadow-light);
+  --neu-pressed:      inset 2px 2px 6px  var(--shadow-dark), inset -2px -2px 6px  var(--shadow-light);
+
+  --card-w:  148px;
+  --card-h:  220px;
+  --step-x:  102px;
+  --step-y:   17px;
+  --tilt:    -12deg;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg-site);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  overflow: hidden;
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── PILL LOGO (top-left) — même style que .top-bar ── */
+#logo-link {
+  position: fixed;
+  top: 14px; left: 14px;
+  z-index: 300;
+  height: 46px;
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 20px;
+  border-radius: 30px;
+  background: var(--bg);
+  box-shadow:
+    8px 8px 20px var(--shadow-outer-dark),
+    -3px -3px 10px var(--shadow-outer-light),
+    inset 2px 2px 5px var(--shadow-light),
+    inset -2px -2px 5px var(--shadow-dark);
+  text-decoration: none;
+  color: var(--text-dark);
+  transition: box-shadow 0.15s;
+}
+#logo-link:hover {
+  box-shadow:
+    6px 6px 16px var(--shadow-outer-dark),
+    -2px -2px 7px var(--shadow-outer-light),
+    inset 3px 3px 8px var(--shadow-dark),
+    inset -3px -3px 8px var(--shadow-light);
+}
+#logo-link svg.wordmark { height: 20px; width: auto; display: block; }
+#logo-link .sep { width: 1px; height: 18px; background: var(--shadow-dark); opacity: 0.5; }
+#logo-link .arc-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* ── BOARD INFO (top-right) — pill néomorphique ── */
+#board-info {
+  position: fixed;
+  top: 14px; right: 14px;
+  z-index: 300;
+  height: 46px;
+  padding: 0 20px;
+  display: flex; flex-direction: column; justify-content: center;
+  align-items: flex-end;
+  border-radius: 30px;
+  background: var(--bg);
+  box-shadow:
+    8px 8px 20px var(--shadow-outer-dark),
+    -3px -3px 10px var(--shadow-outer-light),
+    inset 2px 2px 5px var(--shadow-light),
+    inset -2px -2px 5px var(--shadow-dark);
+  pointer-events: none;
+  min-width: 160px;
+}
+.bi-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+  line-height: 1.2;
+  min-height: 16px;
+}
+.bi-date {
+  font-size: 10px;
+  color: var(--text-mid);
+  margin-top: 1px;
+  letter-spacing: 0.02em;
+}
+
+/* ── BOARD COUNT (top-center) ── */
+#board-count {
+  position: fixed;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  pointer-events: none;
+  z-index: 200;
+  opacity: 0.55;
+}
+
+/* ── SORT PANEL (bottom-left) — panneau néomorphique surélevé ── */
+#sort-panel {
+  position: fixed;
+  bottom: 24px; left: 14px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 200px;
+  background: var(--bg);
+  border-radius: 20px;
+  padding: 18px 20px 16px;
+  box-shadow: var(--neu-raised);
+}
+
+.sort-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+/* Bouton loupe — socket rond néomorphique */
+.sort-search-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg);
+  box-shadow: var(--neu-flat);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-mid);
+  flex-shrink: 0;
+  transition: box-shadow 0.12s, color 0.12s;
+}
+.sort-search-btn:hover {
+  box-shadow: var(--neu-pressed);
+  color: var(--flamme);
+}
+.sort-search-btn svg { width: 15px; height: 15px; stroke: currentColor; }
+
+#search-inp {
+  width: 0; opacity: 0;
+  border: none;
+  border-bottom: 2px solid var(--shadow-dark);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-dark);
+  outline: none;
+  transition: width 0.3s, opacity 0.3s;
+  padding: 2px 0;
+}
+#search-inp.open { width: 130px; opacity: 1; }
+
+.sitem {
+  font-size: 11.5px;
+  padding: 5px 0;
+  cursor: pointer;
+  color: var(--text-mid);
+  display: flex; align-items: baseline; gap: 4px;
+  line-height: 1.4;
+  user-select: none;
+  transition: color 0.18s;
+}
+.sitem:hover { color: var(--text-dark); }
+.sitem.active { color: var(--flamme); font-weight: 600; }
+
+.sitem .sarr {
+  font-size: 7px;
+  display: inline-block;
+  transition: transform 0.22s;
+  line-height: 1;
+}
+.sitem.open .sarr { transform: rotate(90deg); }
+
+/* Séparateur inset discret entre sections */
+.sitem-sep {
+  height: 1px;
+  background: var(--shadow-dark);
+  opacity: 0.35;
+  margin: 6px 0;
+}
+
+.ssub {
+  display: none;
+  flex-direction: column;
+  padding-left: 10px;
+  border-left: 2px solid var(--shadow-dark);
+  margin: 2px 0 4px;
+  opacity: 0.9;
+}
+.ssub.open { display: flex; }
+.ssub .sitem {
+  font-size: 10.5px;
+  padding: 3px 0;
+  white-space: normal;
+  line-height: 1.5;
+}
+
+/* ── STRIP WRAPPER ── */
+#strip-wrapper {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 88px;
+}
+#strip-wrapper.grabbing { cursor: grabbing; }
+
+#strip {
+  position: relative;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* ── BOARD CARDS — surface néomorphique surélevée ── */
+.board-card {
+  position: absolute;
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--bg);
+  box-shadow:
+    8px 8px 20px var(--shadow-outer-dark),
+    -4px -4px 12px var(--shadow-outer-light),
+    inset 1px 1px 3px var(--shadow-light),
+    inset -1px -1px 3px var(--shadow-dark);
+  transform: perspective(700px) rotateY(var(--tilt));
+  transform-origin: center bottom;
+  transition:
+    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.38s ease;
+  will-change: transform;
+}
+.board-card:hover {
+  transform: perspective(700px) rotateY(var(--tilt)) translateY(-58px);
+  box-shadow:
+    14px 14px 36px var(--shadow-outer-dark),
+    -6px -6px 18px var(--shadow-outer-light),
+    inset 1px 1px 3px var(--shadow-light),
+    inset -1px -1px 3px var(--shadow-dark);
+  z-index: 600 !important;
+}
+
+/* Face (sans miniature) — même surface --bg, numéro gravé */
+.card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  gap: 8px;
+}
+/* Cercle inset au centre — numéro gravé dans la matière */
+.card-face-inner {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: var(--neu-inset);
+  gap: 2px;
+}
+.card-num {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-mid);
+  line-height: 1;
+}
+.card-lbl {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  opacity: 0.6;
+  font-weight: 500;
+  text-align: center;
+  padding: 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+/* Miniature révélée au survol */
+.card-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.28s 0.05s;
+  display: block;
+  border-radius: 14px;
+}
+.board-card:hover .card-thumb { opacity: 1; }
+
+/* Dégradé label au survol */
+.card-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 28px 12px 12px;
+  background: linear-gradient(transparent, rgba(26, 37, 53, 0.7));
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.05em;
+  opacity: 0;
+  transition: opacity 0.28s 0.05s;
+  border-radius: 0 0 14px 14px;
+}
+.board-card:hover .card-overlay { opacity: 1; }
+
+/* Trait flamme en bas — encastré dans la surface */
+.board-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 12px; right: 12px;
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: var(--flamme);
+  box-shadow: 0 0 8px var(--flamme);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.32s 0.05s;
+}
+.board-card:hover::after { transform: scaleX(1); }
+
+/* ── EMPTY STATE ── */
+#empty-state {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--text-mid);
+  font-size: 13px;
+  pointer-events: none;
+}
+#empty-state.show { display: flex; }
+
+/* ── SCROLL HINT ── */
+#scroll-hint {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.7s;
+  white-space: nowrap;
+}
+#scroll-hint.fade { opacity: 0; }
+</style>
+</head>
+<body>
+
+<!-- ── LOGO (top-left) ── -->
+<a href="index.html" id="logo-link" title="Retour au tableau">
+  <svg class="wordmark" viewBox="0 0 344.38 71.85" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+    <path d="M73.52,0c-6.93,0-13.4,1.98-18.88,5.4l-.21.13c-8.21,5.12-13.99,13.34-15.96,23.15-.46,2.29-.7,4.65-.7,7.08s.24,4.79.7,7.08c-.84.32-1.75.51-2.71.51-4.19,0-7.59-3.4-7.59-7.59,0-3.95,3.02-7.19,6.88-7.55,0-.01,0-.02,0-.04,0-10.47,4.5-19.89,11.68-26.43-3.46-1.12-7.14-1.74-10.97-1.74C16.01,0,0,16.01,0,35.76s16.01,35.76,35.76,35.76c6.93,0,13.4-1.98,18.88-5.4,5.48,3.42,11.95,5.4,18.88,5.4,19.75,0,35.76-16.01,35.76-35.76S93.27,0,73.52,0ZM73.62,43.34c-.96,0-1.87-.18-2.71-.51.46-2.29.7-4.65.7-7.08s-.24-4.79-.7-7.08c.84-.32,1.75-.51,2.71-.51,4.19,0,7.59,3.4,7.59,7.59s-3.4,7.59-7.59,7.59Z"/>
+    <path d="M126.27,59.55c-.66,0-1.19-.06-1.6-.19-.41-.13-.61-.34-.61-.65,0-.35.2-.63.61-.84.41-.2,1.04-.38,1.9-.53,1.27-.25,2.3-.86,3.12-1.82.81-.96,1.34-2.33,1.6-4.1.61-4.56,1.14-8.9,1.6-13.03.46-4.13.82-7.85,1.1-11.17.28-3.32.42-6.04.42-8.17v-1.29c0-.46-.03-.86-.08-1.22-.05-.41-.13-.82-.23-1.25s-.41-.85-.91-1.25c-.91-.76-1.8-1.28-2.66-1.56-.86-.28-1.88-.52-3.04-.72-.51-.1-.91-.29-1.22-.57-.3-.28-.46-.59-.46-.95,0-.4.24-.65.72-.72.48-.08,1.1-.11,1.86-.11.51,0,1.28.03,2.32.08,1.04.05,2.17.13,3.38.23s2.34.18,3.38.23c1.04.05,1.81.08,2.32.08.35,0,.66.1.91.3.25.2.43.51.53.91.25.91.51,1.88.76,2.89.25,1.01.56,2,.91,2.96l12.01,30.48c.15.36.43.57.84.65.41.08.71-.06.91-.42l14.97-31.16c.25-.86.51-1.82.76-2.89.25-1.06.46-2,.61-2.81.15-.66.41-.99.76-.99h2.74c1.52,0,3.13-.1,4.83-.3,1.7-.2,2.98-.3,3.84-.3.25,0,.58.04.99.11.4.08.61.29.61.65s-.14.63-.42.84c-.28.2-.8.46-1.56.76-.66.25-1.39.53-2.2.84-.81.3-1.57.61-2.28.91-.51.2-.94.54-1.29,1.03s-.53,1-.53,1.56c0,3.55.06,6.88.19,9.99.13,3.12.27,6.11.42,8.97.15,2.86.33,5.69.53,8.47.2,2.79.38,5.62.53,8.51.1,1.57.61,2.77,1.52,3.61s2.3,1.43,4.18,1.79c.86.15,1.49.33,1.9.53.41.2.61.48.61.84,0,.3-.2.52-.61.65-.41.12-.94.19-1.6.19-1.37,0-2.5-.04-3.38-.11-.89-.08-1.74-.14-2.55-.19-.81-.05-1.8-.08-2.96-.08-1.01,0-1.86.03-2.55.08-.68.05-1.42.11-2.2.19-.79.08-1.86.11-3.23.11-.66,0-1.19-.06-1.6-.19-.41-.13-.61-.34-.61-.65,0-.35.2-.65.61-.87.41-.23,1.04-.39,1.9-.49,1.47-.2,2.48-.72,3.04-1.56.56-.84.84-2.14.84-3.91,0-3.65-.04-6.94-.11-9.88s-.19-5.84-.34-8.7c-.15-2.86-.3-5.99-.46-9.39-.05-.56-.2-.82-.46-.8-.25.03-.51.29-.76.8l-17.48,35.64c-.1.25-.33.39-.68.42-.36.03-.58-.14-.68-.49-1.98-5.93-4.09-11.77-6.35-17.52-2.25-5.75-4.8-11.94-7.64-18.58-.1-.25-.28-.38-.53-.38s-.41.13-.46.38c-.46,3.55-.87,6.8-1.25,9.77s-.67,5.89-.87,8.78c-.2,2.89-.3,6.05-.3,9.5,0,1.37.43,2.62,1.29,3.76.86,1.14,2.08,1.86,3.65,2.17.86.15,1.49.33,1.9.53.41.2.61.48.61.84,0,.3-.2.52-.61.65-.41.12-.94.19-1.6.19-1.37,0-2.39-.04-3.08-.11-.68-.08-1.29-.14-1.82-.19-.53-.05-1.28-.08-2.24-.08-.91,0-1.62.03-2.13.08-.51.05-1.09.11-1.75.19-.66.08-1.67.11-3.04.11Z"/>
+    <path d="M219.74,60.23c-3.34,0-6.54-.6-9.58-1.79-3.04-1.19-5.73-2.89-8.06-5.09-2.33-2.2-4.18-4.84-5.55-7.9-1.37-3.07-2.05-6.47-2.05-10.22,0-3.44.56-6.75,1.67-9.92,1.11-3.17,2.76-5.99,4.94-8.47,2.18-2.48,4.89-4.46,8.13-5.93,3.24-1.47,6.97-2.2,11.17-2.2,3.34,0,6.54.6,9.58,1.79s5.72,2.89,8.06,5.09c2.33,2.2,4.18,4.84,5.55,7.9,1.37,3.07,2.05,6.47,2.05,10.22,0,3.4-.56,6.69-1.67,9.88-1.12,3.19-2.76,6.03-4.94,8.51-2.18,2.48-4.89,4.46-8.13,5.93-3.24,1.47-6.97,2.2-11.17,2.2ZM220.88,57.19c3.9,0,7.14-.82,9.73-2.47,2.58-1.65,4.52-3.95,5.81-6.92s1.94-6.42,1.94-10.37c0-3.5-.41-6.79-1.22-9.88-.81-3.09-2.01-5.81-3.61-8.17-1.6-2.36-3.58-4.19-5.97-5.51-2.38-1.32-5.17-1.98-8.36-1.98-3.8,0-6.99.81-9.58,2.43-2.58,1.62-4.54,3.89-5.85,6.8-1.32,2.91-1.98,6.35-1.98,10.3,0,3.55.39,6.87,1.18,9.96.78,3.09,1.98,5.83,3.57,8.21,1.6,2.38,3.58,4.24,5.97,5.59,2.38,1.34,5.17,2.01,8.36,2.01Z"/>
+    <path d="M299.2,67.73c-2.92-1.21-4.96-2.54-5.42-2.85-.65-.43-2.41-1.63-4.39-3.53-1.51-1.45-2.52-2.7-4.04-4.59-.82-1.02-1.88-2.42-2.26-2.94-.88-1.19-.81-1.16-1.62-2.24-.82-1.1-1.52-1.96-2.22-2.93-.46-.64-.91-1.29-.91-1.29-.11-.16-.2-.29-.29-.43-1.24-1.82-2.75-4.15-4.52-6.99-.76-1.27-1.85-2.25-3.27-2.96-1.12-.56-2.22-.95-3.31-1.18-1.09-.23-1.99-.37-2.7-.42-.41-.05-.7.08-.87.38-.18.3-.27.68-.27,1.14v13.38c0,1.62.38,3.03,1.14,4.22s2.08,1.96,3.95,2.32c.86.15,1.49.33,1.9.53.4.2.61.48.61.84,0,.3-.2.52-.61.65-.41.12-.94.19-1.6.19-1.37,0-2.42-.05-3.15-.15-.74-.1-1.39-.19-1.98-.27-.58-.08-1.36-.11-2.32-.11-1.27,0-2.39.04-3.38.11-.99.08-1.98.16-2.96.27-.99.1-2.17.15-3.53.15-.66,0-1.19-.06-1.6-.19-.41-.13-.61-.34-.61-.65,0-.61.84-1.06,2.51-1.37,1.92-.35,3.33-.94,4.22-1.75.89-.81,1.33-2.15,1.33-4.03V18.66c0-1.93-.09-3.38-.27-4.37-.18-.99-.58-1.68-1.22-2.09-.63-.41-1.68-.68-3.15-.84-.86-.1-1.5-.29-1.9-.57-.41-.28-.61-.59-.61-.95,0-.3.2-.52.61-.65.41-.12.94-.19,1.6-.19h3.08c.68,0,1.33.01,1.94.04.61.03,1.42.04,2.43.04s1.82-.04,2.58-.11,1.61-.14,2.55-.19c.94-.05,2.14-.08,3.61-.08,5.57,0,9.82,1.04,12.73,3.12,2.91,2.08,4.37,5.19,4.37,9.35,0,2.28-.46,4.24-1.37,5.89-.91,1.65-2.05,3.03-3.42,4.14s-2.76,2.03-4.18,2.74c-.2.05-.29.17-.27.34.02.18.11.39.27.65,1.57,2.38,3.08,4.64,4.52,6.76,1.65,2.42.31.67,4.75,6.23.67.84.82,1.04,1.21,1.54,0,0,0,0,0,0,0,0,.64.84,1.29,1.63,1.55,1.87,3.36,3.7,3.37,3.7s2.84,2.88,5.19,4.67c.32.25.84.64,1.57,1.09.57.35,1.11.64,1.43.81.44.23.74.38.82.42.12.06.5.24,1.06.48.29.12.71.3,1.41.56.52.2,1.19.45,1.94.69.87.28,1.61.45,3.04.79.9.21,1.66.39,2.7.59.28.05.58.11,3.15.53,2.13.34,2.39.38,2.83.43,1.3.13,2.27.14,2.53.14,1.42,0,2.49-.13,3.13-.21,1.26-.16,2.21-.36,2.89-.51,1.25-.27,2.46-.6,2.53-.62.78-.21,1.58-.38,2.37-.58.25-.07,1.51-.39,1.91,0,.04.04.34.36.34.36.21.33.21.66.21.81,0,.41-.14.82-.44,1.23-.5.69-1.15,1.31-1.95,1.86-.8.55-1.49.98-2.08,1.28-.73.37-1.97,1.03-3.74,1.54-1.97.57-3.53.66-3.85.67-.67.03-1.46.03-2.08.03-.69,0-1.17,0-1.82-.04-.61-.04-1.03-.09-1.86-.19-.91-.11-1.67-.22-2.22-.31-.17-.03-.95-.15-2-.36-1.37-.26-2.4-.51-2.69-.57-.26-.06-1.17-.28-2.31-.59-2.45-.68-4.26-1.18-6.37-2.05ZM267.14,33.63c2.33,0,4.34-.53,6.04-1.6,1.7-1.06,3.01-2.46,3.95-4.18.94-1.72,1.41-3.55,1.41-5.47,0-2.08-.27-3.98-.8-5.7-.53-1.72-1.6-3.1-3.19-4.14-1.6-1.04-3.99-1.56-7.18-1.56-1.62,0-2.69.52-3.19,1.56-.51,1.04-.81,2.88-.91,5.51-.05,1.27-.09,2.98-.11,5.13-.03,2.15-.04,4.75-.04,7.79,0,1.27.35,2.03,1.06,2.28.71.25,1.7.38,2.96.38Z"/>
+    <path d="M311.02,59.55c-.66,0-1.19-.06-1.6-.19-.41-.13-.61-.34-.61-.65,0-.35.2-.63.61-.84.41-.2,1.04-.38,1.9-.53,1.92-.35,3.39-1.05,4.41-2.09,1.01-1.04,1.52-2.47,1.52-4.29v-11.25c0-1.01-.27-2.12-.8-3.31-.53-1.19-.9-1.96-1.1-2.32l-8.89-14.59c-.36-.61-.91-1.46-1.67-2.55-.76-1.09-1.58-2.12-2.47-3.08-.89-.96-1.76-1.57-2.62-1.82-.81-.25-1.43-.51-1.86-.76-.43-.25-.65-.56-.65-.91,0-.3.2-.52.61-.65.4-.12.94-.19,1.6-.19,1.17,0,2.51.04,4.03.11,1.52.08,3.14.11,4.86.11,1.16,0,2.27-.02,3.31-.08,1.04-.05,1.96-.08,2.77-.08.66,0,1.19.06,1.6.19.4.13.61.34.61.65,0,.35-.2.65-.61.87-.41.23-1.04.44-1.9.65-.71.2-1.29.43-1.75.68-.46.25-.68.66-.68,1.22,0,.66.33,1.57.99,2.74l6.99,12.92c1.01,1.93,1.72,2.89,2.13,2.89.3,0,.63-.21.99-.65.35-.43.86-1.18,1.52-2.24,1.16-1.77,2.2-3.47,3.12-5.09.91-1.62,2-3.57,3.27-5.85.51-.86.86-1.61,1.06-2.24.2-.63.3-1.18.3-1.63,0-.96-.34-1.62-1.03-1.98s-1.38-.58-2.09-.68c-.51-.1-1.05-.29-1.63-.57-.58-.28-.87-.59-.87-.95,0-.3.2-.52.61-.65.41-.13.94-.19,1.6-.19,1.16,0,2.13.01,2.89.04.76.03,1.7.04,2.81.04,1.57,0,3.07-.04,4.48-.11,1.42-.08,2.56-.11,3.42-.11.66,0,1.19.06,1.6.19.41.13.61.34.61.65,0,.36-.41.68-1.22.99-.81.3-1.75.61-2.81.91-1.32.35-2.42,1.08-3.31,2.17-.89,1.09-2.01,2.67-3.38,4.75-1.01,1.57-1.86,2.89-2.55,3.95-.68,1.06-1.32,2.05-1.9,2.96-.58.91-1.18,1.86-1.79,2.85-.61.99-1.34,2.19-2.2,3.61-.66,1.06-1.12,1.93-1.37,2.58-.25.66-.41,1.28-.46,1.86-.05.58-.08,1.38-.08,2.39v11.55c0,1.72.53,3.13,1.6,4.22,1.06,1.09,2.53,1.81,4.41,2.17.86.15,1.49.33,1.9.53.41.2.61.48.61.84,0,.3-.2.52-.61.65-.41.12-.94.19-1.6.19-1.37,0-2.5-.04-3.38-.11-.89-.08-1.74-.14-2.55-.19-.81-.05-1.8-.08-2.96-.08-1.27,0-2.37.03-3.31.08-.94.05-1.9.11-2.89.19-.99.08-2.17.11-3.53.11Z"/>
+  </svg>
+  <div class="sep"></div>
+  <span class="arc-label">Archives</span>
+</a>
+
+<!-- ── BOARD INFO (top-right) ── -->
+<div id="board-info">
+  <div class="bi-name" id="bi-name">—</div>
+  <div class="bi-date" id="bi-date">—</div>
+</div>
+
+<!-- ── BOARD COUNT (top-center) ── -->
+<div id="board-count"></div>
+
+<!-- ── SORT PANEL (bottom-left) ── -->
+<div id="sort-panel">
+  <div class="sort-search-row">
+    <button class="sort-search-btn" id="search-btn" title="Rechercher">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7.5"/>
+        <line x1="20" y1="20" x2="15.8" y2="15.8"/>
+      </svg>
+    </button>
+    <input type="text" id="search-inp" placeholder="Rechercher…">
+  </div>
+
+  <div class="sitem active" data-sort="all">Tout</div>
+  <div class="sitem" data-sort="recent">Du plus au moins récent</div>
+  <div class="sitem" data-sort="oldest">Du moins au plus récent</div>
+  <div class="sitem-sep"></div>
+  <div class="sitem expandable" data-expand="classe">
+    Par classe <span class="sarr">▶</span>
+  </div>
+  <div class="ssub" id="ssub-classe">
+    <div class="sitem sub" data-sub="classe" data-val="Terminale">Terminale</div>
+    <div class="sitem sub" data-sub="classe" data-val="Première">Première</div>
+    <div class="sitem sub" data-sub="classe" data-val="Seconde">Seconde</div>
+  </div>
+
+  <div class="sitem-sep"></div>
+  <div class="sitem expandable" data-expand="matiere">
+    Par matière <span class="sarr">▶</span>
+  </div>
+  <div class="ssub" id="ssub-matiere">
+    <div class="sitem sub" data-sub="matiere" data-val="atc">Art techniques et civilisations</div>
+    <div class="sitem sub" data-sub="matiere" data-val="daa">Design et arts appliqués</div>
+    <div class="sitem sub" data-sub="matiere" data-val="amd">Analyse et méthodes en design</div>
+    <div class="sitem sub" data-sub="matiere" data-val="ccd">Conception et création en design et arts appliqués</div>
+  </div>
+</div>
+
+<!-- ── STRIP ── -->
+<div id="strip-wrapper">
+  <div id="strip"></div>
+</div>
+
+<!-- ── EMPTY STATE ── -->
+<div id="empty-state">
+  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.28">
+    <rect x="3" y="3" width="18" height="18" rx="2.5"/>
+    <path d="M3 9h18"/>
+    <path d="M9 21V9"/>
+  </svg>
+  <span style="color:var(--muted);font-size:13px">Aucun tableau archivé</span>
+  <span style="color:var(--muted);font-size:11px;opacity:0.65;margin-top:2px">Créez des tableaux depuis l'application principale</span>
+</div>
+
+<!-- ── SCROLL HINT ── -->
+<div id="scroll-hint">← Défiler pour explorer →</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   MORY — Archive isométrique
+   ══════════════════════════════════════════════════════ */
+
+const CARD_W    = 148;
+const CARD_H    = 220;
+const STEP_X    = 102;    // px between card left edges (overlap)
+const STEP_Y    = 17;     // px vertical rise per card (diagonal)
+const PAD_L     = 220;    // left margin before first card
+const PAD_TRAIL = 220;    // space after last card
+
+let allBoards     = [];
+let displayBoards = [];
+let currentSort   = 'all';
+let searchQ       = '';
+let scrollOffset  = 0;
+
+/* ── Date helpers ─────────────────────────────────── */
+function fmtDate(d) {
+  const M = ['jan.','fév.','mars','avr.','mai','juin',
+             'juil.','août','sept.','oct.','nov.','déc.'];
+  return `${d.getDate()} ${M[d.getMonth()]} ${d.getFullYear()}`;
+}
+function fmtTime(d) {
+  return d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+function nowStr() {
+  const n = new Date();
+  return `${fmtDate(n)} · ${fmtTime(n)}`;
+}
+
+/* ── IndexedDB ────────────────────────────────────── */
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('mory_boards_db', 2);
+    r.onsuccess           = () => res(r.result);
+    r.onerror             = () => rej(r.error);
+    r.onupgradeneeded     = e  => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('boards'))
+        db.createObjectStore('boards', { keyPath: 'id' });
+    };
+  });
+}
+
+async function loadFromDB() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction('boards', 'readonly');
+    const st = tx.objectStore('boards');
+    return new Promise(res => {
+      const r = st.getAll();
+      r.onsuccess = () => res(r.result || []);
+      r.onerror   = () => res([]);
+    });
+  } catch(e) { return []; }
+}
+
+function getLabelMap() {
+  try {
+    const list = JSON.parse(localStorage.getItem('mory_board_list') || '[]');
+    const m = {};
+    list.forEach(b => { m[b.id] = b.label || `Tableau ${b.id}`; });
+    return m;
+  } catch(e) { return {}; }
+}
+
+/* ── Render ───────────────────────────────────────── */
+function renderStrip() {
+  const strip   = document.getElementById('strip');
+  const wrapper = document.getElementById('strip-wrapper');
+  strip.innerHTML = '';
+
+  const n = displayBoards.length;
+  const countEl = document.getElementById('board-count');
+  countEl.textContent = n === 0 ? '' : `${n} tableau${n > 1 ? 'x' : ''}`;
+
+  if (n === 0) {
+    document.getElementById('empty-state').classList.add('show');
+    return;
+  }
+  document.getElementById('empty-state').classList.remove('show');
+
+  /* Adapt vertical step so the diagonal always fits in the visible area */
+  const maxDiag   = Math.floor(wrapper.clientHeight * 0.68);
+  const stepY     = n > 1 ? Math.min(STEP_Y, Math.floor(maxDiag / (n - 1))) : STEP_Y;
+
+  /* Strip bounding box */
+  const totalW = PAD_L + (n - 1) * STEP_X + CARD_W + PAD_TRAIL;
+  const totalH = (n - 1) * stepY + CARD_H + 24;
+  strip.style.width  = totalW + 'px';
+  strip.style.height = totalH + 'px';
+
+  displayBoards.forEach((board, i) => {
+    const card = document.createElement('div');
+    card.className = 'board-card';
+
+    /* Diagonal positioning: rightmost cards are higher (smaller y) */
+    const x = PAD_L + i * STEP_X;
+    const y = (n - 1 - i) * stepY;
+    card.style.left   = x + 'px';
+    card.style.top    = y + 'px';
+    card.style.zIndex = String(i + 1);
+
+    /* Face — cercle inset néomorphique */
+    const face  = document.createElement('div');
+    face.className = 'card-face';
+    const inner = document.createElement('div');
+    inner.className = 'card-face-inner';
+
+    const num = document.createElement('div');
+    num.className = 'card-num';
+    num.textContent = board.id;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'card-lbl';
+    lbl.textContent = board.label;
+
+    inner.appendChild(num);
+    inner.appendChild(lbl);
+    face.appendChild(inner);
+    card.appendChild(face);
+
+    /* Thumbnail (shown on hover) */
+    const src = board.canvasPNG || board.thumbnail || null;
+    if (src) {
+      const img = document.createElement('img');
+      img.className = 'card-thumb';
+      img.alt       = board.label;
+      if (typeof src === 'string') {
+        img.src = src;
+      } else if (src instanceof Blob) {
+        img.src = URL.createObjectURL(src);
+      }
+      card.appendChild(img);
+    }
+
+    /* Overlay */
+    const ov = document.createElement('div');
+    ov.className   = 'card-overlay';
+    ov.textContent = board.label;
+    card.appendChild(ov);
+
+    /* Hover → top-right info */
+    card.addEventListener('mouseenter', () => {
+      document.getElementById('bi-name').textContent = board.label;
+      document.getElementById('bi-date').textContent = nowStr();
+    });
+    card.addEventListener('mouseleave', () => {
+      document.getElementById('bi-name').textContent = '—';
+      document.getElementById('bi-date').textContent = '—';
+    });
+
+    strip.appendChild(card);
+  });
+}
+
+/* ── Sort / filter ────────────────────────────────── */
+function applySort() {
+  let boards = [...allBoards];
+
+  if (searchQ) {
+    const q = searchQ.toLowerCase();
+    boards = boards.filter(b => b.label.toLowerCase().includes(q));
+  }
+
+  boards.sort((a, b) =>
+    currentSort === 'oldest' ? a.id - b.id : b.id - a.id
+  );
+
+  displayBoards = boards;
+  scrollOffset  = 0;
+  applyScroll();
+  renderStrip();
+}
+
+/* ── Scroll ───────────────────────────────────────── */
+function applyScroll() {
+  const strip   = document.getElementById('strip');
+  const wrapper = document.getElementById('strip-wrapper');
+  const maxOff  = Math.max(0, (strip.offsetWidth || 0) - wrapper.offsetWidth + 40);
+  scrollOffset  = Math.max(0, Math.min(scrollOffset, maxOff));
+  strip.style.transform = `translateX(${-scrollOffset}px)`;
+}
+
+function initDrag() {
+  const wrapper = document.getElementById('strip-wrapper');
+  let dragging = false, startX = 0, startOff = 0;
+
+  const begin = (x) => {
+    dragging = true;
+    startX   = x;
+    startOff = scrollOffset;
+    wrapper.classList.add('grabbing');
+  };
+  const move = (x) => {
+    if (!dragging) return;
+    scrollOffset = startOff - (x - startX);
+    applyScroll();
+  };
+  const end = () => {
+    dragging = false;
+    wrapper.classList.remove('grabbing');
+  };
+
+  wrapper.addEventListener('mousedown', e => begin(e.clientX));
+  document.addEventListener('mousemove', e => move(e.clientX));
+  document.addEventListener('mouseup',   end);
+
+  wrapper.addEventListener('wheel', e => {
+    e.preventDefault();
+    scrollOffset += (e.deltaX + e.deltaY) * 0.85;
+    applyScroll();
+  }, { passive: false });
+
+  let tOff = 0;
+  wrapper.addEventListener('touchstart', e => {
+    tOff = scrollOffset;
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+  wrapper.addEventListener('touchmove', e => {
+    e.preventDefault();
+    scrollOffset = tOff - (e.touches[0].clientX - startX);
+    applyScroll();
+  }, { passive: false });
+}
+
+/* ── Sort panel ───────────────────────────────────── */
+function initSortPanel() {
+  /* Search toggle */
+  document.getElementById('search-btn').addEventListener('click', () => {
+    const inp = document.getElementById('search-inp');
+    inp.classList.toggle('open');
+    if (inp.classList.contains('open')) inp.focus();
+    else { inp.value = ''; searchQ = ''; applySort(); }
+  });
+  document.getElementById('search-inp').addEventListener('input', e => {
+    searchQ = e.target.value.trim();
+    applySort();
+  });
+
+  /* Sort buttons */
+  document.querySelectorAll('.sitem[data-sort]').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.sitem').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      currentSort = el.dataset.sort;
+      applySort();
+    });
+  });
+
+  /* Expandable groups */
+  document.querySelectorAll('.sitem[data-expand]').forEach(el => {
+    el.addEventListener('click', () => {
+      el.classList.toggle('open');
+      document.getElementById(`ssub-${el.dataset.expand}`).classList.toggle('open');
+    });
+  });
+
+  /* Sub-items (filter by class/matiere — metadata not stored yet, show all) */
+  document.querySelectorAll('.sitem.sub').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.sitem').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      currentSort = 'all';
+      applySort();
+    });
+  });
+}
+
+/* ── Scroll hint ──────────────────────────────────── */
+function initScrollHint() {
+  const hint = document.getElementById('scroll-hint');
+  let gone = false;
+  const hide = () => { if (!gone) { gone = true; hint.classList.add('fade'); } };
+  document.getElementById('strip-wrapper').addEventListener('wheel', hide, { once: true });
+  document.getElementById('strip-wrapper').addEventListener('mousedown', hide, { once: true });
+  setTimeout(hide, 5500);
+}
+
+/* ── Bootstrap ────────────────────────────────────── */
+async function init() {
+  const labels   = getLabelMap();
+  const dbBoards = await loadFromDB();
+
+  allBoards = dbBoards.map(b => ({
+    ...b,
+    label: labels[b.id] || b.label || `Tableau ${b.id}`
+  }));
+
+  /* Fallback: boards listed only in localStorage */
+  if (allBoards.length === 0) {
+    try {
+      const list = JSON.parse(localStorage.getItem('mory_board_list') || '[]');
+      allBoards = list.map(b => ({
+        id:        b.id,
+        label:     b.label || `Tableau ${b.id}`,
+        thumbnail: b.thumbnail || null,
+        canvasPNG: null
+      }));
+    } catch(e) {}
+  }
+
+  /* Compléter jusqu'à 100 cartes vides pour les tests visuels */
+  {
+    const DEMO_TOTAL = 100;
+    const used = new Set(allBoards.map(b => b.id));
+    for (let i = 1; allBoards.length < DEMO_TOTAL; i++) {
+      if (!used.has(i)) {
+        allBoards.push({ id: i, label: `Tableau ${i}`, thumbnail: null, canvasPNG: null });
+        used.add(i);
+      }
+    }
+  }
+
+  applySort();
+  initDrag();
+  initSortPanel();
+  initScrollHint();
+}
+
+init();
+</script>
+</body>
+</html>
