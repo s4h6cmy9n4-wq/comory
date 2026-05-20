@@ -868,6 +868,8 @@ body {
         visibility: hidden;
         position: fixed !important;
         bottom: unset !important;
+        left: unset !important;
+        top: unset !important;
         z-index: 500;
     }
     body.mobile-roue-visible #roue-conteneur {

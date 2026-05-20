@@ -6311,10 +6311,11 @@ function mettreAJourArrondi() {
             startY = e.touches[0].clientY;
             holdTimer = setTimeout(() => {
                 const half = (roue.offsetWidth || 180) / 2;
-                roue.style.left = (startX - half) + 'px';
-                roue.style.top  = (startY - half) + 'px';
+                // setProperty 'important' écrase tout CSS y compris !important
+                roue.style.setProperty('left', (startX - half) + 'px', 'important');
+                roue.style.setProperty('top',  (startY - half) + 'px', 'important');
                 document.body.classList.add('mobile-roue-visible');
-                roue.classList.add('ouvert'); // ouvrir la roue
+                roue.classList.add('ouvert');
             }, 1500);
         }, { passive: true });
 
