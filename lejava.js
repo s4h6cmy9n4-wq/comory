@@ -6299,28 +6299,38 @@ function mettreAJourArrondi() {
 
     })();
 
-    // ── Mobile : contrôles au maintien tactile ──────────────────────────────
+    // ── Mobile : roue sous le doigt au maintien (1,5 s) ────────────────────
     (function initMobileTouch() {
         if (!window.matchMedia('(max-width: 768px)').matches) return;
+        const roue = document.getElementById('roue-conteneur');
         let holdTimer = null;
-        document.addEventListener('touchstart', () => {
+
+        document.addEventListener('touchstart', (e) => {
+            const x = e.touches[0].clientX;
+            const y = e.touches[0].clientY;
             holdTimer = setTimeout(() => {
-                document.body.classList.add('mobile-ui-visible');
-            }, 300);
+                const half = roue.offsetWidth / 2;
+                roue.style.left = (x - half) + 'px';
+                roue.style.top  = (y - half) + 'px';
+                document.body.classList.add('mobile-roue-visible');
+            }, 1500);
         }, { passive: true });
+
         document.addEventListener('touchmove', () => {
             clearTimeout(holdTimer);
             holdTimer = null;
         }, { passive: true });
+
         document.addEventListener('touchend', () => {
             clearTimeout(holdTimer);
             holdTimer = null;
-            document.body.classList.remove('mobile-ui-visible');
+            document.body.classList.remove('mobile-roue-visible');
         });
+
         document.addEventListener('touchcancel', () => {
             clearTimeout(holdTimer);
             holdTimer = null;
-            document.body.classList.remove('mobile-ui-visible');
+            document.body.classList.remove('mobile-roue-visible');
         });
     })();
 
