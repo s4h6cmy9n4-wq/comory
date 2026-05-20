@@ -6299,19 +6299,29 @@ function mettreAJourArrondi() {
 
     })();
 
-    // ── Mobile : roue sous le doigt au maintien (1,5 s) ────────────────────
+    // ── Mobile : roue sous le doigt (1,5 s) + sélection par glissement ─────
     (function initMobileTouch() {
         if (!window.matchMedia('(max-width: 768px)').matches) return;
         const roue = document.getElementById('roue-conteneur');
         let holdTimer = null;
         let startX = 0, startY = 0;
+        let lastPath = null; // segment SVG actuellement survolé
+
+        function fireMouseOn(el, type) {
+            if (el) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
+        }
+
+        function pathUnder(x, y) {
+            const el = document.elementFromPoint(x, y);
+            if (!el) return null;
+            return el.tagName === 'path' ? el : (el.closest ? el.closest('path') : null);
+        }
 
         document.addEventListener('touchstart', (e) => {
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
             holdTimer = setTimeout(() => {
                 const half = (roue.offsetWidth || 180) / 2;
-                // setProperty 'important' écrase tout CSS y compris !important
                 roue.style.setProperty('left', (startX - half) + 'px', 'important');
                 roue.style.setProperty('top',  (startY - half) + 'px', 'important');
                 document.body.classList.add('mobile-roue-visible');
@@ -6319,30 +6329,45 @@ function mettreAJourArrondi() {
             }, 1500);
         }, { passive: true });
 
-        // Annuler seulement si le doigt se déplace vraiment (> 10px)
         document.addEventListener('touchmove', (e) => {
-            if (!holdTimer) return;
-            const dx = e.touches[0].clientX - startX;
-            const dy = e.touches[0].clientY - startY;
-            if (Math.sqrt(dx * dx + dy * dy) > 10) {
-                clearTimeout(holdTimer);
-                holdTimer = null;
+            const x = e.touches[0].clientX;
+            const y = e.touches[0].clientY;
+
+            if (!document.body.classList.contains('mobile-roue-visible')) {
+                // Roue pas encore visible : annuler si déplacement > 10 px
+                if (!holdTimer) return;
+                if (Math.hypot(x - startX, y - startY) > 10) {
+                    clearTimeout(holdTimer);
+                    holdTimer = null;
+                }
+                return;
+            }
+
+            // Roue visible : simuler le survol du segment sous le doigt
+            const p = pathUnder(x, y);
+            if (p !== lastPath) {
+                fireMouseOn(lastPath, 'mouseleave');
+                fireMouseOn(p, 'mouseenter');
+                lastPath = p;
             }
         }, { passive: true });
 
-        document.addEventListener('touchend', () => {
+        function closeRoue(changedTouch) {
+            // Cliquer sur le segment final si le doigt était sur un segment
+            if (changedTouch && document.body.classList.contains('mobile-roue-visible')) {
+                const p = pathUnder(changedTouch.clientX, changedTouch.clientY);
+                if (p) fireMouseOn(p, 'click');
+            }
+            fireMouseOn(lastPath, 'mouseleave');
+            lastPath = null;
             clearTimeout(holdTimer);
             holdTimer = null;
             document.body.classList.remove('mobile-roue-visible');
             roue.classList.remove('ouvert');
-        });
+        }
 
-        document.addEventListener('touchcancel', () => {
-            clearTimeout(holdTimer);
-            holdTimer = null;
-            document.body.classList.remove('mobile-roue-visible');
-            roue.classList.remove('ouvert');
-        });
+        document.addEventListener('touchend',    (e) => closeRoue(e.changedTouches[0]));
+        document.addEventListener('touchcancel', ()  => closeRoue(null));
     })();
 
 }); // Fin du DOMContentLoaded
