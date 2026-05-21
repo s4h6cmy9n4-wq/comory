@@ -30,3 +30,6 @@ Archivage automatique. Fichiers modifiés : lehtml.html, leCSS.css, lejava.js. V
 
 ### Archive 20 — 2026-05-20
 Archivage automatique. Fichiers modifiés : lehtml.html, leCSS.css, lejava.js. Voir changelog.pdf dans /archive/archive 20/.
+
+### Archive 21 — 2026-05-21
+Archivage automatique. Fichiers modifiés : index.html, leCSS.css, lejava.js, archive.html, projection.html, favicon.svg, .gitignore. Voir changelog.pdf dans /archive/archive 21/.

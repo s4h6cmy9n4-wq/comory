@@ -228,6 +228,21 @@ document.addEventListener('DOMContentLoaded', () => {
             planDeTravail.style.transform = `translate(${currentTx}px, ${currentTy}px) scale(${currentScale})`;
         };
         window.mobileStopPan = () => { isPanning = false; };
+
+        // Tap mobile → sélectionner l'objet sous le doigt
+        window.mobileTap = (clientX, clientY) => {
+            if (window.activeToolMode) return;
+            const rect = draftCanvas.getBoundingClientRect();
+            const cx = (clientX - rect.left) / currentScale;
+            const cy = (clientY - rect.top)  / currentScale;
+            const hit = hitTestAny(cx, cy);
+            if (hit) {
+                afficherSelection([hit]);
+                majActionPanel();
+            } else {
+                if (selectedObjects.length > 0) masquerSelection();
+            }
+        };
         let shapeStartX = 0, shapeStartY = 0;
         let isSelecting = false, selectStartX = 0, selectStartY = 0, selectCurX = 0, selectCurY = 0;
         let lastPinchCenter = {x: 0, y: 0};
@@ -1295,6 +1310,58 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // ── Déplacement via touch mobile ──────────────────────────────────────
+        imgOverlay.addEventListener('touchstart', (e) => {
+            if (e.target.dataset.corner || e.target.dataset.rotate) return;
+            if (e.touches.length !== 1 || selectedObjects.length === 0) return;
+            e.stopPropagation(); // empêche initMobileTouch de démarrer le pan
+            window.mobileObjectDragging = true;
+            isDraggingImage = true;
+            [imgDragStartX, imgDragStartY] = getPos(e);
+            selectedObjects.forEach(o => { o._origX = o.x; o._origY = o.y; });
+            if (selectedObjects.length === 1) {
+                imgOrigX = selectedObjects[0].x;
+                imgOrigY = selectedObjects[0].y;
+            }
+        }, { passive: true });
+
+        imgOverlay.addEventListener('touchmove', (e) => {
+            if (!isDraggingImage || selectedObjects.length === 0) return;
+            if (e.touches.length !== 1) return;
+            const touch = e.touches[0];
+            const rect = draftCanvas.getBoundingClientRect();
+            const cx = (touch.clientX - rect.left) / currentScale;
+            const cy = (touch.clientY - rect.top)  / currentScale;
+            const ddx = cx - imgDragStartX, ddy = cy - imgDragStartY;
+            if (selectedObjects.length === 1) {
+                const obj = selectedObjects[0];
+                obj.x = imgOrigX + ddx;
+                obj.y = imgOrigY + ddy;
+                appliquerMouvement(obj);
+            } else {
+                selectedObjects.forEach(obj => {
+                    if (obj._origX !== undefined) {
+                        obj.x = obj._origX + ddx;
+                        obj.y = obj._origY + ddy;
+                        mettreAJourElement(obj);
+                    }
+                });
+                positionnerOverlay(computeBB(selectedObjects));
+            }
+        }, { passive: true });
+
+        imgOverlay.addEventListener('touchend', () => {
+            if (isDraggingImage) {
+                isDraggingImage = false;
+                window.mobileObjectDragging = false;
+                saveState();
+            }
+        });
+
+        imgOverlay.addEventListener('touchcancel', () => {
+            if (isDraggingImage) { isDraggingImage = false; window.mobileObjectDragging = false; }
+        });
+
         // ── Double-clic sur un tableau → session d'édition des cellules ─────
         imgOverlay.addEventListener('dblclick', (e) => {
             if (selectedObjects.length !== 1) return;
@@ -1387,6 +1454,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 [imgDragStartX, imgDragStartY] = getPos(e);
                 const obj = selectedObjects[0];
                 imgOrigX = obj.x; imgOrigY = obj.y; imgOrigW = obj.w; imgOrigH = obj.h;
+            });
+        });
+
+        // ── Redimensionnement via touch mobile ────────────────────────────────
+        ['nw','ne','sw','se'].forEach(c => {
+            handleEls[c].addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1 || selectedObjects.length !== 1) return;
+                e.stopPropagation();
+                const obj = selectedObjects[0];
+                isResizingImage = true;
+                activeCorner = c;
+                window.mobileObjectDragging = true;
+                const touch = e.touches[0];
+                const rect = draftCanvas.getBoundingClientRect();
+                imgDragStartX = (touch.clientX - rect.left) / currentScale;
+                imgDragStartY = (touch.clientY - rect.top)  / currentScale;
+                imgOrigX = obj.x; imgOrigY = obj.y;
+                imgOrigW = obj.w; imgOrigH = obj.h;
+            }, { passive: true });
+
+            handleEls[c].addEventListener('touchmove', (e) => {
+                if (!isResizingImage || selectedObjects.length !== 1 || !activeCorner) return;
+                if (e.touches.length !== 1) return;
+                const obj = selectedObjects[0];
+                const touch = e.touches[0];
+                const rect = draftCanvas.getBoundingClientRect();
+                const cx = (touch.clientX - rect.left) / currentScale;
+                const cy = (touch.clientY - rect.top)  / currentScale;
+                const dx = cx - imgDragStartX, dy = cy - imgDragStartY;
+
+                let rawW = imgOrigW, rawH = imgOrigH;
+                if (activeCorner.includes('e')) rawW = imgOrigW + dx;
+                if (activeCorner.includes('w')) rawW = imgOrigW - dx;
+                if (activeCorner.includes('s')) rawH = imgOrigH + dy;
+                if (activeCorner.includes('n')) rawH = imgOrigH - dy;
+
+                const nw = Math.max(20, rawW);
+                const nh = Math.max(20, rawH);
+                const nx = activeCorner.includes('w') ? imgOrigX + imgOrigW - nw : imgOrigX;
+                const ny = activeCorner.includes('n') ? imgOrigY + imgOrigH - nh : imgOrigY;
+                obj.x = nx; obj.y = ny; obj.w = nw; obj.h = nh;
+                if (obj.type === 'text' && obj._text) reRenderText(obj);
+                appliquerMouvement(obj);
+            }, { passive: true });
+
+            handleEls[c].addEventListener('touchend', () => {
+                if (isResizingImage) {
+                    isResizingImage = false; activeCorner = null;
+                    window.mobileObjectDragging = false;
+                    saveState();
+                }
+            });
+
+            handleEls[c].addEventListener('touchcancel', () => {
+                if (isResizingImage) {
+                    isResizingImage = false; activeCorner = null;
+                    window.mobileObjectDragging = false;
+                }
             });
         });
 
@@ -6361,6 +6486,8 @@ function mettreAJourArrondi() {
                 if (!roue.contains(el)) fermerRoueMobile();
                 return;
             }
+            // Pinch (2 doigts) → annuler le holdTimer, ne pas déclencher la roue
+            if (e.touches.length >= 2) { clearTimeout(holdTimer); holdTimer = null; return; }
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
             holdTimer = setTimeout(() => {
@@ -6385,8 +6512,8 @@ function mettreAJourArrondi() {
                         window.mobileStartPan(startX, startY);
                     }
                 }
-                // Continuer le pan si actif
-                if (!holdTimer && window.mobileUpdatePan && !window.activeToolMode) {
+                // Continuer le pan si actif (sauf si on déplace/redimensionne un objet)
+                if (!holdTimer && window.mobileUpdatePan && !window.activeToolMode && !window.mobileObjectDragging) {
                     window.mobileUpdatePan(x, y);
                 }
                 return;
@@ -6404,7 +6531,13 @@ function mettreAJourArrondi() {
             // Arrêter le pan mobile si actif
             if (window.mobileStopPan) window.mobileStopPan();
             if (!document.body.classList.contains('mobile-roue-visible')) {
-                clearTimeout(holdTimer); holdTimer = null; return;
+                const wasTap = holdTimer !== null;
+                clearTimeout(holdTimer); holdTimer = null;
+                // Tap rapide (doigt posé/levé sans bouger) → sélectionner l'objet sous le doigt
+                if (wasTap && e.changedTouches[0] && window.mobileTap) {
+                    window.mobileTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                }
+                return;
             }
             const touch = e.changedTouches[0];
             const p = pathUnder(touch.clientX, touch.clientY);

@@ -920,6 +920,12 @@ body {
         right: auto !important;
         bottom: auto !important;
     }
+
+    /* Poignées de resize : zone de touch plus grande sur mobile (44×44 min.) */
+    #plan-de-travail [data-corner] {
+        width: 44px !important;
+        height: 44px !important;
+    }
 }
 
 /* ══════════════════════════════════════════════════════════════
