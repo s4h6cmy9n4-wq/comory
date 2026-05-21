@@ -199,6 +199,9 @@ body {
    Le dôme s'enfonce à l'intérieur du socket au clic.
 ───────────────────────────────────────────────────────────── */
 
+/* Bouton logo mobile — caché par défaut (visible uniquement sur mobile via media query) */
+#mobile-logo-socket { display: none; }
+
 /* Boutons ronds top-bar — néomorphiques surélevés */
 .socket-bouton {
     width: 46px; height: 46px; border-radius: 50%;
@@ -852,8 +855,16 @@ body {
         visibility: hidden;
     }
 
-    /* Logo + import + œil + archive : boutons fixes en haut à gauche */
-    .socket-bouton:has(#btn-mobile-logo),
+    /* Bouton logo mobile : affiché en fixe (ID direct, pas de :has) */
+    #mobile-logo-socket {
+        display: flex;
+        visibility: visible;
+        position: fixed !important;
+        top: 16px; left: 16px;
+        z-index: 1001;
+    }
+
+    /* Import + œil + archive : toujours visibles, fixés en haut */
     .socket-bouton:has(#conteneur-fichier),
     .socket-bouton:has(#conteneur-oeil),
     .socket-bouton:has(#btn-archive) {
@@ -862,8 +873,7 @@ body {
         top: 16px;
         z-index: 1000;
     }
-    /* espacement régulier : logo=16px, +54px entre chaque bouton */
-    .socket-bouton:has(#btn-mobile-logo)   { left: 16px; }
+    /* logo=16px (46px) + 8px gap → import à 70px, œil à 124px, archive à 178px */
     .socket-bouton:has(#conteneur-fichier) { left: 70px; }
     .socket-bouton:has(#conteneur-oeil)    { left: 124px; }
     .socket-bouton:has(#btn-archive)       { left: 178px; }
