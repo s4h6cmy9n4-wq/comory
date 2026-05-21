@@ -5580,6 +5580,9 @@ function mettreAJourArrondi() {
 
         // Logo (canvas) → archive complète  |  btn-archive → archive rapide (géré ailleurs)
         if (logoTopBar) logoTopBar.addEventListener('click', openArchive);
+        // Bouton logo mobile → même action (ouvre l'archive complète)
+        const btnMobileLogo = document.getElementById('btn-mobile-logo');
+        if (btnMobileLogo) btnMobileLogo.addEventListener('click', openArchive);
         // Bouton retour dans l'overlay → ferme
         if (closeBtn)   closeBtn.addEventListener('click', closeArchive);
         // Echap → ferme

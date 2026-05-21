@@ -852,19 +852,8 @@ body {
         visibility: hidden;
     }
 
-    /* Logo favicon mobile — avant les boutons */
-    #mobile-logo {
-        visibility: visible;
-        position: fixed !important;
-        top: 16px; left: 16px;
-        z-index: 1001;
-        width: 46px; height: 46px;
-        display: flex; align-items: center; justify-content: center;
-        pointer-events: none;
-    }
-    #mobile-logo svg { width: 32px; height: auto; display: block; }
-
-    /* Import + œil + archive : toujours visibles, fixés en haut à gauche */
+    /* Logo + import + œil + archive : boutons fixes en haut à gauche */
+    .socket-bouton:has(#btn-mobile-logo),
     .socket-bouton:has(#conteneur-fichier),
     .socket-bouton:has(#conteneur-oeil),
     .socket-bouton:has(#btn-archive) {
@@ -873,10 +862,28 @@ body {
         top: 16px;
         z-index: 1000;
     }
-    /* logo=46px, gap=8px → import à 70px, œil à 124px, archive à 178px */
+    /* espacement régulier : logo=16px, +54px entre chaque bouton */
+    .socket-bouton:has(#btn-mobile-logo)   { left: 16px; }
     .socket-bouton:has(#conteneur-fichier) { left: 70px; }
     .socket-bouton:has(#conteneur-oeil)    { left: 124px; }
     .socket-bouton:has(#btn-archive)       { left: 178px; }
+
+    /* Style du bouton logo mobile */
+    #btn-mobile-logo {
+        width: 38px; height: 38px;
+        border-radius: 50%;
+        background: var(--bg);
+        border: none;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--text-mid);
+        box-shadow: var(--neu-flat);
+        transition: box-shadow 0.12s ease, color 0.12s;
+        padding: 0;
+        touch-action: manipulation;
+    }
+    #btn-mobile-logo svg { width: 26px; height: auto; display: block; }
+    #btn-mobile-logo:active { box-shadow: var(--neu-pressed); color: var(--flamme); }
 
     /* Roue : cachée par défaut, positionnée par JS sous le doigt */
     #roue-conteneur {
