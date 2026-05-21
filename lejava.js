@@ -5298,12 +5298,6 @@ function mettreAJourArrondi() {
         function schedClose() { closeTimer = setTimeout(fermer, 280); }
 
         btnArchive.addEventListener('click', () => {
-            // Mobile → archive plein écran
-            if (window.matchMedia('(max-width: 768px)').matches) {
-                const ov = document.getElementById('archive-overlay');
-                if (ov) ov.classList.toggle('ouvert');
-                return;
-            }
             if (carrousel.classList.contains('visible')) fermer();
             else open();
         });

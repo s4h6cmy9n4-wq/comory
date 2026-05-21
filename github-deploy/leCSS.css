@@ -890,6 +890,36 @@ body {
     body.mobile-roue-visible #roue-conteneur {
         visibility: visible;
     }
+
+    /* Archive rapide mobile : plein écran centré */
+    .tableau-carrousel.visible {
+        visibility: visible !important;
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100% !important;
+        top: 0 !important;
+        left: 0 !important;
+        background: var(--bg);
+        z-index: 900;
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        padding: 80px 0 24px; /* espace pour les boutons en haut */
+        clip-path: none !important;
+    }
+    /* Cartes centrées, taille adaptée au téléphone */
+    .tableau-carrousel.visible .tableau-liste {
+        width: min(72vw, 280px);
+        flex: 1;
+    }
+    /* Bouton + nouveau tableau */
+    .tableau-carrousel.visible .tableau-nouveau-btn {
+        position: relative !important;
+        right: auto !important;
+        bottom: auto !important;
+    }
 }
 
 /* ══════════════════════════════════════════════════════════════
