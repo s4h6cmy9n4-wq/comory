@@ -1032,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const SEL_PAD_PX = 30; // pixels écran constants
 
         const imgOverlay = document.createElement('div');
-        imgOverlay.style.cssText = 'position:absolute;display:none;z-index:6;box-sizing:border-box;cursor:move;overflow:visible;';
+        imgOverlay.style.cssText = 'position:absolute;display:none;z-index:6;box-sizing:border-box;cursor:move;overflow:visible;touch-action:none;';
         planDeTravail.appendChild(imgOverlay);
 
         // SVG de sélection style viseur/caméra (redrawn dynamiquement)
@@ -1107,7 +1107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Le rect vers lequel l'objet se déplace est en bleu
         const btnBack = document.createElement('button');
         btnBack.title = 'Reculer d\'un rang';
-        btnBack.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;';
+        btnBack.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:var(--text-dark,#1a1a1a);';
         btnBack.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="9" y="9" width="13" height="13" rx="2" fill="#ff4000" stroke="#ff4000" stroke-width="2"/>
             <rect x="2" y="2" width="13" height="13" rx="2" fill="var(--bg,#e8edf2)" stroke="currentColor" stroke-width="2"/>
@@ -1118,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Bouton 2 : Avancer d'un rang
         const btnFront = document.createElement('button');
         btnFront.title = 'Avancer d\'un rang';
-        btnFront.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;';
+        btnFront.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:var(--text-dark,#1a1a1a);';
         btnFront.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="9" y="9" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
             <rect x="2" y="2" width="13" height="13" rx="2" fill="#ff4000" stroke="#ff4000" stroke-width="2"/>
@@ -1129,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Bouton 3 : Supprimer la sélection
         const btnDelete = document.createElement('button');
         btnDelete.title = 'Supprimer la sélection';
-        btnDelete.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;color:#e03;';
+        btnDelete.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:#e03;';
         btnDelete.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -1142,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Bouton 4 : Dupliquer la sélection
         const btnDup = document.createElement('button');
         btnDup.title = 'Dupliquer';
-        btnDup.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;';
+        btnDup.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:var(--text-dark,#1a1a1a);';
         btnDup.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="8" y="8" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
             <path d="M3 16V5a2 2 0 0 1 2-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -1152,7 +1152,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const btnPdf = document.createElement('button');
         btnPdf.title = 'Ouvrir le PDF dans le Finder';
-        btnPdf.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:none;align-items:center;justify-content:center;transition:background 0.15s;';
+        btnPdf.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:none;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:var(--text-dark,#1a1a1a);';
         btnPdf.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>`;
         btnPdf.addEventListener('mouseenter', () => btnPdf.style.background = 'rgba(255,64,0,0.12)');
         btnPdf.addEventListener('mouseleave', () => btnPdf.style.background = 'transparent');
@@ -1310,56 +1310,90 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // ── Déplacement via touch mobile ──────────────────────────────────────
+        // ── Déplacement et redimensionnement via touch mobile ────────────────
+        // Tout passe par imgOverlay (les poignées de coin sont des enfants et
+        // leurs événements remontent ici via bubbling).
+        // touch-action:none sur imgOverlay → iOS ne capture pas le geste en scroll.
         imgOverlay.addEventListener('touchstart', (e) => {
-            if (e.target.dataset.corner || e.target.dataset.rotate) return;
             if (e.touches.length !== 1 || selectedObjects.length === 0) return;
-            e.stopPropagation(); // empêche initMobileTouch de démarrer le pan
-            window.mobileObjectDragging = true;
-            isDraggingImage = true;
-            [imgDragStartX, imgDragStartY] = getPos(e);
-            selectedObjects.forEach(o => { o._origX = o.x; o._origY = o.y; });
-            if (selectedObjects.length === 1) {
-                imgOrigX = selectedObjects[0].x;
-                imgOrigY = selectedObjects[0].y;
+            e.stopPropagation(); // empêche initMobileTouch de démarrer holdTimer/pan
+            const corner = e.target.dataset.corner; // 'nw','ne','sw','se' ou undefined
+            if (corner && selectedObjects.length === 1) {
+                // ── Mode resize ───────────────────────────────────────────────
+                const obj = selectedObjects[0];
+                const touch = e.touches[0];
+                const rect  = draftCanvas.getBoundingClientRect();
+                isResizingImage = true;
+                activeCorner    = corner;
+                window.mobileObjectDragging = true;
+                imgDragStartX = (touch.clientX - rect.left) / currentScale;
+                imgDragStartY = (touch.clientY - rect.top)  / currentScale;
+                imgOrigX = obj.x; imgOrigY = obj.y;
+                imgOrigW = obj.w; imgOrigH = obj.h;
+            } else if (!e.target.dataset.rotate) {
+                // ── Mode déplacement ──────────────────────────────────────────
+                isDraggingImage = true;
+                window.mobileObjectDragging = true;
+                [imgDragStartX, imgDragStartY] = getPos(e);
+                selectedObjects.forEach(o => { o._origX = o.x; o._origY = o.y; });
+                if (selectedObjects.length === 1) {
+                    imgOrigX = selectedObjects[0].x;
+                    imgOrigY = selectedObjects[0].y;
+                }
             }
         }, { passive: true });
 
         imgOverlay.addEventListener('touchmove', (e) => {
-            if (!isDraggingImage || selectedObjects.length === 0) return;
+            e.stopPropagation(); // empêche le pan du canvas pendant drag/resize
             if (e.touches.length !== 1) return;
             const touch = e.touches[0];
-            const rect = draftCanvas.getBoundingClientRect();
+            const rect  = draftCanvas.getBoundingClientRect();
             const cx = (touch.clientX - rect.left) / currentScale;
             const cy = (touch.clientY - rect.top)  / currentScale;
-            const ddx = cx - imgDragStartX, ddy = cy - imgDragStartY;
-            if (selectedObjects.length === 1) {
+
+            if (isResizingImage && selectedObjects.length === 1 && activeCorner) {
                 const obj = selectedObjects[0];
-                obj.x = imgOrigX + ddx;
-                obj.y = imgOrigY + ddy;
+                const dx = cx - imgDragStartX, dy = cy - imgDragStartY;
+                let rawW = imgOrigW, rawH = imgOrigH;
+                if (activeCorner.includes('e')) rawW = imgOrigW + dx;
+                if (activeCorner.includes('w')) rawW = imgOrigW - dx;
+                if (activeCorner.includes('s')) rawH = imgOrigH + dy;
+                if (activeCorner.includes('n')) rawH = imgOrigH - dy;
+                const nw = Math.max(20, rawW), nh = Math.max(20, rawH);
+                const nx = activeCorner.includes('w') ? imgOrigX + imgOrigW - nw : imgOrigX;
+                const ny = activeCorner.includes('n') ? imgOrigY + imgOrigH - nh : imgOrigY;
+                obj.x = nx; obj.y = ny; obj.w = nw; obj.h = nh;
+                if (obj.type === 'text' && obj._text) reRenderText(obj);
                 appliquerMouvement(obj);
-            } else {
-                selectedObjects.forEach(obj => {
-                    if (obj._origX !== undefined) {
-                        obj.x = obj._origX + ddx;
-                        obj.y = obj._origY + ddy;
-                        mettreAJourElement(obj);
-                    }
-                });
-                positionnerOverlay(computeBB(selectedObjects));
+            } else if (isDraggingImage && selectedObjects.length > 0) {
+                const ddx = cx - imgDragStartX, ddy = cy - imgDragStartY;
+                if (selectedObjects.length === 1) {
+                    const obj = selectedObjects[0];
+                    obj.x = imgOrigX + ddx; obj.y = imgOrigY + ddy;
+                    appliquerMouvement(obj);
+                } else {
+                    selectedObjects.forEach(obj => {
+                        if (obj._origX !== undefined) {
+                            obj.x = obj._origX + ddx; obj.y = obj._origY + ddy;
+                            mettreAJourElement(obj);
+                        }
+                    });
+                    positionnerOverlay(computeBB(selectedObjects));
+                }
             }
         }, { passive: true });
 
         imgOverlay.addEventListener('touchend', () => {
-            if (isDraggingImage) {
-                isDraggingImage = false;
+            if (isDraggingImage || isResizingImage) {
+                isDraggingImage = false; isResizingImage = false; activeCorner = null;
                 window.mobileObjectDragging = false;
                 saveState();
             }
         });
 
         imgOverlay.addEventListener('touchcancel', () => {
-            if (isDraggingImage) { isDraggingImage = false; window.mobileObjectDragging = false; }
+            isDraggingImage = false; isResizingImage = false; activeCorner = null;
+            window.mobileObjectDragging = false;
         });
 
         // ── Double-clic sur un tableau → session d'édition des cellules ─────
@@ -1454,64 +1488,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 [imgDragStartX, imgDragStartY] = getPos(e);
                 const obj = selectedObjects[0];
                 imgOrigX = obj.x; imgOrigY = obj.y; imgOrigW = obj.w; imgOrigH = obj.h;
-            });
-        });
-
-        // ── Redimensionnement via touch mobile ────────────────────────────────
-        ['nw','ne','sw','se'].forEach(c => {
-            handleEls[c].addEventListener('touchstart', (e) => {
-                if (e.touches.length !== 1 || selectedObjects.length !== 1) return;
-                e.stopPropagation();
-                const obj = selectedObjects[0];
-                isResizingImage = true;
-                activeCorner = c;
-                window.mobileObjectDragging = true;
-                const touch = e.touches[0];
-                const rect = draftCanvas.getBoundingClientRect();
-                imgDragStartX = (touch.clientX - rect.left) / currentScale;
-                imgDragStartY = (touch.clientY - rect.top)  / currentScale;
-                imgOrigX = obj.x; imgOrigY = obj.y;
-                imgOrigW = obj.w; imgOrigH = obj.h;
-            }, { passive: true });
-
-            handleEls[c].addEventListener('touchmove', (e) => {
-                if (!isResizingImage || selectedObjects.length !== 1 || !activeCorner) return;
-                if (e.touches.length !== 1) return;
-                const obj = selectedObjects[0];
-                const touch = e.touches[0];
-                const rect = draftCanvas.getBoundingClientRect();
-                const cx = (touch.clientX - rect.left) / currentScale;
-                const cy = (touch.clientY - rect.top)  / currentScale;
-                const dx = cx - imgDragStartX, dy = cy - imgDragStartY;
-
-                let rawW = imgOrigW, rawH = imgOrigH;
-                if (activeCorner.includes('e')) rawW = imgOrigW + dx;
-                if (activeCorner.includes('w')) rawW = imgOrigW - dx;
-                if (activeCorner.includes('s')) rawH = imgOrigH + dy;
-                if (activeCorner.includes('n')) rawH = imgOrigH - dy;
-
-                const nw = Math.max(20, rawW);
-                const nh = Math.max(20, rawH);
-                const nx = activeCorner.includes('w') ? imgOrigX + imgOrigW - nw : imgOrigX;
-                const ny = activeCorner.includes('n') ? imgOrigY + imgOrigH - nh : imgOrigY;
-                obj.x = nx; obj.y = ny; obj.w = nw; obj.h = nh;
-                if (obj.type === 'text' && obj._text) reRenderText(obj);
-                appliquerMouvement(obj);
-            }, { passive: true });
-
-            handleEls[c].addEventListener('touchend', () => {
-                if (isResizingImage) {
-                    isResizingImage = false; activeCorner = null;
-                    window.mobileObjectDragging = false;
-                    saveState();
-                }
-            });
-
-            handleEls[c].addEventListener('touchcancel', () => {
-                if (isResizingImage) {
-                    isResizingImage = false; activeCorner = null;
-                    window.mobileObjectDragging = false;
-                }
             });
         });
 
@@ -5580,9 +5556,6 @@ function mettreAJourArrondi() {
 
         // Logo (canvas) → archive complète  |  btn-archive → archive rapide (géré ailleurs)
         if (logoTopBar) logoTopBar.addEventListener('click', openArchive);
-        // Bouton logo mobile → même action (ouvre l'archive complète)
-        const btnMobileLogo = document.getElementById('btn-mobile-logo');
-        if (btnMobileLogo) btnMobileLogo.addEventListener('click', openArchive);
         // Bouton retour dans l'overlay → ferme
         if (closeBtn)   closeBtn.addEventListener('click', closeArchive);
         // Echap → ferme
