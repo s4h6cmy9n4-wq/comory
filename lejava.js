@@ -90,6 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 objs: serializePlacedObjects()
             });
             broadcastState();
+            // Déclencher la sync Firebase (debounce 4 s, no-op si sync désactivé)
+            window._syncSchedule?.();
         }
         function restoreState(step) {
             const { imageData, objs } = history[step];
@@ -5378,6 +5380,9 @@ function mettreAJourArrondi() {
                     await openBoard(board.id);
                     isSwitching = false;
                     render();
+                    // Sync : écouter le nouveau tableau + notifier les autres appareils
+                    window._syncListenBoard?.(board.id);
+                    document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: board.id } }));
                 });
 
                 positionCard(card, d);
@@ -5524,6 +5529,9 @@ function mettreAJourArrondi() {
             await openBoard(id);
             isSwitching = false;
             render();
+            // Sync : écouter le nouveau tableau + notifier les autres appareils
+            window._syncListenBoard?.(id);
+            document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: id } }));
         };
 
         // ── Init — charger les vignettes puis rendre ───────────────────────────

@@ -258,7 +258,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<!-- Firebase compat SDK (Realtime Database) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<!-- Sync temps réel — config puis moteur -->
+<script src="sync-config.js"></script>
+<script src="sync.js"></script>
 <script src="lejava.js"></script>
+<!-- Indicateur de connexion sync (petit point) -->
+<div id="sync-dot" style="position:fixed;bottom:14px;right:14px;width:8px;height:8px;border-radius:50%;background:#94a3b8;z-index:9999;transition:background .4s;pointer-events:none;" title="Sync"></div>
 
 </body>
 </html>
