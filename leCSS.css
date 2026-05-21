@@ -841,6 +841,9 @@ body {
 
 /* ── Mobile : boutons toujours visibles, roue sous le doigt au maintien ── */
 @media (max-width: 768px) {
+    /* Désactiver le zoom double-tap du navigateur */
+    html, body { touch-action: manipulation; }
+
     /* Bloquer la sélection native iOS (menu Copier/Chercher/Traduire) */
     body, .mon-conteneur, canvas {
         -webkit-user-select: none;
@@ -922,20 +925,33 @@ body {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0;
-        padding: 80px 0 24px; /* espace pour les boutons en haut */
+        gap: 28px;          /* espace entre la liste et le bouton + */
+        padding: 80px 0 32px;
         clip-path: none !important;
     }
-    /* Cartes centrées, taille adaptée au téléphone */
+    /* Liste de cartes : hauteur fixe (les cartes sont position:absolute dedans) */
     .tableau-carrousel.visible .tableau-liste {
         width: min(72vw, 280px);
-        flex: 1;
+        flex: none;
+        height: 56vh;
     }
-    /* Bouton + nouveau tableau */
+    /* Bouton + nouveau tableau — annule tout le positionnement desktop */
     .tableau-carrousel.visible .tableau-nouveau-btn {
         position: relative !important;
         right: auto !important;
         bottom: auto !important;
+        top: auto !important;
+        transform: none !important;
+        flex-shrink: 0;
+        width: 48px !important;
+        height: 48px !important;
+        -webkit-appearance: none;
+        appearance: none;
+        touch-action: manipulation;
+    }
+    .tableau-carrousel.visible .tableau-nouveau-btn svg {
+        width: 18px !important;
+        height: 18px !important;
     }
 
     /* Poignées de resize : zone de touch plus grande sur mobile (44×44 min.) */
