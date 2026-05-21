@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projection — mory</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #eee7e7; }
+        body { display: flex; align-items: center; justify-content: center; }
+        canvas { display: block; }
+        #waiting {
+            position: fixed; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 14px; pointer-events: none;
+        }
+        #waiting svg { opacity: 0.18; }
+        #waiting span {
+            font: 400 14px/1 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: rgba(0,0,0,0.28); letter-spacing: 0.04em;
+        }
+        /* Bouton tableau blanc — apparaît au survol */
+        #btn-blanc {
+            position: fixed; bottom: 16px; right: 16px;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(255,255,255,0.6);
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.25s ease;
+            z-index: 100; color: rgba(0,0,0,0.45);
+            box-shadow: 0 1px 8px rgba(0,0,0,0.14);
+        }
+        body:hover #btn-blanc { opacity: 1; }
+        #btn-blanc svg { width: 18px; height: 18px; stroke-width: 2; }
+    </style>
+</head>
+<body>
+    <canvas id="proj"></canvas>
+
+    <div id="waiting">
+        <svg width="40" height="26" viewBox="0 0 109.28 71.85" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#262623" d="M73.52,0c-6.93,0-13.4,1.98-18.88,5.4l-.21.13c-8.21,5.12-13.99,13.34-15.96,23.15-.46,2.29-.7,4.65-.7,7.08s.24,4.79.7,7.08c-.84.32-1.75.51-2.71.51-4.19,0-7.59-3.4-7.59-7.59,0-3.95,3.02-7.19,6.88-7.55,0-.01,0-.02,0-.04,0-10.47,4.5-19.89,11.68-26.43-3.46-1.12-7.14-1.74-10.97-1.74C16.01,0,0,16.01,0,35.76s16.01,35.76,35.76,35.76c6.93,0,13.4-1.98,18.88-5.4,5.48,3.42,11.95,5.4,18.88,5.4,19.75,0,35.76-16.01,35.76-35.76S93.27,0,73.52,0ZM73.62,43.34c-.96,0-1.87-.18-2.71-.51.46-2.29.7-4.65.7-7.08s-.24-4.79-.7-7.08c.84-.32,1.75-.51,2.71-.51,4.19,0,7.59,3.4,7.59,7.59s-3.4,7.59-7.59,7.59Z"/>
+        </svg>
+        <span>En attente du tableau…</span>
+    </div>
+
+    <!-- Bouton tableau blanc : survol pour faire apparaître -->
+    <button id="btn-blanc" title="Tableau blanc / Reprendre">
+        <svg class="ico-ouvert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+        <svg class="ico-ferme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+            <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+    </button>
+
+    <script>
+    (() => {
+        const canvas     = document.getElementById('proj');
+        const ctx        = canvas.getContext('2d');
+        const waiting    = document.getElementById('waiting');
+        const btnBlanc   = document.getElementById('btn-blanc');
+        const icoOuvert  = btnBlanc.querySelector('.ico-ouvert');
+        const icoFerme   = btnBlanc.querySelector('.ico-ferme');
+        const SIZE       = 2500;
+
+        let lastBg    = '#eee7e7';
+        let lastObjs  = [];
+        let lastDraft = null;
+        let dirty     = false;
+        let blankMode = false;  // true = tableau blanc affiché
+
+        // ── Bouton tableau blanc ──────────────────────────────────────────────
+        btnBlanc.addEventListener('click', () => {
+            blankMode = !blankMode;
+            icoOuvert.style.display = blankMode ? 'none' : '';
+            icoFerme.style.display  = blankMode ? ''     : 'none';
+
+            if (blankMode) {
+                // Afficher un fond blanc vide
+                document.body.style.background = '#ffffff';
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width || window.innerWidth, canvas.height || window.innerHeight);
+            } else {
+                // Reprendre l'affichage du tableau reçu
+                document.body.style.background = lastBg;
+                if (!dirty) { dirty = true; requestAnimationFrame(render); }
+            }
+        });
+
+        // ── BroadcastChannel ─────────────────────────────────────────────────
+        const ch = new BroadcastChannel('mory_projection');
+
+        ch.onmessage = e => {
+            if (e.data.type === 'proj_blank') {
+                waiting.style.display = 'none';
+                lastObjs  = [];
+                lastDraft = null;
+                lastBg    = '#ffffff';
+                if (!blankMode) {
+                    document.body.style.background = '#ffffff';
+                    if (!dirty) { dirty = true; requestAnimationFrame(render); }
+                }
+                return;
+            }
+            if (e.data.type !== 'proj') return;
+            lastBg    = e.data.bg    || '#eee7e7';
+            lastObjs  = e.data.objs  || [];
+            lastDraft = e.data.draft || null;
+            waiting.style.display = 'none';
+            // Ne mettre à jour l'affichage que si on n'est pas en mode tableau blanc
+            if (!blankMode) {
+                document.body.style.background = lastBg;
+                if (!dirty) { dirty = true; requestAnimationFrame(render); }
+            }
+        };
+
+        // ── Images ───────────────────────────────────────────────────────────
+        const loadImg = src => new Promise(resolve => {
+            if (!src) { resolve(null); return; }
+            const img = new Image();
+            img.onload  = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = src;
+        });
+
+        // ── Rendu ─────────────────────────────────────────────────────────────
+        async function render() {
+            dirty = false;
+            if (blankMode) return; // tableau blanc actif — ne rien dessiner
+
+            const scaleX = window.innerWidth  / SIZE;
+            const scaleY = window.innerHeight / SIZE;
+            const scale  = Math.min(scaleX, scaleY);
+            const cw     = Math.round(SIZE * scale);
+            const ch2    = Math.round(SIZE * scale);
+
+            if (canvas.width !== cw || canvas.height !== ch2) {
+                canvas.width  = cw;
+                canvas.height = ch2;
+            }
+
+            ctx.fillStyle = lastBg;
+            ctx.fillRect(0, 0, cw, ch2);
+
+            if (lastObjs.length === 0 && !lastDraft) return;
+
+            const imgs = await Promise.all([
+                ...lastObjs.map(o => loadImg(o.src)),
+                lastDraft ? loadImg(lastDraft) : Promise.resolve(null)
+            ]);
+
+            // Redraw après chargement (données éventuellement mises à jour entre-temps)
+            ctx.fillStyle = lastBg;
+            ctx.fillRect(0, 0, cw, ch2);
+
+            ctx.save();
+            ctx.scale(scale, scale);
+
+            lastObjs.forEach((obj, i) => {
+                const img = imgs[i];
+                if (!img) return;
+                ctx.save();
+                ctx.translate(obj.x + obj.w / 2, obj.y + obj.h / 2);
+                if (obj.rotation) ctx.rotate(obj.rotation * Math.PI / 180);
+                ctx.drawImage(img, -obj.w / 2, -obj.h / 2, obj.w, obj.h);
+                ctx.restore();
+            });
+
+            const draftImg = imgs[lastObjs.length];
+            if (draftImg) ctx.drawImage(draftImg, 0, 0, SIZE, SIZE);
+
+            ctx.restore();
+        }
+
+        window.addEventListener('resize', () => {
+            if (!blankMode && !dirty) { dirty = true; requestAnimationFrame(render); }
+        });
+    })();
+    </script>
+</body>
+</html>

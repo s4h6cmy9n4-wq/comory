@@ -213,6 +213,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let isPanning = false, panStartX = 0, panStartY = 0;
         let isDrawing = false, lastX = 0, lastY = 0;
+
+        // ── Helpers pan mobile (utilisés par initMobileTouch) ─────────────────
+        window.mobileStartPan = (cx, cy) => {
+            if (window.activeToolMode) return;
+            isPanning  = true;
+            panStartX  = cx - currentTx;
+            panStartY  = cy - currentTy;
+        };
+        window.mobileUpdatePan = (cx, cy) => {
+            if (!isPanning) return;
+            currentTx = cx - panStartX;
+            currentTy = cy - panStartY;
+            planDeTravail.style.transform = `translate(${currentTx}px, ${currentTy}px) scale(${currentScale})`;
+        };
+        window.mobileStopPan = () => { isPanning = false; };
         let shapeStartX = 0, shapeStartY = 0;
         let isSelecting = false, selectStartX = 0, selectStartY = 0, selectCurX = 0, selectCurY = 0;
         let lastPinchCenter = {x: 0, y: 0};
@@ -5283,6 +5298,12 @@ function mettreAJourArrondi() {
         function schedClose() { closeTimer = setTimeout(fermer, 280); }
 
         btnArchive.addEventListener('click', () => {
+            // Mobile → archive plein écran
+            if (window.matchMedia('(max-width: 768px)').matches) {
+                const ov = document.getElementById('archive-overlay');
+                if (ov) ov.classList.toggle('ouvert');
+                return;
+            }
             if (carrousel.classList.contains('visible')) fermer();
             else open();
         });
@@ -6359,16 +6380,24 @@ function mettreAJourArrondi() {
 
         document.addEventListener('touchmove', (e) => {
             if (rouePinned) return; // roue épinglée → ignorer les mouvements
+            if (e.touches.length >= 2) return; // pinch géré par le canvas directement
             const x = e.touches[0].clientX;
             const y = e.touches[0].clientY;
             if (!document.body.classList.contains('mobile-roue-visible')) {
-                // Annuler si trop de mouvement avant apparition
                 if (holdTimer && Math.hypot(x - startX, y - startY) > 10) {
+                    // Mouvement > 10px : annuler le timer de la roue, démarrer le pan
                     clearTimeout(holdTimer); holdTimer = null;
+                    if (window.mobileStartPan && !window.activeToolMode) {
+                        window.mobileStartPan(startX, startY);
+                    }
+                }
+                // Continuer le pan si actif
+                if (!holdTimer && window.mobileUpdatePan && !window.activeToolMode) {
+                    window.mobileUpdatePan(x, y);
                 }
                 return;
             }
-            // Simuler le survol du segment sous le doigt
+            // Roue visible → simuler le survol du segment sous le doigt
             const p = pathUnder(x, y);
             if (p !== lastPath) {
                 fireMouseOn(lastPath, 'mouseleave');
@@ -6378,6 +6407,8 @@ function mettreAJourArrondi() {
         }, { passive: true });
 
         document.addEventListener('touchend', (e) => {
+            // Arrêter le pan mobile si actif
+            if (window.mobileStopPan) window.mobileStopPan();
             if (!document.body.classList.contains('mobile-roue-visible')) {
                 clearTimeout(holdTimer); holdTimer = null; return;
             }
@@ -6395,7 +6426,10 @@ function mettreAJourArrondi() {
             }
         });
 
-        document.addEventListener('touchcancel', fermerRoueMobile);
+        document.addEventListener('touchcancel', () => {
+            if (window.mobileStopPan) window.mobileStopPan();
+            fermerRoueMobile();
+        });
     })();
 
 }); // Fin du DOMContentLoaded
