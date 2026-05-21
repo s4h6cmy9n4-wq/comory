@@ -5018,7 +5018,9 @@ function mettreAJourArrondi() {
         function syncWidth() {
             if (!headerWrapper) return;
             const rect = headerWrapper.getBoundingClientRect();
-            if (rect.width > 0) carrousel.style.width = rect.width + 'px';
+            // Carrousel aligné sur le bord gauche du logo (left: 28px = header left 12px + top-bar padding 16px)
+            // → largeur = largeur du header - 16px pour garder le bord droit aligné
+            if (rect.width > 0) carrousel.style.width = Math.max(0, rect.width - 16) + 'px';
         }
         window.addEventListener('resize', syncWidth);
 
