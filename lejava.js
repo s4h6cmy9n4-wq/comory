@@ -5474,6 +5474,45 @@ function mettreAJourArrondi() {
             }
         }, { passive: false });
 
+        // ── Swipe mobile dans le carrousel (plein-écran) ──────────────────────
+        // Sur mobile le carrousel est fullscreen (z-index 900).
+        // Glisser vers le bas → tableau précédent, vers le haut → suivant.
+        // stopPropagation empêche initMobileTouch de démarrer le holdTimer / pan.
+        {
+            let swipeStartY  = 0;
+            const SWIPE_SEUIL = 40; // px minimum pour valider le swipe
+
+            carrousel.addEventListener('touchstart', (e) => {
+                swipeStartY = e.touches[0].clientY;
+                e.stopPropagation();
+            }, { passive: true });
+
+            carrousel.addEventListener('touchmove', (e) => {
+                e.stopPropagation();
+                if (!carrousel.classList.contains('visible')) return;
+                if (scrollThrottle) return;
+                const dy = e.touches[0].clientY - swipeStartY;
+                if (Math.abs(dy) < SWIPE_SEUIL) return;
+
+                // Réinitialiser l'origine pour permettre un swipe continu
+                swipeStartY = e.touches[0].clientY;
+
+                const idx    = boards.findIndex(b => b.id === visualBoardId);
+                // dy < 0 = doigt monte → tableau suivant (vers le bas de la pile)
+                // dy > 0 = doigt descend → tableau précédent (vers le haut de la pile)
+                const newIdx = Math.max(0, Math.min(boards.length - 1, idx + (dy < 0 ? 1 : -1)));
+                if (newIdx !== idx) {
+                    visualBoardId = boards[newIdx].id;
+                    render();
+                    scrollThrottle = true;
+                    setTimeout(() => { scrollThrottle = false; }, 340);
+                }
+            }, { passive: true });
+
+            carrousel.addEventListener('touchend',   (e) => e.stopPropagation());
+            carrousel.addEventListener('touchcancel',(e) => e.stopPropagation());
+        }
+
         // ── Bouton + — nouveau tableau (fenêtre glissante de 10) ─────────────
         if (btnNew) {
             btnNew.addEventListener('click', async () => {

@@ -926,6 +926,11 @@ body {
         width: 44px !important;
         height: 44px !important;
     }
+
+    /* Tap instantané sur les cartes du carrousel (supprime le délai 300 ms) */
+    .tableau-carte {
+        touch-action: manipulation;
+    }
 }
 
 /* ══════════════════════════════════════════════════════════════
