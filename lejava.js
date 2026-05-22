@@ -5321,6 +5321,17 @@ function mettreAJourArrondi() {
             return { imageData: new ImageData(w, h), objs: [] };
         }
 
+        // ── Détecte un canvas vide : transparent OU entièrement blanc (artefact JPEG) ─
+        function isBlankImageData(imageData) {
+            const d = imageData.data;
+            for (let i = 0; i < d.length; i += 4) {
+                const a = d[i + 3];
+                if (a === 0) continue;                            // transparent → ignore
+                if (d[i] < 250 || d[i+1] < 250 || d[i+2] < 250) return false; // couleur réelle
+            }
+            return true; // tout transparent ou tout blanc → considéré vide
+        }
+
         // ── ImageData → PNG data URL (transparence préservée, pas de JPEG) ────
         function imageDataToPNG(imageData) {
             const c = document.createElement('canvas');
@@ -5358,8 +5369,11 @@ function mettreAJourArrondi() {
             if (b) b.thumbnail = thumbnail;
 
             // 3. IndexedDB en arrière-plan (PNG, non-bloquant)
-            //    PNG = transparence préservée → les objets placés (z-index 3)
-            //    restent visibles à travers le canvas à la restauration
+            //    Ne pas sauvegarder un canvas entièrement blanc/transparent
+            //    (artefact d'une ancienne sync JPEG) pour éviter de propager le bug.
+            const hasObjs = state.objs && state.objs.length > 0;
+            if (isBlankImageData(state.imageData) && !hasObjs) return;
+
             const canvasPNG = imageDataToPNG(state.imageData);
             dbPut({ id: activeBoardId, thumbnail, canvasPNG, objs: state.objs })
                 .catch(() => {});
@@ -5388,6 +5402,15 @@ function mettreAJourArrondi() {
             // canvasDataURL = ancien format (JPEG, opaque) — rétro-compatibilité
             const srcURL = data.canvasPNG || data.canvasDataURL;
             const imageData = await pngToImageData(srcURL);
+
+            // Sanity-check : si tout est blanc/transparent (artefact d'une ancienne
+            // sync JPEG stocké dans IndexedDB), traiter comme tableau vierge
+            if (isBlankImageData(imageData) && (!data.objs || data.objs.length === 0)) {
+                const bl = makeBlankState();
+                if (bl) window.setBoardState(bl);
+                return;
+            }
+
             window.setBoardState({ imageData, objs: data.objs || [] });
         }
 

@@ -208,13 +208,22 @@
     document.addEventListener('DOMContentLoaded', () => {
         const bid = parseInt(localStorage.getItem('mory_active_id') || '1');
 
-        // Nettoyer les entrées Firebase au format JPEG (data:image/jpeg…)
-        // pour éviter qu'un ancien fond blanc soit appliqué aux appareils distants.
-        db.ref(`rooms/${room}/boards/${bid}`).once('value').then(snap => {
+        // Nettoyer les entrées Firebase invalides :
+        // - format JPEG (data:image/jpeg…) → fond blanc opaque
+        // - PNG entièrement blanc (artefact d'une ancienne sync JPEG)
+        db.ref(`rooms/${room}/boards/${bid}`).once('value').then(async snap => {
             const val = snap.val();
-            if (val?.canvas && val.canvas.startsWith('data:image/jpeg')) {
-                db.ref(`rooms/${room}/boards/${bid}`).remove();
+            if (!val?.canvas) return;
+            let shouldPurge = val.canvas.startsWith('data:image/jpeg');
+            if (!shouldPurge && val.canvas.startsWith('data:image/png')) {
+                // Vérifier si c'est un PNG entièrement blanc (sans objets réels)
+                const hasObjs = val.objs && JSON.parse(val.objs || '[]').length > 0;
+                if (!hasObjs) {
+                    const imageData = await syncDataToImageData(val.canvas, val.cw || 2500, val.ch || 2500).catch(() => null);
+                    if (imageData && isBlankCanvas(imageData)) shouldPurge = true;
+                }
             }
+            if (shouldPurge) db.ref(`rooms/${room}/boards/${bid}`).remove();
         }).catch(() => {});
 
         listenBoard(bid);
