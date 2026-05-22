@@ -91,6 +91,7 @@
                 cw:      state.imageData.width,
                 ch:      state.imageData.height,
                 objs:    JSON.stringify(state.objs || []),
+                ui:      JSON.stringify(state.ui   || {}),
                 sid:     SID,
                 ts:      firebase.database.ServerValue.TIMESTAMP
             });
@@ -126,7 +127,8 @@
                 data.canvas, data.cw || 2500, data.ch || 2500
             );
             const objs = JSON.parse(data.objs || '[]');
-            window.setBoardState({ imageData, objs });
+            const ui   = JSON.parse(data.ui   || '{}');
+            window.setBoardState({ imageData, objs, ui });
         } catch (err) {
             console.warn('[Sync] Pull échoué :', err.message);
         }

@@ -2069,10 +2069,17 @@ document.addEventListener('DOMContentLoaded', () => {
         window.entrerModePlacementImages = entrerModePlacementImages;
 
         // ── Exposition pour le carrousel de tableaux ─────────────────────────
-        window.getBoardState = () => ({
-            imageData: mainCtx.getImageData(0, 0, mainCanvas.width, mainCanvas.height),
-            objs: serializePlacedObjects()
-        });
+        window.getBoardState = () => {
+            const barreD = document.getElementById('barre-outils-droite');
+            return {
+                imageData: mainCtx.getImageData(0, 0, mainCanvas.width, mainCanvas.height),
+                objs: serializePlacedObjects(),
+                ui: {
+                    chrono:  !!(barreD && barreD.querySelector('.bloc-chrono')),
+                    horloge: !!(barreD && barreD.querySelector('.bloc-horloge'))
+                }
+            };
+        };
         window.setBoardState = (state) => {
             mainCtx.putImageData(state.imageData, 0, 0);
             placedObjects.forEach(o => o.el.remove());
@@ -2089,6 +2096,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 placedObjects.push(obj);
                 el.src = s.src;
             });
+            // Appliquer l'état UI chrono/horloge si fourni (sync cross-device)
+            if (state.ui && window._setChronoUI) window._setChronoUI(state.ui.chrono, state.ui.horloge);
             history.length = 0; historyStep = -1;
             saveState();
         };
@@ -2479,8 +2488,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Expose pour setBoardState (sync distant) : active/désactive chrono et horloge
+    window._setChronoUI = (chronoActif, horlogeActif) => {
+        const barreD = document.getElementById('barre-outils-droite');
+        if (!barreD) return;
+        const hasC = !!barreD.querySelector('.bloc-chrono');
+        const hasH = !!barreD.querySelector('.bloc-horloge');
+        if (!!chronoActif  !== hasC) creerChrono(barreD);
+        if (!!horlogeActif !== hasH) creerHorloge(barreD);
+    };
+
     function creerChrono(cont) {
-        if (cont.querySelector('.bloc-chrono')) { cont.querySelector('.bloc-chrono').remove(); return false; }
+        if (cont.querySelector('.bloc-chrono')) { cont.querySelector('.bloc-chrono').remove(); window._syncSchedule?.(); return false; }
         let ms = 0, ticking = false, intervalId = null, compteurTours = 0, isCountdown = false;
         const b = btnsSVG();
         const bloc = document.createElement('div');
@@ -2525,11 +2544,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         btnR.addEventListener('click', (e) => { e.stopPropagation(); clearInterval(intervalId); ms = 0; ticking = false; isCountdown = false; afficher(); iPlay.style.display = ''; iPause.style.display = 'none'; divT.innerHTML = ''; bloc.classList.remove('deplie'); });
         editionManuelle([sH, sM, sS]);
+        window._syncSchedule?.();   // notifier les autres appareils
         return true;
     }
 
     function creerHorloge(cont) {
-        if (cont.querySelector('.bloc-horloge')) { const h = cont.querySelector('.bloc-horloge'); if (h._stopHorloge) h._stopHorloge(); h.remove(); return false; }
+        if (cont.querySelector('.bloc-horloge')) { const h = cont.querySelector('.bloc-horloge'); if (h._stopHorloge) h._stopHorloge(); h.remove(); window._syncSchedule?.(); return false; }
         const bloc = document.createElement('div');
         bloc.className = 'bloc-horloge';
         bloc.addEventListener('click', (e) => e.stopPropagation());
@@ -2538,6 +2558,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function afficher() { const now = new Date(); bloc.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`; }
         afficher(); intervalId = setInterval(afficher, 1000);
         bloc._stopHorloge = () => clearInterval(intervalId);
+        window._syncSchedule?.();   // notifier les autres appareils
         return true;
     }
 
