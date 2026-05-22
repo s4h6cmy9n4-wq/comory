@@ -9,12 +9,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const oeilFerme  = btnOeil.querySelector('.oeil-ferme');
 
     // ── ŒIL ── effet éthéré : estompe le canevas ────────────────────────────
-    btnOeil.addEventListener('click', () => {
-        const masque = conteneur.classList.toggle('contenu-masque');
+    function _applyMasque(masque) {
+        conteneur.classList.toggle('contenu-masque', masque);
         oeilOuvert.style.display = masque ? 'none' : '';
         oeilFerme.style.display  = masque ? '' : 'none';
         btnOeil.classList.toggle('actif', masque);
+    }
+    btnOeil.addEventListener('click', () => {
+        const masque = !conteneur.classList.contains('contenu-masque');
+        _applyMasque(masque);
+        window._syncSchedule?.();
     });
+    // Exposé pour setBoardState (sync distant)
+    window._setMasqueUI = (masque) => _applyMasque(!!masque);
     // ── AMPOULE ───────────────────────────────────────────────────────────────
     const btnLumiere = document.getElementById('conteneur-lumiere');
     btnLumiere.addEventListener('click', () => {
@@ -2076,7 +2083,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 objs: serializePlacedObjects(),
                 ui: {
                     chrono:  !!(barreD && barreD.querySelector('.bloc-chrono')),
-                    horloge: !!(barreD && barreD.querySelector('.bloc-horloge'))
+                    horloge: !!(barreD && barreD.querySelector('.bloc-horloge')),
+                    masque:  !!(conteneur && conteneur.classList.contains('contenu-masque'))
                 }
             };
         };
@@ -2096,8 +2104,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 placedObjects.push(obj);
                 el.src = s.src;
             });
-            // Appliquer l'état UI chrono/horloge si fourni (sync cross-device)
+            // Appliquer l'état UI chrono/horloge/oeil si fourni (sync cross-device)
             if (state.ui && window._setChronoUI) window._setChronoUI(state.ui.chrono, state.ui.horloge);
+            if (state.ui && typeof state.ui.masque === 'boolean' && window._setMasqueUI) window._setMasqueUI(state.ui.masque);
             history.length = 0; historyStep = -1;
             saveState();
         };
@@ -5585,6 +5594,17 @@ function mettreAJourArrondi() {
             document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: id } }));
         };
 
+        // ── Appelé par sync.js quand un autre appareil change de tableau ─────────
+        // Met à jour les pointeurs locaux (id actif, localStorage) sans recharger
+        // depuis IndexedDB (le canvas arrive séparément via applyRemote).
+        window._syncActivateBoard = function(id) {
+            if (id === activeBoardId) return;
+            activeBoardId = id;
+            visualBoardId = id;
+            localStorage.setItem(LS_ACTIVE_ID, String(id));
+            render(); // rafraîchit la badge "en cours" dans le carrousel
+        };
+
         // ── Init — charger les vignettes puis rendre ───────────────────────────
         loadThumbnails().then(render);
         setTimeout(() => captureActive(), 800); // sauvegarder l'état initial
@@ -6555,10 +6575,11 @@ function mettreAJourArrondi() {
         }
 
         document.addEventListener('touchstart', (e) => {
-            // Roue épinglée → tap hors de la roue = fermer
+            // Roue épinglée → tap hors de la roue ET du panel = fermer
             if (rouePinned) {
                 const el = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-                if (!roue.contains(el)) fermerRoueMobile();
+                const rp = document.getElementById('roue-panel');
+                if (!roue.contains(el) && !(rp && rp.contains(el))) fermerRoueMobile();
                 return;
             }
             // Pinch (2 doigts) → annuler le holdTimer, ne pas déclencher la roue

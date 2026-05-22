@@ -110,6 +110,7 @@
 
     // ── Debounce : schedule un push après la dernière modif ──────────────────
     function schedulePush() {
+        if (receiving) return; // ne pas renvoyer un état reçu
         dirty = true;
         clearTimeout(syncTimer);
         syncTimer = setTimeout(pushState, DEBOUNCE_MS);
@@ -154,10 +155,10 @@
     db.ref(`rooms/${room}/meta`).on('value', snap => {
         const meta = snap.val();
         if (!meta || meta.sid === SID) return;
-        // Un autre appareil a changé de tableau → mettre à jour notre listener
+        // Un autre appareil a changé de tableau → écouter le bon tableau
         listenBoard(meta.active);
-        // Optionnel : naviguer vers le même tableau automatiquement
-        // if (window._openBoardFromArchive) window._openBoardFromArchive(meta.active);
+        // Mettre à jour l'id actif localement (sans recharger depuis IndexedDB)
+        if (window._syncActivateBoard) window._syncActivateBoard(meta.active);
     });
 
     // ── Connexion Firebase ────────────────────────────────────────────────────
