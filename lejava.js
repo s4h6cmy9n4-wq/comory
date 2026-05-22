@@ -119,8 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.src = s.src;
             });
         }
-        function undo() { if (historyStep > 0) { historyStep--; restoreState(historyStep); } }
-        function redo() { if (historyStep < history.length - 1) { historyStep++; restoreState(historyStep); } }
+        function undo() { if (historyStep > 0) { historyStep--; restoreState(historyStep); window._syncSchedule?.(); } }
+        function redo() { if (historyStep < history.length - 1) { historyStep++; restoreState(historyStep); window._syncSchedule?.(); } }
         function clearCanvas() {
             mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
             placedObjects.forEach(o => o.el.remove());

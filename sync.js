@@ -29,9 +29,10 @@
     // ID unique pour cette session (évite de s'appliquer ses propres changements)
     const SID = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
-    let dirty     = false;   // état modifié depuis la dernière sync
-    let syncTimer = null;    // timer debounce
-    let receiving = false;   // en train d'appliquer un changement distant
+    let dirty           = false;   // état modifié depuis la dernière sync
+    let syncTimer       = null;    // timer debounce
+    let receiving       = false;   // en train d'appliquer un changement distant
+    let initialSyncDone = false;   // vrai après le premier contact Firebase (reçu ou null)
     let currentBoardId  = null;
     let boardListener   = null;
 
@@ -94,9 +95,12 @@
         const state = window.getBoardState();
         if (!state?.imageData) return;
 
-        // Ne pas écraser l'état distant avec un canvas vide
+        // Protection démarrage : ne pas écraser l'état distant avec le canvas vide
+        // initial (avant que Firebase ait répondu). Après le premier contact Firebase
+        // (initialSyncDone = true), on pousse toujours — y compris canvas vide intentionnel
+        // (suppression de tous les objets, effacement du tableau).
         const hasObjs = state.objs && state.objs.length > 0;
-        if (isBlankCanvas(state.imageData) && !hasObjs) return;
+        if (!initialSyncDone && isBlankCanvas(state.imageData) && !hasObjs) return;
 
         const bid        = parseInt(localStorage.getItem('mory_active_id') || '1');
         const canvasData = canvasToSyncData(state.imageData);
@@ -134,7 +138,8 @@
 
     // ── Pull : appliquer un état distant ─────────────────────────────────────
     async function applyRemote(data) {
-        if (!data || data.sid === SID) return; // ignorer nos propres envois
+        // Données absentes ou envoyées par nous-mêmes → marquer init terminée et sortir
+        if (!data || data.sid === SID) { initialSyncDone = true; return; }
         if (!window.setBoardState) return;
 
         receiving = true;
@@ -145,15 +150,16 @@
             );
             const objs = JSON.parse(data.objs || '[]');
             const ui   = JSON.parse(data.ui   || '{}');
-            // Ignorer un canvas entièrement blanc sans objets (push initial d'un appareil vide)
-            if (isBlankCanvas(imageData) && objs.length === 0) {
-                receiving = false; _showIndicator('ok'); return;
-            }
+            // On applique TOUJOURS l'état reçu, y compris un canvas vide :
+            // si l'expéditeur a envoyé un canvas vide c'est intentionnel
+            // (suppression de tous les objets). La protection côté push
+            // (initialSyncDone) empêche déjà les envois parasites au démarrage.
             window.setBoardState({ imageData, objs, ui });
         } catch (err) {
             console.warn('[Sync] Pull échoué :', err.message);
         }
         receiving = false;
+        initialSyncDone = true; // le premier contact Firebase est établi
         _showIndicator('ok');
     }
 
@@ -212,6 +218,7 @@
         // - format JPEG (data:image/jpeg…) → fond blanc opaque
         // - PNG entièrement blanc (artefact d'une ancienne sync JPEG)
         db.ref(`rooms/${room}/boards/${bid}`).once('value').then(async snap => {
+            initialSyncDone = true; // Firebase a répondu — les pushs vides sont désormais autorisés
             const val = snap.val();
             if (!val?.canvas) return;
             let shouldPurge = val.canvas.startsWith('data:image/jpeg');
@@ -224,7 +231,7 @@
                 }
             }
             if (shouldPurge) db.ref(`rooms/${room}/boards/${bid}`).remove();
-        }).catch(() => {});
+        }).catch(() => { initialSyncDone = true; });
 
         listenBoard(bid);
 
