@@ -141,7 +141,7 @@
         _showIndicator('rx');
         try {
             const imageData = await syncDataToImageData(
-                data.canvas, data.cw || 2500, data.ch || 2500
+                data.canvas, data.cw || 3500, data.ch || 3500
             );
             const objs = JSON.parse(data.objs || '[]');
             const ui   = JSON.parse(data.ui   || '{}');
@@ -219,7 +219,7 @@
                 // Vérifier si c'est un PNG entièrement blanc (sans objets réels)
                 const hasObjs = val.objs && JSON.parse(val.objs || '[]').length > 0;
                 if (!hasObjs) {
-                    const imageData = await syncDataToImageData(val.canvas, val.cw || 2500, val.ch || 2500).catch(() => null);
+                    const imageData = await syncDataToImageData(val.canvas, val.cw || 3500, val.ch || 3500).catch(() => null);
                     if (imageData && isBlankCanvas(imageData)) shouldPurge = true;
                 }
             }

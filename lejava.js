@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── CANVAS ───────────────────────────────────────────────────────────────
     function initCanvas() {
         const planDeTravail = document.createElement('div');
-        const CANVAS_SIZE = 2500;
+        const CANVAS_SIZE = 3500;
         planDeTravail.style.cssText = `position:absolute; top:0; left:0; width:${CANVAS_SIZE}px; height:${CANVAS_SIZE}px; transform-origin: 0 0; z-index:3;`;
         conteneur.style.overflow = 'hidden';
         conteneur.appendChild(planDeTravail);
@@ -1189,8 +1189,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Après le rendu, lire les dimensions et placer
             requestAnimationFrame(() => {
                 const pw = actionPanel.offsetWidth, ph = actionPanel.offsetHeight;
-                actionPanel.style.left = (or.right - pw) + 'px';
-                actionPanel.style.top  = (or.bottom + 6) + 'px';
+                const vw = window.innerWidth, vh = window.innerHeight;
+                // Clamp to viewport — évite les valeurs extrêmes (ex: left:-14000px sur iOS)
+                // qui font crasher le renderer GPU mobile en allouant un canvas virtuel géant.
+                const left = Math.min(Math.max(4, or.right  - pw), vw - pw - 4);
+                const top  = Math.min(Math.max(4, or.bottom + 6),  vh - ph - 4);
+                actionPanel.style.left = left + 'px';
+                actionPanel.style.top  = top  + 'px';
             });
         }
 
@@ -1371,7 +1376,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
 
         imgOverlay.addEventListener('touchmove', (e) => {
-            e.stopPropagation(); // empêche le pan du canvas pendant drag/resize
+            e.stopPropagation();
+            e.preventDefault(); // bloque les gestes iOS (scroll, rubber-band) pendant le drag
             // Pinch à 2 doigts → redimensionner depuis le centre de l'objet
             if (isPinchResizing && e.touches.length === 2 && selectedObjects.length === 1) {
                 const obj = selectedObjects[0];
@@ -1423,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     positionnerOverlay(computeBB(selectedObjects));
                 }
             }
-        }, { passive: true });
+        }, { passive: false }); // passive:false requis pour e.preventDefault()
 
         imgOverlay.addEventListener('touchend', () => {
             if (isDraggingImage || isResizingImage || isPinchResizing) {
@@ -1434,6 +1440,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         imgOverlay.addEventListener('touchcancel', () => {
+            // Sauvegarder même si le système a annulé le geste (doigt hors écran)
+            if (isDraggingImage || isResizingImage || isPinchResizing) saveState();
             isDraggingImage = false; isResizingImage = false; isPinchResizing = false; activeCorner = null;
             window.mobileObjectDragging = false;
         });
@@ -5239,8 +5247,8 @@ function mettreAJourArrondi() {
         const DB_NAME = 'mory_boards_db', DB_STORE = 'boards';
         let _db = null;
         const dbReady = new Promise(resolve => {
-            // v2 : migration vers PNG (efface les anciennes données JPEG cassées)
-            const req = indexedDB.open(DB_NAME, 2);
+            // v3 : canvas agrandi 2500→3500 (efface le cache pour éviter les mismatch)
+            const req = indexedDB.open(DB_NAME, 3);
             req.onupgradeneeded = e => {
                 const d = e.target.result;
                 // Supprimer l'ancien store (données JPEG invalides) puis recréer
