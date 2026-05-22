@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── CANVAS ───────────────────────────────────────────────────────────────
     function initCanvas() {
         const planDeTravail = document.createElement('div');
+        planDeTravail.id = 'plan-de-travail'; // ciblé par CSS pour l'effet œil (masque canvas seul)
         const CANVAS_SIZE = 3500;
         planDeTravail.style.cssText = `position:absolute; top:0; left:0; width:${CANVAS_SIZE}px; height:${CANVAS_SIZE}px; transform-origin: 0 0; z-index:3;`;
         conteneur.style.overflow = 'hidden';

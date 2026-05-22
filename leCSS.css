@@ -398,8 +398,9 @@ body {
     transition: height 0.3s cubic-bezier(0.4,0,0.2,1), top 0.3s ease; z-index: 10;
 }
 .mon-conteneur.ouverture-bordure::after { height: 120px; top: 40px; }
-.mon-conteneur { transition: opacity 0.35s ease; }
-.mon-conteneur.contenu-masque { opacity: 0; pointer-events: none; }
+/* L'œil masque uniquement le canvas (planDeTravail), pas le header ni les barres d'outils */
+#plan-de-travail { transition: opacity 0.35s ease; }
+.mon-conteneur.contenu-masque #plan-de-travail { opacity: 0; pointer-events: none; }
 
 /* ─────────────────────────────────────────────────────────────
    BARRE OUTILS BAS
