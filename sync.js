@@ -37,7 +37,10 @@
 
     const DEBOUNCE_MS = 4000; // 4 s après la dernière modification locale
 
-    // ── Compression canvas → base64 JPEG ─────────────────────────────────────
+    // ── Compression canvas → base64 PNG (transparence préservée) ────────────
+    // PNG est nécessaire car le canvas a un fond transparent (géré par CSS).
+    // JPEG forçait un fond blanc opaque qui apparaissait comme un rectangle blanc.
+    // PNG sur un canvas majoritairement transparent reste compact (~20-60 KB).
     function canvasToSyncData(imageData) {
         // Canvas source (pleine résolution)
         const src = document.createElement('canvas');
@@ -49,12 +52,10 @@
         dst.width  = Math.round(imageData.width  / 2);
         dst.height = Math.round(imageData.height / 2);
         const ctx  = dst.getContext('2d');
-        // Fond opaque blanc pour le JPEG (pas d'alpha)
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, dst.width, dst.height);
+        // Pas de fond blanc — drawImage conserve la transparence
         ctx.drawImage(src, 0, 0, dst.width, dst.height);
 
-        return dst.toDataURL('image/jpeg', 0.70);
+        return dst.toDataURL('image/png');
     }
 
     // ── Décompression base64 JPEG → ImageData ─────────────────────────────────
@@ -206,6 +207,16 @@
     // ── Init : démarrer sur le tableau actif ──────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
         const bid = parseInt(localStorage.getItem('mory_active_id') || '1');
+
+        // Nettoyer les entrées Firebase au format JPEG (data:image/jpeg…)
+        // pour éviter qu'un ancien fond blanc soit appliqué aux appareils distants.
+        db.ref(`rooms/${room}/boards/${bid}`).once('value').then(snap => {
+            const val = snap.val();
+            if (val?.canvas && val.canvas.startsWith('data:image/jpeg')) {
+                db.ref(`rooms/${room}/boards/${bid}`).remove();
+            }
+        }).catch(() => {});
+
         listenBoard(bid);
 
         // Écouter les changements de tableau locaux
