@@ -2824,6 +2824,15 @@ document.addEventListener('DOMContentLoaded', () => {
         fermerPanel();
     };
 
+    // Clic hors de la roue et du panel → désactiver l'outil actif (desktop)
+    document.addEventListener('mousedown', (e) => {
+        if (!outilActifNum) return;
+        const rouePanel = document.getElementById('roue-panel');
+        if (roueConteneur.contains(e.target)) return;
+        if (rouePanel && rouePanel.contains(e.target)) return;
+        window.desactiverOutil();
+    });
+
     // ── PANEL INLINE ─────────────────────────────────────────────────────────
     function ouvrirPanel(num) {
         fermerPanel();
@@ -3158,15 +3167,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // → le pouce reste sur l'arc même si la souris dépasse la ligne médiane
         let activeHalf = null;
         const evtRel = e => {
-            const r = dialSvg.getBoundingClientRect();
+            const r   = dialSvg.getBoundingClientRect();
+            const src = e.touches?.[0] || e.changedTouches?.[0] || e;
             return {
-                dx: e.clientX - r.left  - r.width  / 2,
-                dy: e.clientY - r.top   - r.height / 2
+                dx: src.clientX - r.left  - r.width  / 2,
+                dy: src.clientY - r.top   - r.height / 2
             };
         };
 
         hitT.addEventListener('mousedown', e => { e.stopPropagation(); activeHalf = 'T'; });
         hitB.addEventListener('mousedown', e => { e.stopPropagation(); activeHalf = 'B'; });
+        hitT.addEventListener('touchstart', e => { e.stopPropagation(); activeHalf = 'T'; }, { passive: true });
+        hitB.addEventListener('touchstart', e => { e.stopPropagation(); activeHalf = 'B'; }, { passive: true });
 
         const onMove = e => {
             if (!activeHalf) return;
@@ -3199,6 +3211,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup',   onUp);
+        document.addEventListener('touchmove', onMove, { passive: true });
+        document.addEventListener('touchend',  onUp);
 
         // ── Roue chromatique 2D (teinte = angle, saturation = distance) ───────
         const chromo    = document.getElementById('roue-centre-chromo');
@@ -3281,6 +3295,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (chromo) chromo.removeEventListener('mousedown', onChromoMouseDownDessin);
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup',   onUp);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend',  onUp);
             document.removeEventListener('mousemove', onChromoMove);
             document.removeEventListener('mouseup',   onChromoUp);
             if (valDiv.parentNode) valDiv.parentNode.removeChild(valDiv);
@@ -3594,15 +3610,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let activeHalf2 = null;
             const evtRel2 = e => {
-                const r = dialSvg.getBoundingClientRect();
+                const r   = dialSvg.getBoundingClientRect();
+                const src = e.touches?.[0] || e.changedTouches?.[0] || e;
                 return {
-                    dx: e.clientX - r.left  - r.width  / 2,
-                    dy: e.clientY - r.top   - r.height / 2
+                    dx: src.clientX - r.left  - r.width  / 2,
+                    dy: src.clientY - r.top   - r.height / 2
                 };
             };
 
             hitT2.addEventListener('mousedown', e => { e.stopPropagation(); activeHalf2 = 'T'; shapeDragging = true; clearTimeout(closeTimer); });
             hitB2.addEventListener('mousedown', e => { e.stopPropagation(); activeHalf2 = 'B'; shapeDragging = true; clearTimeout(closeTimer); });
+            hitT2.addEventListener('touchstart', e => { e.stopPropagation(); activeHalf2 = 'T'; shapeDragging = true; clearTimeout(closeTimer); }, { passive: true });
+            hitB2.addEventListener('touchstart', e => { e.stopPropagation(); activeHalf2 = 'B'; shapeDragging = true; clearTimeout(closeTimer); }, { passive: true });
 
             const onSM = e => {
                 if (!activeHalf2) return;
@@ -3626,6 +3645,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const onSU = () => { if (activeHalf2) { activeHalf2 = null; shapeDragging = false; hideVal2(); schedClose(); } };
             addDoc('mousemove', onSM);
             addDoc('mouseup',   onSU);
+            addDoc('touchmove', onSM);
+            addDoc('touchend',  onSU);
 
             // Toggle rempli / contour — style néomorphique inline
             updateFillCtrl();
@@ -3953,9 +3974,11 @@ document.addEventListener('DOMContentLoaded', () => {
         dialSvg.appendChild(hitB);
 
         let activeH=null;
-        const evtRel=e=>{const r=dialSvg.getBoundingClientRect();return{dx:e.clientX-r.left-r.width/2,dy:e.clientY-r.top-r.height/2};};
+        const evtRel=e=>{const r=dialSvg.getBoundingClientRect();const src=e.touches?.[0]||e.changedTouches?.[0]||e;return{dx:src.clientX-r.left-r.width/2,dy:src.clientY-r.top-r.height/2};};
         hitT.addEventListener('mousedown',e=>{e.stopPropagation();activeH='T';tblDragging=true;clearTimeout(closeTimer);});
         hitB.addEventListener('mousedown',e=>{e.stopPropagation();activeH='B';tblDragging=true;clearTimeout(closeTimer);});
+        hitT.addEventListener('touchstart',e=>{e.stopPropagation();activeH='T';tblDragging=true;clearTimeout(closeTimer);},{passive:true});
+        hitB.addEventListener('touchstart',e=>{e.stopPropagation();activeH='B';tblDragging=true;clearTimeout(closeTimer);},{passive:true});
 
         const onM=e=>{
             if(!activeH)return;
@@ -3977,6 +4000,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const onU=()=>{if(activeH){activeH=null;tblDragging=false;schedClose();}};
         addDoc('mousemove',onM);
         addDoc('mouseup',onU);
+        addDoc('touchmove',onM);
+        addDoc('touchend',onU);
 
         const prevCleanup=panelCleanup;
         panelCleanup=()=>{
@@ -4310,12 +4335,15 @@ document.addEventListener('DOMContentLoaded', () => {
             dialSvg.appendChild(hitB);
 
             const evtRel = e => {
-                const r = dialSvg.getBoundingClientRect();
-                return { dx: e.clientX - r.left - r.width / 2, dy: e.clientY - r.top - r.height / 2 };
+                const r   = dialSvg.getBoundingClientRect();
+                const src = e.touches?.[0] || e.changedTouches?.[0] || e;
+                return { dx: src.clientX - r.left - r.width / 2, dy: src.clientY - r.top - r.height / 2 };
             };
 
             hitT.addEventListener('mousedown', e => { e.stopPropagation(); activeArc = 'T'; });
             hitB.addEventListener('mousedown', e => { e.stopPropagation(); activeArc = 'B'; });
+            hitT.addEventListener('touchstart', e => { e.stopPropagation(); activeArc = 'T'; }, { passive: true });
+            hitB.addEventListener('touchstart', e => { e.stopPropagation(); activeArc = 'B'; }, { passive: true });
 
             const onMove = e => {
                 if (!activeArc) return;
@@ -4344,6 +4372,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             addDoc('mousemove', onMove);
             addDoc('mouseup',   onUp);
+            addDoc('touchmove', onMove);
+            addDoc('touchend',  onUp);
         }
 
         // Démarrer avec le sélecteur de fonte
@@ -6490,9 +6520,10 @@ function mettreAJourArrondi() {
             return el.tagName === 'path' ? el : (el.closest ? el.closest('path') : null);
         }
         function fermerRoueMobile() {
-            // Désépingler d'abord, puis nettoyer le panel avant de masquer
+            // Désépingler puis désactiver l'outil complètement (segments, modes, panel)
             if (window._roueEpingle) window._roueEpingle(false);
-            if (window._roueFermerPanel) window._roueFermerPanel();
+            if (window.desactiverOutil) window.desactiverOutil();
+            else if (window._roueFermerPanel) window._roueFermerPanel();
             fireMouseOn(lastPath, 'mouseleave');
             lastPath = null;
             clearTimeout(holdTimer);

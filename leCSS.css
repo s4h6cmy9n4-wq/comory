@@ -964,6 +964,22 @@ body {
     .tableau-carte {
         touch-action: manipulation;
     }
+
+    /* ── Chrono/horloge : les vw donnent ~12px sur 390px, trop étroit pour "00" ── */
+    .chrono-h, .chrono-m, .chrono-s {
+        width: 22px;
+        font-size: 15px;
+    }
+    .chrono-ms  { width: 18px; font-size: 10px; margin-left: 1px; }
+    .chrono-sep { font-size: 15px; padding: 0 1px; }
+    .chrono-top-row { gap: 6px; }
+    .bloc-chrono, .bloc-horloge { padding: 8px 10px; }
+    .bloc-horloge { font-size: 15px; }
+    .chrono-btn {
+        -webkit-appearance: none; appearance: none;
+        width: 32px !important; height: 32px !important;
+    }
+    .chrono-btn svg { width: 15px !important; height: 15px !important; }
 }
 
 /* ══════════════════════════════════════════════════════════════
