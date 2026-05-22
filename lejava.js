@@ -812,10 +812,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Note : placedObjects est déclaré plus haut (L58) pour que saveState() l'inclue dès initSize()
         let selectedObjects = [];
         let clipboard = []; // Presse-papiers interne (Ctrl+C / Ctrl+V / Dupliquer)
-        let isDraggingImage  = false, isResizingImage = false;
+        let isDraggingImage  = false, isResizingImage = false, isPinchResizing = false;
         let imgDragStartX = 0, imgDragStartY = 0;
         let imgOrigX = 0, imgOrigY = 0, imgOrigW = 0, imgOrigH = 0;
         let activeCorner = null;
+        let pinchStartDist = 0, pinchOrigW = 0, pinchOrigH = 0, pinchOrigX = 0, pinchOrigY = 0;
         let pdfPlacementActif = false; // bloque la sélection pendant le mode placement PDF
         // Rotation
         let isRotatingImage  = false;
@@ -1175,6 +1176,9 @@ document.addEventListener('DOMContentLoaded', () => {
         actionPanel.appendChild(btnDelete);
         actionPanel.appendChild(btnDup);
         actionPanel.appendChild(btnPdf);
+        // Mobile : empêcher le touchstart de remonter au document
+        // (sinon mobileTap() désélectionne l'objet avant que le clic ne s'exécute)
+        actionPanel.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
 
         // Positionne le panneau d'actions en bas-à-droite de l'overlay (coordonnées écran)
         function majActionPanel() {
@@ -1324,7 +1328,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // leurs événements remontent ici via bubbling).
         // touch-action:none sur imgOverlay → iOS ne capture pas le geste en scroll.
         imgOverlay.addEventListener('touchstart', (e) => {
-            if (e.touches.length !== 1 || selectedObjects.length === 0) return;
+            if (selectedObjects.length === 0) return;
+            // Pinch à 2 doigts sur l'image sélectionnée → redimensionner
+            if (e.touches.length === 2 && selectedObjects.length === 1) {
+                e.stopPropagation();
+                isPinchResizing = true;
+                isDraggingImage = false; isResizingImage = false;
+                window.mobileObjectDragging = true;
+                const obj = selectedObjects[0];
+                const t1 = e.touches[0], t2 = e.touches[1];
+                pinchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                pinchOrigW = obj.w; pinchOrigH = obj.h;
+                pinchOrigX = obj.x; pinchOrigY = obj.y;
+                return;
+            }
+            if (e.touches.length !== 1) return;
             e.stopPropagation(); // empêche initMobileTouch de démarrer holdTimer/pan
             const corner = e.target.dataset.corner; // 'nw','ne','sw','se' ou undefined
             if (corner && selectedObjects.length === 1) {
@@ -1354,6 +1372,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         imgOverlay.addEventListener('touchmove', (e) => {
             e.stopPropagation(); // empêche le pan du canvas pendant drag/resize
+            // Pinch à 2 doigts → redimensionner depuis le centre de l'objet
+            if (isPinchResizing && e.touches.length === 2 && selectedObjects.length === 1) {
+                const obj = selectedObjects[0];
+                const t1 = e.touches[0], t2 = e.touches[1];
+                const dist  = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                const scale = dist / pinchStartDist;
+                const nw = Math.max(20, pinchOrigW * scale);
+                const nh = Math.max(20, pinchOrigH * scale);
+                obj.x = pinchOrigX + pinchOrigW / 2 - nw / 2;
+                obj.y = pinchOrigY + pinchOrigH / 2 - nh / 2;
+                obj.w = nw; obj.h = nh;
+                if (obj.type === 'text' && obj._text) reRenderText(obj);
+                appliquerMouvement(obj);
+                return;
+            }
             if (e.touches.length !== 1) return;
             const touch = e.touches[0];
             const rect  = draftCanvas.getBoundingClientRect();
@@ -1393,15 +1426,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
 
         imgOverlay.addEventListener('touchend', () => {
-            if (isDraggingImage || isResizingImage) {
-                isDraggingImage = false; isResizingImage = false; activeCorner = null;
+            if (isDraggingImage || isResizingImage || isPinchResizing) {
+                isDraggingImage = false; isResizingImage = false; isPinchResizing = false; activeCorner = null;
                 window.mobileObjectDragging = false;
                 saveState();
             }
         });
 
         imgOverlay.addEventListener('touchcancel', () => {
-            isDraggingImage = false; isResizingImage = false; activeCorner = null;
+            isDraggingImage = false; isResizingImage = false; isPinchResizing = false; activeCorner = null;
             window.mobileObjectDragging = false;
         });
 
