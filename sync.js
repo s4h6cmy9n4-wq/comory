@@ -74,6 +74,17 @@
         });
     }
 
+    // ── Canvas vide ? transparent (alpha=0) OU entièrement blanc opaque (JPEG blank)
+    function isBlankCanvas(imageData) {
+        const d = imageData.data;
+        for (let i = 0; i < d.length; i += 4) {
+            const a = d[i + 3];
+            if (a === 0) continue;               // pixel transparent → ignore
+            if (d[i] < 250 || d[i+1] < 250 || d[i+2] < 250) return false; // couleur réelle
+        }
+        return true; // tout transparent ou tout blanc → vide
+    }
+
     // ── Push : envoyer l'état local vers Firebase ─────────────────────────────
     async function pushState() {
         if (receiving) return;
@@ -81,6 +92,10 @@
 
         const state = window.getBoardState();
         if (!state?.imageData) return;
+
+        // Ne pas écraser l'état distant avec un canvas vide
+        const hasObjs = state.objs && state.objs.length > 0;
+        if (isBlankCanvas(state.imageData) && !hasObjs) return;
 
         const bid        = parseInt(localStorage.getItem('mory_active_id') || '1');
         const canvasData = canvasToSyncData(state.imageData);
@@ -129,6 +144,10 @@
             );
             const objs = JSON.parse(data.objs || '[]');
             const ui   = JSON.parse(data.ui   || '{}');
+            // Ignorer un canvas entièrement blanc sans objets (push initial d'un appareil vide)
+            if (isBlankCanvas(imageData) && objs.length === 0) {
+                receiving = false; _showIndicator('ok'); return;
+            }
             window.setBoardState({ imageData, objs, ui });
         } catch (err) {
             console.warn('[Sync] Pull échoué :', err.message);
