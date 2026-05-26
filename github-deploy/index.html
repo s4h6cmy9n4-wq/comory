@@ -37,6 +37,11 @@
         <!-- Carrousel de tableaux — roue d'onglets entre header et roue outil -->
         <div class="tableau-carrousel" id="tableau-carrousel">
             <div class="tableau-liste" id="tableau-liste"></div>
+            <button class="tableau-arc-full-btn" id="tableau-arc-full-btn" title="Voir toutes les archives">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+            </button>
             <button class="tableau-nouveau-btn" id="tableau-nouveau-btn" title="Nouveau tableau">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -52,7 +57,7 @@
             <svg class="roue-dial-svg" id="roue-dial-svg" viewBox="-1 -1 2 2"></svg>
             <div class="roue-centre" id="roue-centre">
                 <span class="roue-centre-label" id="roue-centre-label"></span>
-                <div class="roue-centre-chromo" id="roue-centre-chromo"><div class="chromo-ind"></div></div>
+                <div class="roue-centre-chromo" id="roue-centre-chromo"></div>
                 <div class="roue-centre-fillctrl" id="roue-centre-fillctrl"></div>
                 <div class="roue-centre-textctrl" id="roue-centre-textctrl"></div>
                 <svg class="roue-centre-icone" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -65,11 +70,13 @@
             <!-- Zone invisible : délimite la surface hover qui maintient l'archive ouverte -->
             <div class="carrousel-zone" id="carrousel-zone"></div>
             <div class="header-wrapper">
-                <!-- Logo favicon — mobile uniquement (desktop : logo-top-bar dans top-bar) -->
-                <div id="mobile-logo" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 109.28 71.85">
-                        <path fill="var(--text-dark)" d="M73.52,0c-6.93,0-13.4,1.98-18.88,5.4l-.21.13c-8.21,5.12-13.99,13.34-15.96,23.15-.46,2.29-.7,4.65-.7,7.08s.24,4.79.7,7.08c-.84.32-1.75.51-2.71.51-4.19,0-7.59-3.4-7.59-7.59,0-3.95,3.02-7.19,6.88-7.55,0-.01,0-.02,0-.04,0-10.47,4.5-19.89,11.68-26.43-3.46-1.12-7.14-1.74-10.97-1.74C16.01,0,0,16.01,0,35.76s16.01,35.76,35.76,35.76c6.93,0,13.4-1.98,18.88-5.4,5.48,3.42,11.95,5.4,18.88,5.4,19.75,0,35.76-16.01,35.76-35.76S93.27,0,73.52,0ZM73.62,43.34c-.96,0-1.87-.18-2.71-.51.46-2.29.7-4.65.7-7.08s-.24-4.79-.7-7.08c.84-.32,1.75-.51,2.71-.51,4.19,0,7.59,3.4,7.59,7.59s-3.4,7.59-7.59,7.59Z"/>
-                    </svg>
+                <!-- Logo favicon — bouton mobile uniquement (ouvre l'archive complète) -->
+                <div class="socket-bouton" id="mobile-logo-socket">
+                    <button id="btn-mobile-logo" title="Ouvrir les archives" aria-label="Ouvrir les archives">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 109.28 71.85">
+                            <path fill="var(--text-dark)" d="M73.52,0c-6.93,0-13.4,1.98-18.88,5.4l-.21.13c-8.21,5.12-13.99,13.34-15.96,23.15-.46,2.29-.7,4.65-.7,7.08s.24,4.79.7,7.08c-.84.32-1.75.51-2.71.51-4.19,0-7.59-3.4-7.59-7.59,0-3.95,3.02-7.19,6.88-7.55,0-.01,0-.02,0-.04,0-10.47,4.5-19.89,11.68-26.43-3.46-1.12-7.14-1.74-10.97-1.74C16.01,0,0,16.01,0,35.76s16.01,35.76,35.76,35.76c6.93,0,13.4-1.98,18.88-5.4,5.48,3.42,11.95,5.4,18.88,5.4,19.75,0,35.76-16.01,35.76-35.76S93.27,0,73.52,0ZM73.62,43.34c-.96,0-1.87-.18-2.71-.51.46-2.29.7-4.65.7-7.08s-.24-4.79-.7-7.08c.84-.32,1.75-.51,2.71-.51,4.19,0,7.59,3.4,7.59,7.59s-3.4,7.59-7.59,7.59Z"/>
+                        </svg>
+                    </button>
                 </div>
                 <div class="top-bar" id="top-bar">
             <!-- Logo mory — wordmark original (archive 6) -->
@@ -175,27 +182,6 @@
         </svg>
     </button>
 
-    <!-- Boutons de vue : grille / calendrier — socket-bouton style -->
-    <div class="socket-bouton">
-        <button class="arc-btn-view arc-view-active" id="arc-btn-grid" title="Vue grille">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7" rx="1"/>
-                <rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/>
-                <rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>
-        </button>
-    </div>
-    <div class="socket-bouton">
-        <button class="arc-btn-view" id="arc-btn-cal" title="Vue calendrier">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-        </button>
-    </div>
 
     </div><!-- fin .arc-header-bar -->
 
@@ -227,14 +213,19 @@
         <div class="arc-ssub" id="arc-ssub-matiere"></div>
     </div>
 
-    <!-- Rangée isométrique -->
-    <div class="arc-strip-wrapper" id="arc-strip-wrapper">
-        <div class="arc-strip" id="arc-strip"></div>
+    <!-- Layout principal : drum + détail -->
+    <div class="arc-main-layout" id="arc-main-layout">
+        <!-- Colonne gauche : roue/drum verticale -->
+        <div class="arc-drum-col">
+            <div class="arc-drum" id="arc-drum"></div>
+            <div class="arc-drum-count" id="arc-drum-count"></div>
+        </div>
+        <!-- Colonne droite : détail de la session sélectionnée -->
+        <div class="arc-detail-col" id="arc-detail-col">
+            <div class="arc-detail-preview" id="arc-detail-preview"></div>
+            <div class="arc-detail-meta" id="arc-detail-meta"></div>
+        </div>
     </div>
-
-
-<!-- Vue calendrier -->
-    <div class="arc-cal-view" id="arc-cal-view"></div>
 
 <!-- État vide -->
     <div class="arc-empty" id="arc-empty">
@@ -245,10 +236,8 @@
     </div>
 
 
-    <!-- Mini roue chromatique pour les swatches -->
-    <div class="arc-chromo-popup" id="arc-chromo-popup">
-        <canvas class="arc-chromo-canvas" id="arc-chromo-canvas" width="110" height="110"></canvas>
-    </div>
+    <!-- Palette 10 couleurs pour les swatches de classe/matière -->
+    <div class="arc-chromo-popup" id="arc-chromo-popup"></div>
 </div>
 <!-- ══ FIN OVERLAY ARCHIVES ══════════════════════════════════ -->
 
@@ -256,7 +245,50 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<!-- Firebase compat SDK (Realtime Database) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<!-- Sync temps réel — config puis moteur -->
+<script src="sync-config.js"></script>
+<script src="sync.js"></script>
 <script src="lejava.js"></script>
+<!-- Indicateur de connexion sync (petit point) -->
+<div id="sync-dot" style="position:fixed;bottom:14px;right:14px;width:8px;height:8px;border-radius:50%;background:#94a3b8;z-index:9999;transition:background .4s;pointer-events:none;" title="Sync"></div>
+
+<!-- ── Accueil enseignant ─────────────────────────────────────── -->
+<div id="accueil-overlay" class="accueil-overlay accueil-hidden" aria-modal="true" role="dialog" aria-label="Accès enseignant">
+    <div class="accueil-card">
+
+        <div class="accueil-header">
+            <svg class="accueil-logo-icon" viewBox="0 0 109.28 71.85" xmlns="http://www.w3.org/2000/svg">
+                <path fill="currentColor" d="M73.52,0c-6.93,0-13.4,1.98-18.88,5.4l-.21.13c-8.21,5.12-13.99,13.34-15.96,23.15-.46,2.29-.7,4.65-.7,7.08s.24,4.79.7,7.08c-.84.32-1.75.51-2.71.51-4.19,0-7.59-3.4-7.59-7.59,0-3.95,3.02-7.19,6.88-7.55,0-.01,0-.02,0-.04,0-10.47,4.5-19.89,11.68-26.43-3.46-1.12-7.14-1.74-10.97-1.74C16.01,0,0,16.01,0,35.76s16.01,35.76,35.76,35.76c6.93,0,13.4-1.98,18.88-5.4,5.48,3.42,11.95,5.4,18.88,5.4,19.75,0,35.76-16.01,35.76-35.76S93.27,0,73.52,0ZM73.62,43.34c-.96,0-1.87-.18-2.71-.51.46-2.29.7-4.65.7-7.08s-.24-4.79-.7-7.08c.84-.32,1.75-.51,2.71-.51,4.19,0,7.59,3.4,7.59,7.59s-3.4,7.59-7.59,7.59Z"/>
+            </svg>
+            <span class="accueil-app-name">comory</span>
+        </div>
+
+        <div class="accueil-datetime">
+            <span class="accueil-date" id="accueil-date"></span>
+            <span class="accueil-heure" id="accueil-heure"></span>
+        </div>
+
+        <form id="accueil-form" class="accueil-form" autocomplete="off" novalidate>
+            <div class="accueil-champs">
+                <input type="text"     id="accueil-id"   class="accueil-input" placeholder="Identifiant"   autocomplete="off"          spellcheck="false">
+                <input type="password" id="accueil-pass" class="accueil-input" placeholder="Mot de passe"  autocomplete="new-password">
+            </div>
+            <div class="accueil-selects">
+                <select id="accueil-classe"  class="accueil-input" aria-label="Classe"></select>
+                <select id="accueil-matiere" class="accueil-input" aria-label="Matière"></select>
+            </div>
+            <p class="accueil-erreur" id="accueil-erreur" aria-live="polite"></p>
+            <button type="submit" class="accueil-btn" id="accueil-btn-submit">Commencer le cours</button>
+        </form>
+
+        <button class="accueil-reprendre accueil-hidden" id="accueil-reprendre">
+            ↩ Reprendre la session en cours
+        </button>
+    </div>
+</div>
 
 </body>
 </html>

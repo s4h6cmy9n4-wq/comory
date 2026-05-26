@@ -9,18 +9,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const oeilFerme  = btnOeil.querySelector('.oeil-ferme');
 
     // ── ŒIL ── effet éthéré : estompe le canevas ────────────────────────────
-    btnOeil.addEventListener('click', () => {
-        const masque = conteneur.classList.toggle('contenu-masque');
+    function _applyMasque(masque) {
+        conteneur.classList.toggle('contenu-masque', masque);
         oeilOuvert.style.display = masque ? 'none' : '';
         oeilFerme.style.display  = masque ? '' : 'none';
         btnOeil.classList.toggle('actif', masque);
+    }
+    btnOeil.addEventListener('click', () => {
+        const masque = !conteneur.classList.contains('contenu-masque');
+        _applyMasque(masque);
+        window._syncSchedule?.();
     });
+    // Exposé pour setBoardState (sync distant)
+    window._setMasqueUI = (masque) => _applyMasque(!!masque);
     // ── AMPOULE ───────────────────────────────────────────────────────────────
     const btnLumiere = document.getElementById('conteneur-lumiere');
     btnLumiere.addEventListener('click', () => {
         btnLumiere.classList.toggle('allume');
         document.body.classList.toggle('mode-sombre');
     });
+
+    // ── PALETTE 10 COULEURS (remplace roue chromatique) ──────────────────────
+    const SWATCHES = ['#1a2535','#4a5870','#8a96b0','#e8e3dd','#e63946','#f4a261','#f4d03f','#52b788','#4895ef','#b5838d'];
+
+    function buildSwatchDots(container, onClick) {
+        container.innerHTML = '';
+        SWATCHES.forEach(c => {
+            const dot = document.createElement('div');
+            dot.className = 'swatch-dot';
+            dot.dataset.color = c;
+            dot.style.background = c;
+            dot.addEventListener('click', e => { e.stopPropagation(); onClick(c, dot, container); });
+            container.appendChild(dot);
+        });
+    }
+    function syncSwatchActive(container, color) {
+        container.querySelectorAll('.swatch-dot').forEach(d => {
+            d.classList.toggle('actif', d.dataset.color === color);
+        });
+    }
 
     // ── ÉTAT GLOBAL ──────────────────────────────────────────────────────────
     const paintState = { color: '#000000', thicknessPercent: 50, opacity: 1 };
@@ -33,7 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── CANVAS ───────────────────────────────────────────────────────────────
     function initCanvas() {
         const planDeTravail = document.createElement('div');
-        const CANVAS_SIZE = 2500;
+        planDeTravail.id = 'plan-de-travail'; // ciblé par CSS pour l'effet œil (masque canvas seul)
+        const CANVAS_SIZE = 3500;
         planDeTravail.style.cssText = `position:absolute; top:0; left:0; width:${CANVAS_SIZE}px; height:${CANVAS_SIZE}px; transform-origin: 0 0; z-index:3;`;
         conteneur.style.overflow = 'hidden';
         conteneur.appendChild(planDeTravail);
@@ -90,6 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 objs: serializePlacedObjects()
             });
             broadcastState();
+            // Déclencher la sync Firebase (debounce 4 s, no-op si sync désactivé)
+            window._syncSchedule?.();
         }
         function restoreState(step) {
             const { imageData, objs } = history[step];
@@ -109,8 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.src = s.src;
             });
         }
-        function undo() { if (historyStep > 0) { historyStep--; restoreState(historyStep); } }
-        function redo() { if (historyStep < history.length - 1) { historyStep++; restoreState(historyStep); } }
+        function undo() { if (historyStep > 0) { historyStep--; restoreState(historyStep); window._syncSchedule?.(); } }
+        function redo() { if (historyStep < history.length - 1) { historyStep++; restoreState(historyStep); window._syncSchedule?.(); } }
         function clearCanvas() {
             mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
             placedObjects.forEach(o => o.el.remove());
@@ -228,6 +258,21 @@ document.addEventListener('DOMContentLoaded', () => {
             planDeTravail.style.transform = `translate(${currentTx}px, ${currentTy}px) scale(${currentScale})`;
         };
         window.mobileStopPan = () => { isPanning = false; };
+
+        // Tap mobile → sélectionner l'objet sous le doigt
+        window.mobileTap = (clientX, clientY) => {
+            if (window.activeToolMode) return;
+            const rect = draftCanvas.getBoundingClientRect();
+            const cx = (clientX - rect.left) / currentScale;
+            const cy = (clientY - rect.top)  / currentScale;
+            const hit = hitTestAny(cx, cy);
+            if (hit) {
+                afficherSelection([hit]);
+                majActionPanel();
+            } else {
+                if (selectedObjects.length > 0) masquerSelection();
+            }
+        };
         let shapeStartX = 0, shapeStartY = 0;
         let isSelecting = false, selectStartX = 0, selectStartY = 0, selectCurX = 0, selectCurY = 0;
         let lastPinchCenter = {x: 0, y: 0};
@@ -788,10 +833,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Note : placedObjects est déclaré plus haut (L58) pour que saveState() l'inclue dès initSize()
         let selectedObjects = [];
         let clipboard = []; // Presse-papiers interne (Ctrl+C / Ctrl+V / Dupliquer)
-        let isDraggingImage  = false, isResizingImage = false;
+        let isDraggingImage  = false, isResizingImage = false, isPinchResizing = false;
         let imgDragStartX = 0, imgDragStartY = 0;
         let imgOrigX = 0, imgOrigY = 0, imgOrigW = 0, imgOrigH = 0;
         let activeCorner = null;
+        let pinchStartDist = 0, pinchOrigW = 0, pinchOrigH = 0, pinchOrigX = 0, pinchOrigY = 0;
         let pdfPlacementActif = false; // bloque la sélection pendant le mode placement PDF
         // Rotation
         let isRotatingImage  = false;
@@ -1017,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const SEL_PAD_PX = 30; // pixels écran constants
 
         const imgOverlay = document.createElement('div');
-        imgOverlay.style.cssText = 'position:absolute;display:none;z-index:6;box-sizing:border-box;cursor:move;overflow:visible;';
+        imgOverlay.style.cssText = 'position:absolute;display:none;z-index:6;box-sizing:border-box;cursor:move;overflow:visible;touch-action:none;';
         planDeTravail.appendChild(imgOverlay);
 
         // SVG de sélection style viseur/caméra (redrawn dynamiquement)
@@ -1092,7 +1138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Le rect vers lequel l'objet se déplace est en bleu
         const btnBack = document.createElement('button');
         btnBack.title = 'Reculer d\'un rang';
-        btnBack.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;';
+        btnBack.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:var(--text-dark,#1a1a1a);';
         btnBack.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="9" y="9" width="13" height="13" rx="2" fill="#ff4000" stroke="#ff4000" stroke-width="2"/>
             <rect x="2" y="2" width="13" height="13" rx="2" fill="var(--bg,#e8edf2)" stroke="currentColor" stroke-width="2"/>
@@ -1103,7 +1149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Bouton 2 : Avancer d'un rang
         const btnFront = document.createElement('button');
         btnFront.title = 'Avancer d\'un rang';
-        btnFront.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;';
+        btnFront.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:var(--text-dark,#1a1a1a);';
         btnFront.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="9" y="9" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
             <rect x="2" y="2" width="13" height="13" rx="2" fill="#ff4000" stroke="#ff4000" stroke-width="2"/>
@@ -1114,7 +1160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Bouton 3 : Supprimer la sélection
         const btnDelete = document.createElement('button');
         btnDelete.title = 'Supprimer la sélection';
-        btnDelete.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;color:#e03;';
+        btnDelete.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:#e03;';
         btnDelete.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -1127,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Bouton 4 : Dupliquer la sélection
         const btnDup = document.createElement('button');
         btnDup.title = 'Dupliquer';
-        btnDup.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;';
+        btnDup.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:var(--text-dark,#1a1a1a);';
         btnDup.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="8" y="8" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
             <path d="M3 16V5a2 2 0 0 1 2-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -1137,7 +1183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const btnPdf = document.createElement('button');
         btnPdf.title = 'Ouvrir le PDF dans le Finder';
-        btnPdf.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:none;align-items:center;justify-content:center;transition:background 0.15s;';
+        btnPdf.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:none;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:var(--text-dark,#1a1a1a);';
         btnPdf.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>`;
         btnPdf.addEventListener('mouseenter', () => btnPdf.style.background = 'rgba(255,64,0,0.12)');
         btnPdf.addEventListener('mouseleave', () => btnPdf.style.background = 'transparent');
@@ -1151,18 +1197,20 @@ document.addEventListener('DOMContentLoaded', () => {
         actionPanel.appendChild(btnDelete);
         actionPanel.appendChild(btnDup);
         actionPanel.appendChild(btnPdf);
+        // Mobile : empêcher le touchstart de remonter au document
+        // (sinon mobileTap() désélectionne l'objet avant que le clic ne s'exécute)
+        actionPanel.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
 
-        // Positionne le panneau d'actions en bas-à-droite de l'overlay (coordonnées écran)
+        // Positionne le panneau d'actions — toujours coin inférieur droit de la fenêtre
         function majActionPanel() {
             if (selectedObjects.length === 0) { actionPanel.style.display = 'none'; return; }
             actionPanel.style.display = 'flex';
             btnPdf.style.display = selectedObjects.some(o => o._pdfPath) ? 'flex' : 'none';
-            const or = imgOverlay.getBoundingClientRect();
-            // Après le rendu, lire les dimensions et placer
             requestAnimationFrame(() => {
                 const pw = actionPanel.offsetWidth, ph = actionPanel.offsetHeight;
-                actionPanel.style.left = (or.right - pw) + 'px';
-                actionPanel.style.top  = (or.bottom + 6) + 'px';
+                const vw = window.innerWidth, vh = window.innerHeight;
+                actionPanel.style.left = (vw - pw - 16) + 'px';
+                actionPanel.style.top  = (vh - ph - 16) + 'px';
             });
         }
 
@@ -1293,6 +1341,124 @@ document.addEventListener('DOMContentLoaded', () => {
                 imgOrigX = selectedObjects[0].x;
                 imgOrigY = selectedObjects[0].y;
             }
+        });
+
+        // ── Déplacement et redimensionnement via touch mobile ────────────────
+        // Tout passe par imgOverlay (les poignées de coin sont des enfants et
+        // leurs événements remontent ici via bubbling).
+        // touch-action:none sur imgOverlay → iOS ne capture pas le geste en scroll.
+        imgOverlay.addEventListener('touchstart', (e) => {
+            if (selectedObjects.length === 0) return;
+            // Pinch à 2 doigts sur l'image sélectionnée → redimensionner
+            if (e.touches.length === 2 && selectedObjects.length === 1) {
+                e.stopPropagation();
+                isPinchResizing = true;
+                isDraggingImage = false; isResizingImage = false;
+                window.mobileObjectDragging = true;
+                const obj = selectedObjects[0];
+                const t1 = e.touches[0], t2 = e.touches[1];
+                pinchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                pinchOrigW = obj.w; pinchOrigH = obj.h;
+                pinchOrigX = obj.x; pinchOrigY = obj.y;
+                return;
+            }
+            if (e.touches.length !== 1) return;
+            e.stopPropagation(); // empêche initMobileTouch de démarrer holdTimer/pan
+            const corner = e.target.dataset.corner; // 'nw','ne','sw','se' ou undefined
+            if (corner && selectedObjects.length === 1) {
+                // ── Mode resize ───────────────────────────────────────────────
+                const obj = selectedObjects[0];
+                const touch = e.touches[0];
+                const rect  = draftCanvas.getBoundingClientRect();
+                isResizingImage = true;
+                activeCorner    = corner;
+                window.mobileObjectDragging = true;
+                imgDragStartX = (touch.clientX - rect.left) / currentScale;
+                imgDragStartY = (touch.clientY - rect.top)  / currentScale;
+                imgOrigX = obj.x; imgOrigY = obj.y;
+                imgOrigW = obj.w; imgOrigH = obj.h;
+            } else if (!e.target.dataset.rotate) {
+                // ── Mode déplacement ──────────────────────────────────────────
+                isDraggingImage = true;
+                window.mobileObjectDragging = true;
+                [imgDragStartX, imgDragStartY] = getPos(e);
+                selectedObjects.forEach(o => { o._origX = o.x; o._origY = o.y; });
+                if (selectedObjects.length === 1) {
+                    imgOrigX = selectedObjects[0].x;
+                    imgOrigY = selectedObjects[0].y;
+                }
+            }
+        }, { passive: true });
+
+        imgOverlay.addEventListener('touchmove', (e) => {
+            e.stopPropagation();
+            e.preventDefault(); // bloque les gestes iOS (scroll, rubber-band) pendant le drag
+            // Pinch à 2 doigts → redimensionner depuis le centre de l'objet
+            if (isPinchResizing && e.touches.length === 2 && selectedObjects.length === 1) {
+                const obj = selectedObjects[0];
+                const t1 = e.touches[0], t2 = e.touches[1];
+                const dist  = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                const scale = dist / pinchStartDist;
+                const nw = Math.max(20, pinchOrigW * scale);
+                const nh = Math.max(20, pinchOrigH * scale);
+                obj.x = pinchOrigX + pinchOrigW / 2 - nw / 2;
+                obj.y = pinchOrigY + pinchOrigH / 2 - nh / 2;
+                obj.w = nw; obj.h = nh;
+                if (obj.type === 'text' && obj._text) reRenderText(obj);
+                appliquerMouvement(obj);
+                return;
+            }
+            if (e.touches.length !== 1) return;
+            const touch = e.touches[0];
+            const rect  = draftCanvas.getBoundingClientRect();
+            const cx = (touch.clientX - rect.left) / currentScale;
+            const cy = (touch.clientY - rect.top)  / currentScale;
+
+            if (isResizingImage && selectedObjects.length === 1 && activeCorner) {
+                const obj = selectedObjects[0];
+                const dx = cx - imgDragStartX, dy = cy - imgDragStartY;
+                let rawW = imgOrigW, rawH = imgOrigH;
+                if (activeCorner.includes('e')) rawW = imgOrigW + dx;
+                if (activeCorner.includes('w')) rawW = imgOrigW - dx;
+                if (activeCorner.includes('s')) rawH = imgOrigH + dy;
+                if (activeCorner.includes('n')) rawH = imgOrigH - dy;
+                const nw = Math.max(20, rawW), nh = Math.max(20, rawH);
+                const nx = activeCorner.includes('w') ? imgOrigX + imgOrigW - nw : imgOrigX;
+                const ny = activeCorner.includes('n') ? imgOrigY + imgOrigH - nh : imgOrigY;
+                obj.x = nx; obj.y = ny; obj.w = nw; obj.h = nh;
+                if (obj.type === 'text' && obj._text) reRenderText(obj);
+                appliquerMouvement(obj);
+            } else if (isDraggingImage && selectedObjects.length > 0) {
+                const ddx = cx - imgDragStartX, ddy = cy - imgDragStartY;
+                if (selectedObjects.length === 1) {
+                    const obj = selectedObjects[0];
+                    obj.x = imgOrigX + ddx; obj.y = imgOrigY + ddy;
+                    appliquerMouvement(obj);
+                } else {
+                    selectedObjects.forEach(obj => {
+                        if (obj._origX !== undefined) {
+                            obj.x = obj._origX + ddx; obj.y = obj._origY + ddy;
+                            mettreAJourElement(obj);
+                        }
+                    });
+                    positionnerOverlay(computeBB(selectedObjects));
+                }
+            }
+        }, { passive: false }); // passive:false requis pour e.preventDefault()
+
+        imgOverlay.addEventListener('touchend', () => {
+            if (isDraggingImage || isResizingImage || isPinchResizing) {
+                isDraggingImage = false; isResizingImage = false; isPinchResizing = false; activeCorner = null;
+                window.mobileObjectDragging = false;
+                saveState();
+            }
+        });
+
+        imgOverlay.addEventListener('touchcancel', () => {
+            // Sauvegarder même si le système a annulé le geste (doigt hors écran)
+            if (isDraggingImage || isResizingImage || isPinchResizing) saveState();
+            isDraggingImage = false; isResizingImage = false; isPinchResizing = false; activeCorner = null;
+            window.mobileObjectDragging = false;
         });
 
         // ── Double-clic sur un tableau → session d'édition des cellules ─────
@@ -1966,10 +2132,18 @@ document.addEventListener('DOMContentLoaded', () => {
         window.entrerModePlacementImages = entrerModePlacementImages;
 
         // ── Exposition pour le carrousel de tableaux ─────────────────────────
-        window.getBoardState = () => ({
-            imageData: mainCtx.getImageData(0, 0, mainCanvas.width, mainCanvas.height),
-            objs: serializePlacedObjects()
-        });
+        window.getBoardState = () => {
+            const barreD = document.getElementById('barre-outils-droite');
+            return {
+                imageData: mainCtx.getImageData(0, 0, mainCanvas.width, mainCanvas.height),
+                objs: serializePlacedObjects(),
+                ui: {
+                    chrono:  !!(barreD && barreD.querySelector('.bloc-chrono')),
+                    horloge: !!(barreD && barreD.querySelector('.bloc-horloge')),
+                    masque:  !!(conteneur && conteneur.classList.contains('contenu-masque'))
+                }
+            };
+        };
         window.setBoardState = (state) => {
             mainCtx.putImageData(state.imageData, 0, 0);
             placedObjects.forEach(o => o.el.remove());
@@ -1986,6 +2160,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 placedObjects.push(obj);
                 el.src = s.src;
             });
+            // Appliquer l'état UI chrono/horloge/oeil si fourni (sync cross-device)
+            if (state.ui && window._setChronoUI) window._setChronoUI(state.ui.chrono, state.ui.horloge);
+            if (state.ui && typeof state.ui.masque === 'boolean' && window._setMasqueUI) window._setMasqueUI(state.ui.masque);
             history.length = 0; historyStep = -1;
             saveState();
         };
@@ -2012,6 +2189,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             return tmp.toDataURL('image/jpeg', 0.75);
         };
+
     }
     initCanvas();
 
@@ -2376,8 +2554,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Expose pour setBoardState (sync distant) : active/désactive chrono et horloge
+    window._setChronoUI = (chronoActif, horlogeActif) => {
+        const barreD = document.getElementById('barre-outils-droite');
+        if (!barreD) return;
+        const hasC = !!barreD.querySelector('.bloc-chrono');
+        const hasH = !!barreD.querySelector('.bloc-horloge');
+        if (!!chronoActif  !== hasC) creerChrono(barreD);
+        if (!!horlogeActif !== hasH) creerHorloge(barreD);
+    };
+
     function creerChrono(cont) {
-        if (cont.querySelector('.bloc-chrono')) { cont.querySelector('.bloc-chrono').remove(); return false; }
+        if (cont.querySelector('.bloc-chrono')) { cont.querySelector('.bloc-chrono').remove(); window._syncSchedule?.(); return false; }
         let ms = 0, ticking = false, intervalId = null, compteurTours = 0, isCountdown = false;
         const b = btnsSVG();
         const bloc = document.createElement('div');
@@ -2422,11 +2610,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         btnR.addEventListener('click', (e) => { e.stopPropagation(); clearInterval(intervalId); ms = 0; ticking = false; isCountdown = false; afficher(); iPlay.style.display = ''; iPause.style.display = 'none'; divT.innerHTML = ''; bloc.classList.remove('deplie'); });
         editionManuelle([sH, sM, sS]);
+        window._syncSchedule?.();   // notifier les autres appareils
         return true;
     }
 
     function creerHorloge(cont) {
-        if (cont.querySelector('.bloc-horloge')) { const h = cont.querySelector('.bloc-horloge'); if (h._stopHorloge) h._stopHorloge(); h.remove(); return false; }
+        if (cont.querySelector('.bloc-horloge')) { const h = cont.querySelector('.bloc-horloge'); if (h._stopHorloge) h._stopHorloge(); h.remove(); window._syncSchedule?.(); return false; }
         const bloc = document.createElement('div');
         bloc.className = 'bloc-horloge';
         bloc.addEventListener('click', (e) => e.stopPropagation());
@@ -2435,6 +2624,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function afficher() { const now = new Date(); bloc.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`; }
         afficher(); intervalId = setInterval(afficher, 1000);
         bloc._stopHorloge = () => clearInterval(intervalId);
+        window._syncSchedule?.();   // notifier les autres appareils
         return true;
     }
 
@@ -2720,6 +2910,15 @@ document.addEventListener('DOMContentLoaded', () => {
         centreLabel.textContent = '';
         fermerPanel();
     };
+
+    // Clic hors de la roue et du panel → désactiver l'outil actif (desktop)
+    document.addEventListener('mousedown', (e) => {
+        if (!outilActifNum) return;
+        const rouePanel = document.getElementById('roue-panel');
+        if (roueConteneur.contains(e.target)) return;
+        if (rouePanel && rouePanel.contains(e.target)) return;
+        window.desactiverOutil();
+    });
 
     // ── PANEL INLINE ─────────────────────────────────────────────────────────
     function ouvrirPanel(num) {
@@ -3045,7 +3244,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const onRoueEnter = () => { mouseOverRoue = true; };
         const onRoueLeave = () => {
             mouseOverRoue = false;
-            if (!activeHalf && !chromoDrag) doClose();  // ferme si pas de drag en cours
+            if (!activeHalf) doClose();
         };
         roueConteneur.addEventListener('mouseenter', onRoueEnter);
         roueConteneur.addEventListener('mouseleave', onRoueLeave);
@@ -3055,15 +3254,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // → le pouce reste sur l'arc même si la souris dépasse la ligne médiane
         let activeHalf = null;
         const evtRel = e => {
-            const r = dialSvg.getBoundingClientRect();
+            const r   = dialSvg.getBoundingClientRect();
+            const src = e.touches?.[0] || e.changedTouches?.[0] || e;
             return {
-                dx: e.clientX - r.left  - r.width  / 2,
-                dy: e.clientY - r.top   - r.height / 2
+                dx: src.clientX - r.left  - r.width  / 2,
+                dy: src.clientY - r.top   - r.height / 2
             };
         };
 
         hitT.addEventListener('mousedown', e => { e.stopPropagation(); activeHalf = 'T'; });
         hitB.addEventListener('mousedown', e => { e.stopPropagation(); activeHalf = 'B'; });
+        hitT.addEventListener('touchstart', e => { e.stopPropagation(); activeHalf = 'T'; }, { passive: true });
+        hitB.addEventListener('touchstart', e => { e.stopPropagation(); activeHalf = 'B'; }, { passive: true });
 
         const onMove = e => {
             if (!activeHalf) return;
@@ -3096,78 +3298,19 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup',   onUp);
+        document.addEventListener('touchmove', onMove, { passive: true });
+        document.addEventListener('touchend',  onUp);
 
-        // ── Roue chromatique 2D (teinte = angle, saturation = distance) ───────
+        // ── Palette 10 couleurs (dessin) ──────────────────────────────────────
         const chromo    = document.getElementById('roue-centre-chromo');
-        const chromoInd = chromo ? chromo.querySelector('.chromo-ind') : null;
-        let chromoDrag  = false;
 
-        // ── Overlay : label + chiffre au centre pendant le glisser ──────────
-        const centreEl = document.getElementById('roue-centre');
-        const valDiv   = document.createElement('div');
-        valDiv.style.cssText = [
-            'position:absolute', 'top:50%', 'left:50%',
-            'transform:translate(-50%,-50%)',
-            'pointer-events:none', 'z-index:25',
-            'opacity:0', 'transition:opacity 0.10s',
-            'display:flex', 'flex-direction:column', 'align-items:center', 'gap:1px',
-            'text-align:center',
-            'width:calc(var(--roue-size)*0.27)',
-        ].join(';');
-        const valLblD = document.createElement('div');
-        valLblD.style.cssText = [
-            'font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif',
-            'font-size:calc(var(--roue-size)*0.042)',
-            'font-weight:700', 'color:white',
-            'letter-spacing:0.03em', 'text-transform:uppercase', 'line-height:1',
-            'white-space:nowrap', 'overflow:hidden',
-        ].join(';');
-        const valNumD = document.createElement('div');
-        valNumD.style.cssText = [
-            'font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif',
-            'font-size:calc(var(--roue-size)*0.115)',
-            'font-weight:900', 'color:white',
-            'letter-spacing:-0.04em', 'line-height:1',
-        ].join(';');
-        valDiv.appendChild(valLblD);
-        valDiv.appendChild(valNumD);
-        if (centreEl) centreEl.appendChild(valDiv);
-        const showVal = (v, lbl) => { valLblD.textContent = lbl || ''; valNumD.textContent = Math.round(v); valDiv.style.opacity = '1'; };
-        const hideVal = () => { valDiv.style.opacity = '0'; };
-
-        function updateChromoInd(hue, sat) {
-            if (!chromoInd) return;
-            const a    = (hue - 90) * Math.PI / 180;
-            const dist = (sat / 100) * 40;
-            chromoInd.style.left = `calc(50% + ${(Math.cos(a) * dist).toFixed(2)}%)`;
-            chromoInd.style.top  = `calc(50% + ${(Math.sin(a) * dist).toFixed(2)}%)`;
-        }
-        function pickColor(e) {
-            if (!chromo) return;
-            const r  = chromo.getBoundingClientRect();
-            const cx = r.left + r.width  / 2, cy = r.top + r.height / 2;
-            const dx = e.clientX - cx, dy = e.clientY - cy;
-            const angle = Math.atan2(dy, dx);
-            const hue   = Math.round(((angle * 180 / Math.PI) + 90 + 360) % 360);
-            const sat   = Math.round(Math.min(100, Math.sqrt(dx*dx + dy*dy) / (r.width / 2) * 100));
-            paintState.color = `hsl(${hue}, ${sat}%, 50%)`;
-            updateChromoInd(hue, sat);
-            // if (selectedConnector) { selectedConnector._color = paintState.color; reRenderConnector(selectedConnector); } // CONNECTEURS
-        }
-        const onChromoMouseDownDessin = e => { e.stopPropagation(); chromoDrag = true; pickColor(e); };
         if (chromo) {
-            const m = paintState.color.match(/hsl\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)%/);
-            updateChromoInd(m ? parseFloat(m[1]) : 60, m ? parseFloat(m[2]) : 100);
-            chromo.addEventListener('mousedown', onChromoMouseDownDessin);
+            buildSwatchDots(chromo, (c, dot, container) => {
+                paintState.color = c;
+                syncSwatchActive(container, c);
+            });
+            syncSwatchActive(chromo, paintState.color);
         }
-        const onChromoMove = e => { if (chromoDrag) pickColor(e); };
-        const onChromoUp = e => {
-            if (!chromoDrag) return;
-            chromoDrag = false;
-            if (!mouseOverRoue) doClose();
-        };
-        document.addEventListener('mousemove', onChromoMove);
-        document.addEventListener('mouseup',   onChromoUp);
 
         // ── Nettoyage (chaîné) ────────────────────────────────────────────────
         const prevCleanup = panelCleanup;
@@ -3175,12 +3318,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (prevCleanup) prevCleanup();
             roueConteneur.removeEventListener('mouseenter', onRoueEnter);
             roueConteneur.removeEventListener('mouseleave', onRoueLeave);
-            if (chromo) chromo.removeEventListener('mousedown', onChromoMouseDownDessin);
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup',   onUp);
-            document.removeEventListener('mousemove', onChromoMove);
-            document.removeEventListener('mouseup',   onChromoUp);
-            if (valDiv.parentNode) valDiv.parentNode.removeChild(valDiv);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend',  onUp);
             dialSvg.innerHTML = '';
             roueConteneur.classList.remove('mode-dessin');
         };
@@ -3260,37 +3401,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Flag drag en cours (Phase B) — empêche la fermeture pendant un glisser
         let shapeDragging = false;
 
-        // ── Chromo couleur formes ──────────────────────────────────────────────
-        const chromoF    = document.getElementById('roue-centre-chromo');
-        const chromoFInd = chromoF ? chromoF.querySelector('.chromo-ind') : null;
-        let   chromoFDrag = false;
+        // ── Palette 10 couleurs (formes) ──────────────────────────────────────
+        const chromoF = document.getElementById('roue-centre-chromo');
 
-        function updateChromoFInd(hue, sat) {
-            if (!chromoFInd) return;
-            const a    = (hue - 90) * Math.PI / 180;
-            const dist = (sat / 100) * 40;
-            chromoFInd.style.left = `calc(50% + ${(Math.cos(a) * dist).toFixed(2)}%)`;
-            chromoFInd.style.top  = `calc(50% + ${(Math.sin(a) * dist).toFixed(2)}%)`;
-        }
-        function pickColorFormes(e) {
-            if (!chromoF) return;
-            const r  = chromoF.getBoundingClientRect();
-            const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-            const dx = e.clientX - cx, dy = e.clientY - cy;
-            const angle = Math.atan2(dy, dx);
-            const hue   = Math.round(((angle * 180 / Math.PI) + 90 + 360) % 360);
-            const sat   = Math.round(Math.min(100, Math.sqrt(dx*dx + dy*dy) / (r.width / 2) * 100));
-            const lum   = sat < 10 ? Math.round(100 - sat * 4) : 50;
-            window.etatForme.color = `hsl(${hue}, ${sat}%, ${lum}%)`;
-            updateChromoFInd(hue, sat);
-        }
-        const onChromoFDown = (e) => { e.stopPropagation(); chromoFDrag = true; pickColorFormes(e); };
-        const onChromoFMove = (e) => { if (chromoFDrag) pickColorFormes(e); };
-        const onChromoFUp   = () => { chromoFDrag = false; };
         if (chromoF) {
-            chromoF.addEventListener('mousedown', onChromoFDown);
-            document.addEventListener('mousemove', onChromoFMove);
-            document.addEventListener('mouseup',   onChromoFUp);
+            buildSwatchDots(chromoF, (c, dot, container) => {
+                window.etatForme.color = c;
+                syncSwatchActive(container, c);
+            });
+            syncSwatchActive(chromoF, window.etatForme.color);
         }
 
         // ── Fermeture au mouseleave de la roue (phases A et B) ────────────────
@@ -3302,9 +3421,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const schedClose = () => {
             clearTimeout(closeTimer);
             closeTimer = setTimeout(() => {
-                if (chromoF) chromoF.removeEventListener('mousedown', onChromoFDown);
-                document.removeEventListener('mousemove', onChromoFMove);
-                document.removeEventListener('mouseup',   onChromoFUp);
                 roueConteneur.classList.remove('mode-formes');
                 roueConteneur.classList.remove('mode-formes-sliders');
                 dialSvg.innerHTML = '';
@@ -3491,15 +3607,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let activeHalf2 = null;
             const evtRel2 = e => {
-                const r = dialSvg.getBoundingClientRect();
+                const r   = dialSvg.getBoundingClientRect();
+                const src = e.touches?.[0] || e.changedTouches?.[0] || e;
                 return {
-                    dx: e.clientX - r.left  - r.width  / 2,
-                    dy: e.clientY - r.top   - r.height / 2
+                    dx: src.clientX - r.left  - r.width  / 2,
+                    dy: src.clientY - r.top   - r.height / 2
                 };
             };
 
             hitT2.addEventListener('mousedown', e => { e.stopPropagation(); activeHalf2 = 'T'; shapeDragging = true; clearTimeout(closeTimer); });
             hitB2.addEventListener('mousedown', e => { e.stopPropagation(); activeHalf2 = 'B'; shapeDragging = true; clearTimeout(closeTimer); });
+            hitT2.addEventListener('touchstart', e => { e.stopPropagation(); activeHalf2 = 'T'; shapeDragging = true; clearTimeout(closeTimer); }, { passive: true });
+            hitB2.addEventListener('touchstart', e => { e.stopPropagation(); activeHalf2 = 'B'; shapeDragging = true; clearTimeout(closeTimer); }, { passive: true });
 
             const onSM = e => {
                 if (!activeHalf2) return;
@@ -3523,6 +3642,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const onSU = () => { if (activeHalf2) { activeHalf2 = null; shapeDragging = false; hideVal2(); schedClose(); } };
             addDoc('mousemove', onSM);
             addDoc('mouseup',   onSU);
+            addDoc('touchmove', onSM);
+            addDoc('touchend',  onSU);
 
             // Toggle rempli / contour — style néomorphique inline
             updateFillCtrl();
@@ -3564,9 +3685,6 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(closeTimer);
             roueConteneur.removeEventListener('mouseleave', onRoueLeaveFormes);
             docListeners.forEach(([ev, fn]) => document.removeEventListener(ev, fn));
-            if (chromoF) chromoF.removeEventListener('mousedown', onChromoFDown);
-            document.removeEventListener('mousemove', onChromoFMove);
-            document.removeEventListener('mouseup',   onChromoFUp);
             if (valDiv2.parentNode) valDiv2.parentNode.removeChild(valDiv2);
             dialSvg.innerHTML = '';
             if (fillCtrl) fillCtrl.innerHTML = '';
@@ -3850,9 +3968,11 @@ document.addEventListener('DOMContentLoaded', () => {
         dialSvg.appendChild(hitB);
 
         let activeH=null;
-        const evtRel=e=>{const r=dialSvg.getBoundingClientRect();return{dx:e.clientX-r.left-r.width/2,dy:e.clientY-r.top-r.height/2};};
+        const evtRel=e=>{const r=dialSvg.getBoundingClientRect();const src=e.touches?.[0]||e.changedTouches?.[0]||e;return{dx:src.clientX-r.left-r.width/2,dy:src.clientY-r.top-r.height/2};};
         hitT.addEventListener('mousedown',e=>{e.stopPropagation();activeH='T';tblDragging=true;clearTimeout(closeTimer);});
         hitB.addEventListener('mousedown',e=>{e.stopPropagation();activeH='B';tblDragging=true;clearTimeout(closeTimer);});
+        hitT.addEventListener('touchstart',e=>{e.stopPropagation();activeH='T';tblDragging=true;clearTimeout(closeTimer);},{passive:true});
+        hitB.addEventListener('touchstart',e=>{e.stopPropagation();activeH='B';tblDragging=true;clearTimeout(closeTimer);},{passive:true});
 
         const onM=e=>{
             if(!activeH)return;
@@ -3874,6 +3994,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const onU=()=>{if(activeH){activeH=null;tblDragging=false;schedClose();}};
         addDoc('mousemove',onM);
         addDoc('mouseup',onU);
+        addDoc('touchmove',onM);
+        addDoc('touchend',onU);
 
         const prevCleanup=panelCleanup;
         panelCleanup=()=>{
@@ -3939,69 +4061,43 @@ document.addEventListener('DOMContentLoaded', () => {
         // ── Fermeture au survol ────────────────────────────────────────────────
         let mouseOverRoue = true;
         let activeArc     = null;
-        let chromoDrag    = false;
 
-        // ── Roue chromatique : couleur du texte ───────────────────────────────
-        const chromo    = document.getElementById('roue-centre-chromo');
-        const chromoInd = chromo ? chromo.querySelector('.chromo-ind') : null;
+        // ── Palette 10 couleurs (texte) ────────────────────────────────────────
+        const chromo = document.getElementById('roue-centre-chromo');
 
-        function updateChromoInd(hue, sat) {
-            if (!chromoInd) return;
-            const a    = (hue - 90) * Math.PI / 180;
-            const dist = (sat / 100) * 40;
-            chromoInd.style.left = `calc(50% + ${(Math.cos(a) * dist).toFixed(2)}%)`;
-            chromoInd.style.top  = `calc(50% + ${(Math.sin(a) * dist).toFixed(2)}%)`;
-        }
-        function pickTextColor(e) {
-            if (!chromo) return;
-            const r  = chromo.getBoundingClientRect();
-            const cx = r.left + r.width  / 2, cy = r.top + r.height / 2;
-            const dx = e.clientX - cx, dy = e.clientY - cy;
-            const angle = Math.atan2(dy, dx);
-            const hue   = Math.round(((angle * 180 / Math.PI) + 90 + 360) % 360);
-            const sat   = Math.round(Math.min(100, Math.sqrt(dx*dx + dy*dy) / (r.width / 2) * 100));
-            window.etatTexte.color = `hsl(${hue}, ${sat}%, 50%)`;
-            updateChromoInd(hue, sat);
-        }
-        const onChromoMouseDown = e => { e.stopPropagation(); chromoDrag = true; pickTextColor(e); };
         if (chromo) {
-            const m = window.etatTexte.color.match(/hsl\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)%/);
-            updateChromoInd(m ? parseFloat(m[1]) : 60, m ? parseFloat(m[2]) : 100);
-            chromo.addEventListener('mousedown', onChromoMouseDown);
+            buildSwatchDots(chromo, (c, dot, container) => {
+                window.etatTexte.color = c;
+                syncSwatchActive(container, c);
+            });
+            syncSwatchActive(chromo, window.etatTexte.color);
         }
+
         const onDocMouseMove = e => {
-            if (chromoDrag) pickTextColor(e);
             const r = roueConteneur.getBoundingClientRect();
             const nowOver = (e.clientX >= r.left && e.clientX <= r.right &&
                              e.clientY >= r.top  && e.clientY <= r.bottom);
             if (mouseOverRoue && !nowOver) {
                 mouseOverRoue = false;
-                if (!activeArc && !chromoDrag) scheduleClose();
+                if (!activeArc) scheduleClose();
             } else if (!mouseOverRoue && nowOver) {
                 mouseOverRoue = true;
                 clearTimeout(leaveTimer);
             }
         };
-        const onChromoUp   = () => {
-            if (!chromoDrag) return;
-            chromoDrag = false;
-            if (!mouseOverRoue) scheduleClose();
-        };
         addDoc('mousemove', onDocMouseMove);
-        addDoc('mouseup',   onChromoUp);
 
         let leaveTimer = null;
         const scheduleClose = () => {
             if (window.tableEditMode) return;
             clearTimeout(leaveTimer);
             leaveTimer = setTimeout(() => {
-                if (!mouseOverRoue && !activeArc && !chromoDrag) doClose();
+                if (!mouseOverRoue && !activeArc) doClose();
             }, 120);
         };
 
         const doClose = () => {
             clearTimeout(leaveTimer);
-            if (chromo) chromo.removeEventListener('mousedown', onChromoMouseDown);
             docListeners.forEach(([ev, fn]) => document.removeEventListener(ev, fn));
             dialSvg.innerHTML = '';
             const textCtrl = document.getElementById('roue-centre-textctrl');
@@ -4207,12 +4303,15 @@ document.addEventListener('DOMContentLoaded', () => {
             dialSvg.appendChild(hitB);
 
             const evtRel = e => {
-                const r = dialSvg.getBoundingClientRect();
-                return { dx: e.clientX - r.left - r.width / 2, dy: e.clientY - r.top - r.height / 2 };
+                const r   = dialSvg.getBoundingClientRect();
+                const src = e.touches?.[0] || e.changedTouches?.[0] || e;
+                return { dx: src.clientX - r.left - r.width / 2, dy: src.clientY - r.top - r.height / 2 };
             };
 
             hitT.addEventListener('mousedown', e => { e.stopPropagation(); activeArc = 'T'; });
             hitB.addEventListener('mousedown', e => { e.stopPropagation(); activeArc = 'B'; });
+            hitT.addEventListener('touchstart', e => { e.stopPropagation(); activeArc = 'T'; }, { passive: true });
+            hitB.addEventListener('touchstart', e => { e.stopPropagation(); activeArc = 'B'; }, { passive: true });
 
             const onMove = e => {
                 if (!activeArc) return;
@@ -4237,10 +4336,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!activeArc) return;
                 activeArc = null;
                 hideVal();
-                if (!mouseOverRoue && !chromoDrag) scheduleClose();
+                if (!mouseOverRoue) scheduleClose();
             };
             addDoc('mousemove', onMove);
             addDoc('mouseup',   onUp);
+            addDoc('touchmove', onMove);
+            addDoc('touchend',  onUp);
         }
 
         // Démarrer avec le sélecteur de fonte
@@ -4250,7 +4351,6 @@ document.addEventListener('DOMContentLoaded', () => {
         panelCleanup = () => {
             if (prevCleanup) prevCleanup();
             clearTimeout(leaveTimer);
-            if (chromo) chromo.removeEventListener('mousedown', onChromoMouseDown);
             docListeners.forEach(([ev, fn]) => document.removeEventListener(ev, fn));
             if (centreEl && valDiv.parentNode) valDiv.parentNode.removeChild(valDiv);
             const textCtrl = document.getElementById('roue-centre-textctrl');
@@ -4752,12 +4852,17 @@ function mettreAJourArrondi() {
         mini.width = 400; mini.height = 225;
         mini.getContext('2d').drawImage(tmp, 0, 0, 400, 225);
         const now = new Date();
+        const _ctx = window._sessionContext;
+        const _label = _ctx
+            ? `${_ctx.matiereLabel} — ${_ctx.classLabel} · ${now.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})}`
+            : `Cours du ${now.toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'})}`;
         archivesSessions.unshift({
             id: Date.now(),
             date: now.toISOString(),
-            label: `Cours du ${now.toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'})}`,
+            label: _label,
             vignette: mini.toDataURL('image/jpeg', 0.7),
-            niveauId: null, matiereId: null,
+            niveauId:  _ctx?.niveauId  || null,
+            matiereId: _ctx?.matiereId || null,
         });
         sauvegarderArchives();
     }
@@ -5043,8 +5148,8 @@ function mettreAJourArrondi() {
         const DB_NAME = 'mory_boards_db', DB_STORE = 'boards';
         let _db = null;
         const dbReady = new Promise(resolve => {
-            // v2 : migration vers PNG (efface les anciennes données JPEG cassées)
-            const req = indexedDB.open(DB_NAME, 2);
+            // v3 : canvas agrandi 2500→3500 (efface le cache pour éviter les mismatch)
+            const req = indexedDB.open(DB_NAME, 3);
             req.onupgradeneeded = e => {
                 const d = e.target.result;
                 // Supprimer l'ancien store (données JPEG invalides) puis recréer
@@ -5125,6 +5230,17 @@ function mettreAJourArrondi() {
             return { imageData: new ImageData(w, h), objs: [] };
         }
 
+        // ── Détecte un canvas vide : transparent OU entièrement blanc (artefact JPEG) ─
+        function isBlankImageData(imageData) {
+            const d = imageData.data;
+            for (let i = 0; i < d.length; i += 4) {
+                const a = d[i + 3];
+                if (a === 0) continue;                            // transparent → ignore
+                if (d[i] < 250 || d[i+1] < 250 || d[i+2] < 250) return false; // couleur réelle
+            }
+            return true; // tout transparent ou tout blanc → considéré vide
+        }
+
         // ── ImageData → PNG data URL (transparence préservée, pas de JPEG) ────
         function imageDataToPNG(imageData) {
             const c = document.createElement('canvas');
@@ -5162,8 +5278,11 @@ function mettreAJourArrondi() {
             if (b) b.thumbnail = thumbnail;
 
             // 3. IndexedDB en arrière-plan (PNG, non-bloquant)
-            //    PNG = transparence préservée → les objets placés (z-index 3)
-            //    restent visibles à travers le canvas à la restauration
+            //    Ne pas sauvegarder un canvas entièrement blanc/transparent
+            //    (artefact d'une ancienne sync JPEG) pour éviter de propager le bug.
+            const hasObjs = state.objs && state.objs.length > 0;
+            if (isBlankImageData(state.imageData) && !hasObjs) return;
+
             const canvasPNG = imageDataToPNG(state.imageData);
             dbPut({ id: activeBoardId, thumbnail, canvasPNG, objs: state.objs })
                 .catch(() => {});
@@ -5192,6 +5311,15 @@ function mettreAJourArrondi() {
             // canvasDataURL = ancien format (JPEG, opaque) — rétro-compatibilité
             const srcURL = data.canvasPNG || data.canvasDataURL;
             const imageData = await pngToImageData(srcURL);
+
+            // Sanity-check : si tout est blanc/transparent (artefact d'une ancienne
+            // sync JPEG stocké dans IndexedDB), traiter comme tableau vierge
+            if (isBlankImageData(imageData) && (!data.objs || data.objs.length === 0)) {
+                const bl = makeBlankState();
+                if (bl) window.setBoardState(bl);
+                return;
+            }
+
             window.setBoardState({ imageData, objs: data.objs || [] });
         }
 
@@ -5273,10 +5401,14 @@ function mettreAJourArrondi() {
                     await captureActive();
                     activeBoardId = board.id;
                     visualBoardId = board.id;
+                    window._activeBoardIdForResume = board.id;
                     localStorage.setItem(LS_ACTIVE_ID, String(board.id));
                     await openBoard(board.id);
                     isSwitching = false;
                     render();
+                    // Sync : écouter le nouveau tableau + notifier les autres appareils
+                    window._syncListenBoard?.(board.id);
+                    document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: board.id } }));
                 });
 
                 positionCard(card, d);
@@ -5301,6 +5433,9 @@ function mettreAJourArrondi() {
             if (carrousel.classList.contains('visible')) fermer();
             else open();
         });
+
+        const btnArcFull = document.getElementById('tableau-arc-full-btn');
+        if (btnArcFull) btnArcFull.addEventListener('click', () => { fermer(); openArchiveOverlay(); });
 
         // ── Zone de hover ─────────────────────────────────────────────────────
         function isInZone(cx) { return cx <= Math.round(window.innerWidth / 3); }
@@ -5335,11 +5470,6 @@ function mettreAJourArrondi() {
             e.preventDefault();
             if (scrollThrottle) return;
             const idx = boards.findIndex(b => b.id === visualBoardId);
-            // Scroll vers le haut au premier tableau → déclenche l'archive
-            if (e.deltaY < 0 && idx <= 0) {
-                openArchiveOverlay();
-                return;
-            }
             const newIdx = Math.max(0, Math.min(boards.length - 1, idx + (e.deltaY > 0 ? 1 : -1)));
             if (newIdx !== idx) {
                 visualBoardId = boards[newIdx].id;
@@ -5348,6 +5478,45 @@ function mettreAJourArrondi() {
                 setTimeout(() => { scrollThrottle = false; }, 340);
             }
         }, { passive: false });
+
+        // ── Swipe mobile dans le carrousel (plein-écran) ──────────────────────
+        // Sur mobile le carrousel est fullscreen (z-index 900).
+        // Glisser vers le bas → tableau précédent, vers le haut → suivant.
+        // stopPropagation empêche initMobileTouch de démarrer le holdTimer / pan.
+        {
+            let swipeStartY  = 0;
+            const SWIPE_SEUIL = 40; // px minimum pour valider le swipe
+
+            carrousel.addEventListener('touchstart', (e) => {
+                swipeStartY = e.touches[0].clientY;
+                e.stopPropagation();
+            }, { passive: true });
+
+            carrousel.addEventListener('touchmove', (e) => {
+                e.stopPropagation();
+                if (!carrousel.classList.contains('visible')) return;
+                if (scrollThrottle) return;
+                const dy = e.touches[0].clientY - swipeStartY;
+                if (Math.abs(dy) < SWIPE_SEUIL) return;
+
+                // Réinitialiser l'origine pour permettre un swipe continu
+                swipeStartY = e.touches[0].clientY;
+
+                const idx    = boards.findIndex(b => b.id === visualBoardId);
+                // dy < 0 = doigt monte → tableau suivant (vers le bas de la pile)
+                // dy > 0 = doigt descend → tableau précédent (vers le haut de la pile)
+                const newIdx = Math.max(0, Math.min(boards.length - 1, idx + (dy < 0 ? 1 : -1)));
+                if (newIdx !== idx) {
+                    visualBoardId = boards[newIdx].id;
+                    render();
+                    scrollThrottle = true;
+                    setTimeout(() => { scrollThrottle = false; }, 340);
+                }
+            }, { passive: true });
+
+            carrousel.addEventListener('touchend',   (e) => e.stopPropagation());
+            carrousel.addEventListener('touchcancel',(e) => e.stopPropagation());
+        }
 
         // ── Bouton + — nouveau tableau (fenêtre glissante de 10) ─────────────
         if (btnNew) {
@@ -5365,6 +5534,7 @@ function mettreAJourArrondi() {
 
                 activeBoardId = newId;
                 visualBoardId = newId;
+                window._activeBoardIdForResume = newId;
                 localStorage.setItem(LS_ACTIVE_ID, String(newId));
                 const blank = makeBlankState();
                 if (blank) window.setBoardState(blank);
@@ -5380,14 +5550,32 @@ function mettreAJourArrondi() {
             isSwitching = true;
             activeBoardId = id;
             visualBoardId = id;
+            window._activeBoardIdForResume = id;
             localStorage.setItem(LS_ACTIVE_ID, String(id));
             await openBoard(id);
             isSwitching = false;
             render();
+            // Sync : écouter le nouveau tableau + notifier les autres appareils
+            window._syncListenBoard?.(id);
+            document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: id } }));
+        };
+
+        // ── Appelé par sync.js quand un autre appareil change de tableau ─────────
+        // Met à jour les pointeurs locaux (id actif, localStorage) sans recharger
+        // depuis IndexedDB (le canvas arrive séparément via applyRemote).
+        window._syncActivateBoard = function(id) {
+            if (id === activeBoardId) return;
+            activeBoardId = id;
+            visualBoardId = id;
+            localStorage.setItem(LS_ACTIVE_ID, String(id));
+            render(); // rafraîchit la badge "en cours" dans le carrousel
         };
 
         // ── Init — charger les vignettes puis rendre ───────────────────────────
-        loadThumbnails().then(render);
+        window._activeBoardIdForResume = activeBoardId;
+        loadThumbnails().then(() => {
+            render();
+        });
         setTimeout(() => captureActive(), 800); // sauvegarder l'état initial
     }
     initCarrousel();
@@ -5414,8 +5602,14 @@ function mettreAJourArrondi() {
             overlay.setAttribute('aria-hidden', 'true');
         }
 
-        // Logo (canvas) → archive complète  |  btn-archive → archive rapide (géré ailleurs)
-        if (logoTopBar) logoTopBar.addEventListener('click', openArchive);
+        // Logo (canvas) → affiche l'écran d'accueil
+        if (logoTopBar) logoTopBar.addEventListener('click', () => {
+            if (window._openAccueilOverlay) window._openAccueilOverlay();
+        });
+        const btnMobileLogo = document.getElementById('btn-mobile-logo');
+        if (btnMobileLogo) btnMobileLogo.addEventListener('click', () => {
+            if (window._openAccueilOverlay) window._openAccueilOverlay();
+        });
         // Bouton retour dans l'overlay → ferme
         if (closeBtn)   closeBtn.addEventListener('click', closeArchive);
         // Echap → ferme
@@ -5465,7 +5659,7 @@ function mettreAJourArrondi() {
         let arcSortDir      = 'recent'; // 'recent' | 'oldest'
         let arcSearchQ      = '';
         let arcLoaded       = false;
-        let arcViewMode     = 'grid'; // 'grid' | 'cal'
+        let arcDrumIdx      = 0; // index sélectionné dans arcDisplay
 
         // ── Helpers date ─────────────────────────────────────────────────
         function arcNowStr() {
@@ -5475,138 +5669,146 @@ function mettreAJourArrondi() {
             return `${n.getDate()} ${M[n.getMonth()]} ${n.getFullYear()} · ${n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
         }
 
-        // ── Rendu de la grille ────────────────────────────────────────────
-        function arcRenderStrip() {
-            const strip   = document.getElementById('arc-strip');
-            const wrapper = document.getElementById('arc-strip-wrapper');
-            if (!strip || !wrapper) return;
-
-            // Nettoyage : ancien listener de scroll infini
-            if (wrapper._arcLoopFn) {
-                wrapper.removeEventListener('scroll', wrapper._arcLoopFn);
-                wrapper._arcLoopFn = null;
-            }
-            strip.innerHTML = '';
+        // ── Rendu du drum (roue) ─────────────────────────────────────────
+        function arcRenderDrum() {
+            const drum    = document.getElementById('arc-drum');
+            const cntEl   = document.getElementById('arc-drum-count');
+            if (!drum) return;
 
             const n = arcDisplay.length;
             const emptyEl = document.getElementById('arc-empty');
             if (n === 0) { if (emptyEl) emptyEl.classList.add('show'); return; }
             if (emptyEl) emptyEl.classList.remove('show');
-            if (n === 0) return;
 
-            // ── Dimensions de la grille — ratio 3:2 fixe ──────────────────
-            const GAP    = 6;
-            const PAD    = 6;
-            const vw     = wrapper.clientWidth  || window.innerWidth;
-            const vh     = wrapper.clientHeight || window.innerHeight;
-            const RATIO  = 3 / 2;               // largeur / hauteur — immuable
-            const ROWS_VISIBLE = 3.8;           // ~4 rangées visibles à l'écran
-            // Hauteur de carte déduite du viewport, puis largeur du ratio
-            const CARD_H = Math.round((vh - PAD*2) / ROWS_VISIBLE);
-            const CARD_W = Math.round(CARD_H * RATIO);
-            // Colonnes : combien de CARD_W rentrent sur la largeur disponible ?
-            const COLS   = Math.max(2, Math.floor((vw - PAD*2 + GAP) / (CARD_W + GAP)));
+            arcDrumIdx = Math.max(0, Math.min(n - 1, arcDrumIdx));
 
-            strip.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
-            strip.style.gridTemplateRows    = 'auto';
-            strip.style.width = '100%';
+            // Positionner une carte selon sa distance du centre (d = index - arcDrumIdx)
+            function posCard(card, d) {
+                const absD = Math.abs(d);
+                if (absD > 5) { card.style.display = 'none'; return; }
+                card.style.display = '';
+                const drumH = drum.offsetHeight || 600;
+                const step  = Math.max(84, Math.round(drumH * 0.145));
+                const scale = Math.pow(0.83, absD);
+                const ty    = d * step;
+                const rx    = d * 6;
+                const opac  = Math.max(0.08, 1 - absD * 0.18);
+                card.style.transform     = `translateX(-50%) translateY(calc(-50% + ${ty}px)) rotateX(${rx}deg) scale(${scale})`;
+                card.style.opacity       = String(opac);
+                card.style.zIndex        = String(Math.max(1, 50 - Math.round(absD * 8)));
+                card.style.pointerEvents = absD > 4 ? 'none' : 'auto';
+            }
 
-            // ── Boucle infinie : 5 répétitions ────────────────────────────
-            const REPS        = 5;
-            const ROWS_PER_SET = Math.ceil(n / COLS);
-            const SET_H        = ROWS_PER_SET * (CARD_H + GAP);
-            const bothSpecific = arcFilterClasse && arcFilterMat;
+            function updateDetail() {
+                const board   = arcDisplay[arcDrumIdx];
+                const prevEl  = document.getElementById('arc-detail-preview');
+                const metaEl  = document.getElementById('arc-detail-meta');
+                if (!board || !prevEl || !metaEl) return;
 
-            function makeCard(board) {
-                const card = document.createElement('div');
-                card.className = 'arc-card';
-                card.style.height = CARD_H + 'px';
-                card.style.background = 'var(--bg)';
-
-                // Miniature en dessous (si disponible)
-                const src = board.canvasPNG || board.thumbnail || null;
+                // Aperçu (thumbnail)
+                prevEl.innerHTML = '';
+                const src = board.canvasPNG || board.thumbnail;
                 if (src) {
                     const img = document.createElement('img');
-                    img.className = 'arc-card-thumb';
-                    img.alt = ''; img.decoding = 'async';
-                    img.src = (typeof src === 'string') ? src : URL.createObjectURL(src);
-                    card.appendChild(img);
+                    img.src = typeof src === 'string' ? src : URL.createObjectURL(src);
+                    img.alt = '';
+                    prevEl.appendChild(img);
+                    prevEl.style.background = '';
+                    prevEl.classList.remove('arc-detail-placeholder');
+                } else {
+                    const col = arcMatieres?.find(m => m.id === board.matiereId)?.color;
+                    prevEl.style.background = col ? col + '33' : 'var(--bg)';
+                    prevEl.classList.add('arc-detail-placeholder');
                 }
 
-                // Couche couleur + date (disparaît au hover)
-                const layer = document.createElement('div');
-                layer.className = 'arc-card-color-layer';
+                // Méta
+                metaEl.innerHTML = '';
+                const d2 = board.date ? new Date(board.date) : new Date();
+                const MOIS = ['janvier','février','mars','avril','mai','juin',
+                              'juillet','août','septembre','octobre','novembre','décembre'];
+                const hh = String(d2.getHours()).padStart(2,'0');
+                const mm = String(d2.getMinutes()).padStart(2,'0');
 
-                let color = null;
-                if (!bothSpecific) {
-                    if (arcGroupBy === 'classe') {
-                        const cls = arcClasses?.find(c => c.id === board.classeId);
-                        color = cls ? cls.color : null;
-                    } else if (arcGroupBy === 'matiere') {
-                        const mat = arcMatieres?.find(m => m.id === board.matiereId);
-                        color = mat ? mat.color : null;
+                const dateEl = document.createElement('div');
+                dateEl.className = 'arc-detail-date';
+                dateEl.textContent = `${d2.getDate()} ${MOIS[d2.getMonth()]} ${d2.getFullYear()}`;
+                metaEl.appendChild(dateEl);
+
+                const timeEl = document.createElement('div');
+                timeEl.className = 'arc-detail-time';
+                timeEl.textContent = `${hh}h${mm}`;
+                metaEl.appendChild(timeEl);
+
+                // Tags matière + classe
+                arcLoadGroups?.();
+                const tagsEl = document.createElement('div');
+                tagsEl.className = 'arc-detail-tags';
+                if (board.matiereId && arcMatieres) {
+                    const mat = arcMatieres.find(m => m.id === board.matiereId);
+                    if (mat) {
+                        const tag = document.createElement('div');
+                        tag.className = 'arc-detail-tag';
+                        tag.style.background = mat.color || 'var(--flamme)';
+                        tag.textContent = mat.label;
+                        tagsEl.appendChild(tag);
                     }
                 }
-                if (color) {
-                    layer.style.background = color;
+                if (board.classeId && arcClasses) {
+                    const cls = arcClasses.find(c => c.id === board.classeId);
+                    if (cls) {
+                        const tag = document.createElement('div');
+                        tag.className = 'arc-detail-tag';
+                        tag.style.background = cls.color || '#94a3b8';
+                        tag.textContent = cls.label;
+                        tagsEl.appendChild(tag);
+                    }
+                }
+                if (tagsEl.children.length) metaEl.appendChild(tagsEl);
+
+                // Label
+                if (board.label) {
+                    const lblEl = document.createElement('div');
+                    lblEl.className = 'arc-detail-label';
+                    lblEl.textContent = board.label;
+                    metaEl.appendChild(lblEl);
+                }
+            }
+
+            // Construire les cartes
+            drum.innerHTML = '';
+            arcDisplay.forEach((board, i) => {
+                const d    = i - arcDrumIdx;
+                const card = document.createElement('div');
+                card.className = 'arc-drum-card' + (i === arcDrumIdx ? ' actif' : '');
+
+                const src = board.canvasPNG || board.thumbnail;
+                if (src) {
+                    const img = document.createElement('img');
+                    img.className = 'arc-drum-thumb';
+                    img.alt = ''; img.decoding = 'async';
+                    img.src = typeof src === 'string' ? src : URL.createObjectURL(src);
+                    card.appendChild(img);
                 } else {
-                    layer.style.background = 'rgba(255,255,255,0.88)';
-                    layer.classList.add('light');
+                    const ph = document.createElement('div');
+                    ph.className = 'arc-drum-placeholder';
+                    const col = arcMatieres?.find(m => m.id === board.matiereId)?.color;
+                    if (col) ph.style.background = col;
+                    card.appendChild(ph);
                 }
 
-                // Date : heure en grand au centre, jour+mois en dessous, année bas-gauche
-                const d = board.date ? new Date(board.date) : new Date();
-                const MOIS_C = ['jan','fév','mars','avr','mai','juin',
-                                'juil','août','sept','oct','nov','déc'];
-                const hh  = String(d.getHours()).padStart(2,'0');
-                const mm  = String(d.getMinutes()).padStart(2,'0');
+                posCard(card, d);
 
-                const dateMain = document.createElement('div');
-                dateMain.className = 'arc-card-date-main';
-
-                const hourEl = document.createElement('div');
-                hourEl.className = 'arc-card-date-hour';
-                hourEl.textContent = `${hh}h${mm}`;
-                hourEl.style.fontSize = Math.max(10, Math.round(CARD_H * 0.22)) + 'px';
-
-                const dayEl = document.createElement('div');
-                dayEl.className = 'arc-card-date-day';
-                dayEl.textContent = `${d.getDate()} ${MOIS_C[d.getMonth()]}`;
-                dayEl.style.fontSize = Math.max(7, Math.round(CARD_H * 0.11)) + 'px';
-
-                dateMain.appendChild(hourEl);
-                dateMain.appendChild(dayEl);
-                layer.appendChild(dateMain);
-
-                const yearEl = document.createElement('div');
-                yearEl.className = 'arc-card-date-year';
-                yearEl.textContent = d.getFullYear();
-                yearEl.style.fontSize = Math.max(6, Math.round(CARD_H * 0.075)) + 'px';
-                layer.appendChild(yearEl);
-
-                card.appendChild(layer);
-
-                return card;
-            }
-
-            // Remplir le strip : REPS copies
-            for (let r = 0; r < REPS; r++) {
-                arcDisplay.forEach(board => strip.appendChild(makeCard(board)));
-            }
-
-            // Position initiale : 2e copie (laisse 1 copie au-dessus et 2 en dessous)
-            requestAnimationFrame(() => {
-                wrapper.scrollTop = SET_H * 2;
+                if (i !== arcDrumIdx) {
+                    card.addEventListener('click', () => {
+                        arcDrumIdx = i;
+                        arcRenderDrum();
+                    });
+                }
+                drum.appendChild(card);
             });
 
-            // Téléportation seamless quand on approche des bords
-            const onLoop = () => {
-                const st = wrapper.scrollTop;
-                if (st < SET_H)           wrapper.scrollTop = st + SET_H * 2;
-                else if (st > SET_H * 3)  wrapper.scrollTop = st - SET_H * 2;
-            };
-            wrapper.addEventListener('scroll', onLoop, { passive: true });
-            wrapper._arcLoopFn = onLoop;
+            if (cntEl) cntEl.textContent = `${arcDrumIdx + 1} / ${n}`;
+            updateDetail();
         }
 
         // ── Filtrage + tri ────────────────────────────────────────────────
@@ -5638,8 +5840,8 @@ function mettreAJourArrondi() {
             });
 
             arcDisplay = boards;
-            if (arcViewMode === 'cal') arcRenderCal();
-            else arcRenderStrip();
+            arcDrumIdx = 0;
+            arcRenderDrum();
         }
 
 
@@ -5664,62 +5866,37 @@ function mettreAJourArrondi() {
             localStorage.setItem('mory_arc_matieres', JSON.stringify(arcMatieres));
         }
 
-        // ── Mini roue chromatique ─────────────────────────────────────────────
+        // ── Palette 10 couleurs (popup swatch de classe/matière) ─────────────
         let arcChromoTarget = null; // { group, id, swatchEl }
-        function arcDrawChromo(canvas) {
-            const ctx = canvas.getContext('2d');
-            const cx  = canvas.width / 2, cy = canvas.height / 2, r = cx - 2;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Cercle de couleurs (hue ring)
-            for (let a = 0; a < 360; a++) {
-                const rad0 = (a - 1) * Math.PI / 180;
-                const rad1 = (a + 1) * Math.PI / 180;
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                ctx.arc(cx, cy, r, rad0, rad1);
-                ctx.closePath();
-                const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-                grad.addColorStop(0, `hsl(${a},0%,100%)`);
-                grad.addColorStop(1, `hsl(${a},100%,50%)`);
-                ctx.fillStyle = grad;
-                ctx.fill();
-            }
-            // Cercle blanc central pour le picker
-            ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff'; ctx.fill();
-        }
         function arcChromoOpen(swatchEl, group, id) {
-            const popup  = document.getElementById('arc-chromo-popup');
-            const canvas = document.getElementById('arc-chromo-canvas');
-            if (!popup || !canvas) return;
+            const popup = document.getElementById('arc-chromo-popup');
+            if (!popup) return;
             arcChromoTarget = { group, id, swatchEl };
-            arcDrawChromo(canvas);
+            // Construire les 10 dots
+            popup.innerHTML = '';
+            SWATCHES.forEach(c => {
+                const dot = document.createElement('div');
+                dot.className = 'arc-swatch-dot';
+                dot.style.background = c;
+                dot.addEventListener('click', e => {
+                    e.stopPropagation();
+                    swatchEl.style.background = c;
+                    const arr = group === 'classe' ? arcClasses : arcMatieres;
+                    const item = arr.find(x => x.id === id);
+                    if (item) { item.color = c; arcSaveGroups(); }
+                    arcChromoClose();
+                });
+                popup.appendChild(dot);
+            });
             const r = swatchEl.getBoundingClientRect();
-            popup.style.left = (r.left - 50) + 'px';
-            popup.style.top  = (r.top  - 145) + 'px';
+            popup.style.left = (r.left - 40) + 'px';
+            popup.style.top  = (r.top  - 120) + 'px';
             popup.classList.add('open');
         }
         function arcChromoClose() {
             const popup = document.getElementById('arc-chromo-popup');
             if (popup) popup.classList.remove('open');
             arcChromoTarget = null;
-        }
-        function arcChromoPick(e) {
-            if (!arcChromoTarget) return;
-            const canvas = document.getElementById('arc-chromo-canvas');
-            if (!canvas) return;
-            const r  = canvas.getBoundingClientRect();
-            const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-            const dx = e.clientX - cx, dy = e.clientY - cy;
-            const angle = ((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360;
-            const dist  = Math.sqrt(dx*dx + dy*dy) / (r.width / 2);
-            const sat   = Math.round(Math.min(100, dist * 100));
-            const color = `hsl(${Math.round(angle)},${sat}%,55%)`;
-            const { group, id, swatchEl } = arcChromoTarget;
-            swatchEl.style.background = color;
-            const arr = group === 'classe' ? arcClasses : arcMatieres;
-            const item = arr.find(x => x.id === id);
-            if (item) { item.color = color; arcSaveGroups(); }
         }
 
         // ── Helper : met à jour visuellement les sous-lignes actives ──────
@@ -5890,13 +6067,6 @@ function mettreAJourArrondi() {
                 const popup = document.getElementById('arc-chromo-popup');
                 if (popup && popup.classList.contains('open') && !popup.contains(e.target)) arcChromoClose();
             });
-            const canvas = document.getElementById('arc-chromo-canvas');
-            if (canvas) {
-                let chromoPicking = false;
-                canvas.addEventListener('mousedown', e => { e.stopPropagation(); chromoPicking=true; arcChromoPick(e); });
-                canvas.addEventListener('mousemove', e => { if(chromoPicking) arcChromoPick(e); });
-                document.addEventListener('mouseup', () => { if(chromoPicking){ chromoPicking=false; arcChromoClose(); } });
-            }
 
             // ── Panel draggable ────────────────────────────────────────────
             const panel  = document.getElementById('arc-sort-panel');
@@ -5941,17 +6111,35 @@ function mettreAJourArrondi() {
                 });
             }
 
-            // ── Redimensionnement → recalcule la grille ────────────────────
-            const wrapper = document.getElementById('arc-strip-wrapper');
-            if (wrapper && typeof ResizeObserver !== 'undefined') {
+            // ── Redimensionnement → recalcule le drum ────────────────────
+            const drumEl = document.getElementById('arc-drum');
+            if (drumEl && typeof ResizeObserver !== 'undefined') {
                 const ro = new ResizeObserver(() => {
-                    if (overlay.classList.contains('ouvert')) {
-                        if (arcViewMode === 'cal') arcRenderCal();
-                        else arcRenderStrip();
-                    }
+                    if (overlay.classList.contains('ouvert')) arcRenderDrum();
                 });
-                ro.observe(wrapper);
+                ro.observe(drumEl);
             }
+
+            // ── Navigation molette + clavier ─────────────────────────────
+            overlay.addEventListener('wheel', e => {
+                if (!overlay.classList.contains('ouvert')) return;
+                e.preventDefault();
+                arcDrumIdx = Math.max(0, Math.min(arcDisplay.length - 1, arcDrumIdx + (e.deltaY > 0 ? 1 : -1)));
+                arcRenderDrum();
+            }, { passive: false });
+
+            document.addEventListener('keydown', e => {
+                if (!overlay.classList.contains('ouvert')) return;
+                if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    arcDrumIdx = Math.min(arcDisplay.length - 1, arcDrumIdx + 1);
+                    arcRenderDrum();
+                } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    arcDrumIdx = Math.max(0, arcDrumIdx - 1);
+                    arcRenderDrum();
+                }
+            });
         }
 
         // ── Chargement + rendu ────────────────────────────────────────────
@@ -6036,40 +6224,10 @@ function mettreAJourArrondi() {
 
         // ── Exposition pour le carrousel ──────────────────────────────────
         window._arcLoadAndRender = arcLoadAndRender;
-        window._arcSetViewMode   = arcSetViewMode;
 
-        // ══════════════════════════════════════════════════════════════════
-        // MODE CALENDRIER
-        // ══════════════════════════════════════════════════════════════════
 
-        // ── Basculement de vue ────────────────────────────────────────────
-        function arcSetViewMode(mode) {
-            arcViewMode = mode;
-            const calView   = document.getElementById('arc-cal-view');
-            const stripWrap = document.getElementById('arc-strip-wrapper');
-            const sortPanel = document.getElementById('arc-sort-panel');
-            const btnGrid   = document.getElementById('arc-btn-grid');
-            const btnCal    = document.getElementById('arc-btn-cal');
-
-            if (mode === 'cal') {
-                if (calView)   calView.classList.add('active');
-                if (stripWrap) stripWrap.style.display = 'none';
-                if (sortPanel) sortPanel.style.display = 'none';
-                if (btnGrid)   btnGrid.classList.remove('arc-view-active');
-                if (btnCal)    btnCal.classList.add('arc-view-active');
-                arcRenderCal();
-            } else {
-                if (calView)   calView.classList.remove('active');
-                if (stripWrap) stripWrap.style.display = '';
-                if (sortPanel) sortPanel.style.display = '';
-                if (btnGrid)   btnGrid.classList.add('arc-view-active');
-                if (btnCal)    btnCal.classList.remove('arc-view-active');
-                arcRenderStrip();
-            }
-        }
-
-        // ── RECAPS (20 séances, ~90 mots chacun, backticks) ──────────────
-        const RECAPS = [
+        // ── (RECAPS supprimés — vue calendrier retirée) ──────────────────
+        const RECAPS_DEAD = [
 `Introduction au vocabulaire du design graphique. Exploration des notions fondamentales : composition, typographie, couleur et mise en page. Les étudiants ont analysé des affiches emblématiques du XXe siècle pour identifier les principes directeurs à l'œuvre. Exercice pratique de décomposition visuelle. Discussion collective sur les intentions de l'auteur et la réception du public. Premières tentatives de mise en page sur papier. Bonne participation générale, quelques difficultés avec la notion d'espace négatif qui sera reprise prochainement.`,
 `Séance consacrée à la typographie de base. Présentation de la classification des caractères : empattements, linéales, scriptes. Étude des critères de lisibilité et de la notion de corps de texte. Exercice de comparaison entre plusieurs fontes sur un même corpus. Les étudiants ont commencé à construire un lexique personnel. Attention portée à la distinction entre fonte et famille typographique. Difficultés récurrentes sur l'interlignage et le crénage, notions qui seront approfondies lors d'une prochaine séance de mise en pratique.`,
 `Atelier couleur : introduction au cercle chromatique et aux systèmes de couleur (RVB, CMJN, Pantone). Exercices de création d'harmonies chromatiques à partir d'une couleur primaire. Travail sur la perception du contraste simultané. Analyse de palettes de marques emblématiques. Discussion sur les codes culturels associés aux couleurs selon les contextes géographiques. Les étudiants ont rendu des planches de recherche couleur. Résultats encourageants même si certains peinent encore à justifier leurs choix de façon rigoureuse.`,
@@ -6099,8 +6257,8 @@ function mettreAJourArrondi() {
             return (m && m.color) ? m.color : null;
         }
 
-        // ── Rendu complet de la vue calendrier ───────────────────────────
-        function arcRenderCal() {
+        // ── (arcRenderCal supprimée — vue calendrier retirée) ─────────────
+        function arcRenderCal_DEAD() {
             const calView = document.getElementById('arc-cal-view');
             if (!calView) return;
             calView.innerHTML = '';
@@ -6311,14 +6469,6 @@ function mettreAJourArrondi() {
             }
         }
 
-        // ── Listeners boutons de vue ──────────────────────────────────────
-        (function initViewButtons() {
-            const btnGrid = document.getElementById('arc-btn-grid');
-            const btnCal  = document.getElementById('arc-btn-cal');
-            if (btnGrid) btnGrid.addEventListener('click', () => arcSetViewMode('grid'));
-            if (btnCal)  btnCal.addEventListener('click',  () => arcSetViewMode('cal'));
-        })();
-
         // ── Initialisation unique ─────────────────────────────────────────
         arcInitSortPanel();
 
@@ -6342,9 +6492,10 @@ function mettreAJourArrondi() {
             return el.tagName === 'path' ? el : (el.closest ? el.closest('path') : null);
         }
         function fermerRoueMobile() {
-            // Désépingler d'abord, puis nettoyer le panel avant de masquer
+            // Désépingler puis désactiver l'outil complètement (segments, modes, panel)
             if (window._roueEpingle) window._roueEpingle(false);
-            if (window._roueFermerPanel) window._roueFermerPanel();
+            if (window.desactiverOutil) window.desactiverOutil();
+            else if (window._roueFermerPanel) window._roueFermerPanel();
             fireMouseOn(lastPath, 'mouseleave');
             lastPath = null;
             clearTimeout(holdTimer);
@@ -6355,12 +6506,15 @@ function mettreAJourArrondi() {
         }
 
         document.addEventListener('touchstart', (e) => {
-            // Roue épinglée → tap hors de la roue = fermer
+            // Roue épinglée → tap hors de la roue ET du panel = fermer
             if (rouePinned) {
                 const el = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-                if (!roue.contains(el)) fermerRoueMobile();
+                const rp = document.getElementById('roue-panel');
+                if (!roue.contains(el) && !(rp && rp.contains(el))) fermerRoueMobile();
                 return;
             }
+            // Pinch (2 doigts) → annuler le holdTimer, ne pas déclencher la roue
+            if (e.touches.length >= 2) { clearTimeout(holdTimer); holdTimer = null; return; }
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
             holdTimer = setTimeout(() => {
@@ -6385,8 +6539,8 @@ function mettreAJourArrondi() {
                         window.mobileStartPan(startX, startY);
                     }
                 }
-                // Continuer le pan si actif
-                if (!holdTimer && window.mobileUpdatePan && !window.activeToolMode) {
+                // Continuer le pan si actif (sauf si on déplace/redimensionne un objet)
+                if (!holdTimer && window.mobileUpdatePan && !window.activeToolMode && !window.mobileObjectDragging) {
                     window.mobileUpdatePan(x, y);
                 }
                 return;
@@ -6404,7 +6558,13 @@ function mettreAJourArrondi() {
             // Arrêter le pan mobile si actif
             if (window.mobileStopPan) window.mobileStopPan();
             if (!document.body.classList.contains('mobile-roue-visible')) {
-                clearTimeout(holdTimer); holdTimer = null; return;
+                const wasTap = holdTimer !== null;
+                clearTimeout(holdTimer); holdTimer = null;
+                // Tap rapide (doigt posé/levé sans bouger) → sélectionner l'objet sous le doigt
+                if (wasTap && e.changedTouches[0] && window.mobileTap) {
+                    window.mobileTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                }
+                return;
             }
             const touch = e.changedTouches[0];
             const p = pathUnder(touch.clientX, touch.clientY);
@@ -6423,6 +6583,140 @@ function mettreAJourArrondi() {
         document.addEventListener('touchcancel', () => {
             if (window.mobileStopPan) window.mobileStopPan();
             fermerRoueMobile();
+        });
+    })();
+
+
+    // ══════════════════════════════════════════════════════════════
+    // ACCUEIL ENSEIGNANT — login + choix classe/matière
+    // ══════════════════════════════════════════════════════════════
+    (function initAccueil() {
+        const LS_PASS    = 'mory_teacher_pass';
+        const LS_CONTEXT = 'mory_session_ctx';
+
+        const overlay    = document.getElementById('accueil-overlay');
+        const form       = document.getElementById('accueil-form');
+        const inputId    = document.getElementById('accueil-id');
+        const inputPass  = document.getElementById('accueil-pass');
+        const selClasse  = document.getElementById('accueil-classe');
+        const selMat     = document.getElementById('accueil-matiere');
+        const errEl      = document.getElementById('accueil-erreur');
+        const btnSubmit  = document.getElementById('accueil-btn-submit');
+        const btnReprise = document.getElementById('accueil-reprendre');
+        const elDate     = document.getElementById('accueil-date');
+        const elHeure    = document.getElementById('accueil-heure');
+
+        if (!overlay) return;
+
+        // ── Horloge temps réel ────────────────────────────────────
+        function majHorloge() {
+            const now = new Date();
+            elDate.textContent = now.toLocaleDateString('fr-FR',
+                { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+            elHeure.textContent = now.toLocaleTimeString('fr-FR',
+                { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+        }
+        majHorloge();
+        let _clockTimer = setInterval(majHorloge, 1000);
+
+        // ── Peupler le select Classe ──────────────────────────────
+        ARCHIVE_NIVEAUX.forEach(n => {
+            const o = document.createElement('option');
+            o.value = n.id; o.textContent = n.label;
+            selClasse.appendChild(o);
+        });
+
+        // ── Peupler le select Matière selon la classe ─────────────
+        function majMatieres(niveauId) {
+            selMat.innerHTML = '';
+            const mats = MATIERES_STD2A[niveauId] || [];
+            mats.forEach(m => {
+                const o = document.createElement('option');
+                o.value = m.id; o.textContent = m.nom;
+                selMat.appendChild(o);
+            });
+        }
+        majMatieres(ARCHIVE_NIVEAUX[0].id);
+        selClasse.addEventListener('change', () => majMatieres(selClasse.value));
+
+        // ── Session récente (< 4 h) ? Proposer reprise ────────────
+        const RECENT_MS = 4 * 60 * 60 * 1000;
+        let ctx = null;
+        try { ctx = JSON.parse(localStorage.getItem(LS_CONTEXT)); } catch (_) {}
+        const sessionRecente = ctx && (Date.now() - (ctx.startTime || 0)) < RECENT_MS;
+
+        if (sessionRecente) {
+            btnReprise.classList.remove('accueil-hidden');
+            btnReprise.textContent =
+                `↩ Reprendre — ${ctx.identifiant} · ${ctx.classLabel} · ${ctx.matiereLabel}`;
+        }
+
+        // ── Pré-remplir les champs si contexte existant ───────────
+        if (ctx) {
+            if (inputId) inputId.value = ctx.identifiant || '';
+            if (ctx.niveauId) {
+                selClasse.value = ctx.niveauId;
+                majMatieres(ctx.niveauId);
+            }
+            if (ctx.matiereId) selMat.value = ctx.matiereId;
+        }
+
+        // ── Texte du bouton (1er lancement = création compte) ─────
+        const passStocke = localStorage.getItem(LS_PASS);
+        if (!passStocke) btnSubmit.textContent = 'Créer mon accès';
+
+        // ── Ouvrir l'overlay accueil (logo → canvas) ─────────────
+        window._openAccueilOverlay = function () {
+            overlay.classList.remove('accueil-hidden');
+            majHorloge();
+            clearInterval(_clockTimer);
+            _clockTimer = setInterval(majHorloge, 1000);
+        };
+
+        // ── Fermer l'overlay → aller au canvas ───────────────────
+        function ouvrir() {
+            clearInterval(_clockTimer);
+            overlay.classList.add('accueil-hidden');
+        }
+
+        // ── Soumission du formulaire ──────────────────────────────
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            errEl.textContent = '';
+
+            const id   = (inputId.value  || '').trim();
+            const pass = (inputPass.value || '');
+
+            if (!id)   { errEl.textContent = 'L\'identifiant est requis.'; inputId.focus();   return; }
+            if (!pass) { errEl.textContent = 'Le mot de passe est requis.'; inputPass.focus(); return; }
+
+            const stored = localStorage.getItem(LS_PASS);
+            if (!stored) {
+                // Premier accès → enregistrer le mot de passe
+                localStorage.setItem(LS_PASS, pass);
+            } else if (pass !== stored) {
+                errEl.textContent = 'Mot de passe incorrect.';
+                inputPass.value = '';
+                inputPass.focus();
+                return;
+            }
+
+            const niveauId     = selClasse.value;
+            const matiereId    = selMat.value;
+            const classLabel   = ARCHIVE_NIVEAUX.find(n => n.id === niveauId)?.label  || niveauId;
+            const matiereLabel = (MATIERES_STD2A[niveauId] || []).find(m => m.id === matiereId)?.nom || matiereId;
+
+            const newCtx = { identifiant: id, niveauId, matiereId, classLabel, matiereLabel, startTime: Date.now() };
+            localStorage.setItem(LS_CONTEXT, JSON.stringify(newCtx));
+            window._sessionContext = newCtx;
+
+            ouvrir();
+        });
+
+        // ── Bouton Reprendre ──────────────────────────────────────
+        btnReprise.addEventListener('click', () => {
+            window._sessionContext = ctx;
+            ouvrir();
         });
     })();
 
