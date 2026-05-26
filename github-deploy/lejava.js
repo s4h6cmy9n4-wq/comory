@@ -29,7 +29,60 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.toggle('mode-sombre');
     });
 
-    // ── PALETTE 10 COULEURS (remplace roue chromatique) ──────────────────────
+    // ── ROUE CHROMATIQUE 2D (teinte = angle, saturation = distance) ──────────
+    function buildChromoWheel(chromo, onColorPick, getCurrentColor) {
+        if (!chromo) return () => {};
+        const chromoInd = chromo.querySelector('.chromo-ind');
+        let chromoDrag  = false;
+
+        function updateInd(hue, sat) {
+            if (!chromoInd) return;
+            const a    = (hue - 90) * Math.PI / 180;
+            const dist = (sat / 100) * 40;
+            chromoInd.style.left = `calc(50% + ${(Math.cos(a) * dist).toFixed(2)}%)`;
+            chromoInd.style.top  = `calc(50% + ${(Math.sin(a) * dist).toFixed(2)}%)`;
+        }
+
+        function pickColor(e) {
+            const clientX = e.clientX ?? e.touches?.[0]?.clientX;
+            const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+            if (clientX == null) return;
+            const r  = chromo.getBoundingClientRect();
+            const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+            const dx = clientX - cx,          dy = clientY - cy;
+            const hue = Math.round(((Math.atan2(dy, dx) * 180 / Math.PI) + 90 + 360) % 360);
+            const sat = Math.round(Math.min(100, Math.sqrt(dx*dx + dy*dy) / (r.width / 2) * 100));
+            onColorPick(`hsl(${hue},${sat}%,50%)`);
+            updateInd(hue, sat);
+        }
+
+        // Position initiale de l'indicateur
+        const cur = getCurrentColor ? String(getCurrentColor()) : '';
+        const m   = cur.match(/hsl\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)%/);
+        updateInd(m ? parseFloat(m[1]) : 0, m ? parseFloat(m[2]) : 80);
+
+        const onDown  = e => { e.stopPropagation(); chromoDrag = true; pickColor(e); };
+        const onMove  = e => { if (chromoDrag) pickColor(e); };
+        const onUp    = () => { chromoDrag = false; };
+
+        chromo.addEventListener('mousedown',  onDown);
+        chromo.addEventListener('touchstart', onDown, { passive: true });
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+        document.addEventListener('touchmove', onMove, { passive: true });
+        document.addEventListener('touchend',  onUp);
+
+        return function cleanup() {
+            chromo.removeEventListener('mousedown',  onDown);
+            chromo.removeEventListener('touchstart', onDown);
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',   onUp);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend',  onUp);
+        };
+    }
+
+    // ── PALETTE 10 COULEURS (arc-chromo-popup uniquement) ────────────────────
     const SWATCHES = ['#1a2535','#4a5870','#8a96b0','#e8e3dd','#e63946','#f4a261','#f4d03f','#52b788','#4895ef','#b5838d'];
 
     function buildSwatchDots(container, onClick) {
@@ -1201,16 +1254,27 @@ document.addEventListener('DOMContentLoaded', () => {
         // (sinon mobileTap() désélectionne l'objet avant que le clic ne s'exécute)
         actionPanel.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
 
-        // Positionne le panneau d'actions — toujours coin inférieur droit de la fenêtre
+        // Positionne le panneau d'actions — coin inférieur droit de la sélection
         function majActionPanel() {
             if (selectedObjects.length === 0) { actionPanel.style.display = 'none'; return; }
             actionPanel.style.display = 'flex';
             btnPdf.style.display = selectedObjects.some(o => o._pdfPath) ? 'flex' : 'none';
             requestAnimationFrame(() => {
                 const pw = actionPanel.offsetWidth, ph = actionPanel.offsetHeight;
-                const vw = window.innerWidth, vh = window.innerHeight;
-                actionPanel.style.left = (vw - pw - 16) + 'px';
-                actionPanel.style.top  = (vh - ph - 16) + 'px';
+                const vw = window.innerWidth,       vh = window.innerHeight;
+                const ov = imgOverlay.getBoundingClientRect();
+                const m  = 12;
+                // Idéal : juste à droite du coin bas-droit de la sélection
+                let left = ov.right + 8;
+                let top  = ov.bottom - ph;
+                // Si ça déborde à droite → passer à gauche de la sélection
+                if (left + pw > vw - m) left = Math.max(m, ov.left - pw - 8);
+                // Clamp vertical et horizontal
+                if (top + ph > vh - m) top = vh - ph - m;
+                if (top  < m)          top = m;
+                if (left < m)          left = m;
+                actionPanel.style.left = left + 'px';
+                actionPanel.style.top  = top  + 'px';
             });
         }
 
@@ -3301,21 +3365,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('touchmove', onMove, { passive: true });
         document.addEventListener('touchend',  onUp);
 
-        // ── Palette 10 couleurs (dessin) ──────────────────────────────────────
-        const chromo    = document.getElementById('roue-centre-chromo');
-
-        if (chromo) {
-            buildSwatchDots(chromo, (c, dot, container) => {
-                paintState.color = c;
-                syncSwatchActive(container, c);
-            });
-            syncSwatchActive(chromo, paintState.color);
-        }
+        // ── Roue chromatique (dessin) ─────────────────────────────────────────
+        const chromo = document.getElementById('roue-centre-chromo');
+        const chromoCleanup = buildChromoWheel(
+            chromo,
+            c => { paintState.color = c; },
+            () => paintState.color
+        );
 
         // ── Nettoyage (chaîné) ────────────────────────────────────────────────
         const prevCleanup = panelCleanup;
         panelCleanup = () => {
             if (prevCleanup) prevCleanup();
+            chromoCleanup();
             roueConteneur.removeEventListener('mouseenter', onRoueEnter);
             roueConteneur.removeEventListener('mouseleave', onRoueLeave);
             document.removeEventListener('mousemove', onMove);
@@ -3401,16 +3463,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Flag drag en cours (Phase B) — empêche la fermeture pendant un glisser
         let shapeDragging = false;
 
-        // ── Palette 10 couleurs (formes) ──────────────────────────────────────
+        // ── Roue chromatique (formes) ─────────────────────────────────────────
         const chromoF = document.getElementById('roue-centre-chromo');
-
-        if (chromoF) {
-            buildSwatchDots(chromoF, (c, dot, container) => {
-                window.etatForme.color = c;
-                syncSwatchActive(container, c);
-            });
-            syncSwatchActive(chromoF, window.etatForme.color);
-        }
+        const chromoFCleanup = buildChromoWheel(
+            chromoF,
+            c => { window.etatForme.color = c; },
+            () => window.etatForme.color
+        );
 
         // ── Fermeture au mouseleave de la roue (phases A et B) ────────────────
         const onRoueLeaveFormes = () => { if (!shapeDragging) schedClose(); };
@@ -3682,6 +3741,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const prevCleanup = panelCleanup;
         panelCleanup = () => {
             if (prevCleanup) prevCleanup();
+            chromoFCleanup();
             clearTimeout(closeTimer);
             roueConteneur.removeEventListener('mouseleave', onRoueLeaveFormes);
             docListeners.forEach(([ev, fn]) => document.removeEventListener(ev, fn));
@@ -4062,16 +4122,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let mouseOverRoue = true;
         let activeArc     = null;
 
-        // ── Palette 10 couleurs (texte) ────────────────────────────────────────
+        // ── Roue chromatique (texte) ──────────────────────────────────────────
         const chromo = document.getElementById('roue-centre-chromo');
-
-        if (chromo) {
-            buildSwatchDots(chromo, (c, dot, container) => {
-                window.etatTexte.color = c;
-                syncSwatchActive(container, c);
-            });
-            syncSwatchActive(chromo, window.etatTexte.color);
-        }
+        const chromoTCleanup = buildChromoWheel(
+            chromo,
+            c => { window.etatTexte.color = c; },
+            () => window.etatTexte.color
+        );
 
         const onDocMouseMove = e => {
             const r = roueConteneur.getBoundingClientRect();
@@ -4350,6 +4407,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const prevCleanup = panelCleanup;
         panelCleanup = () => {
             if (prevCleanup) prevCleanup();
+            chromoTCleanup();
             clearTimeout(leaveTimer);
             docListeners.forEach(([ev, fn]) => document.removeEventListener(ev, fn));
             if (centreEl && valDiv.parentNode) valDiv.parentNode.removeChild(valDiv);

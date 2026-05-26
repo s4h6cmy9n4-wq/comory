@@ -788,33 +788,31 @@ body {
 }
 .roue-centre:has(.roue-centre-label:not(:empty)) .roue-centre-icone { display: none; }
 
-/* ── Palette 10 couleurs (remplace la roue chromatique) ── */
+/* ── Roue chromatique (dessin / formes / texte) — teinte = angle, saturation = distance ── */
 .roue-centre-chromo {
     width: 82%; height: 82%; border-radius: 50%; flex-shrink: 0;
-    background: transparent;
-    display: none; cursor: default; position: relative; pointer-events: none;
-    flex-wrap: wrap;
-    align-content: center;
-    justify-content: center;
-    gap: 5px;
-    padding: 8px;
+    background:
+        radial-gradient(circle, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0) 64%),
+        conic-gradient(
+            hsl(0,100%,50%) 0deg,    hsl(30,100%,50%) 30deg,
+            hsl(60,100%,50%) 60deg,  hsl(90,100%,50%) 90deg,
+            hsl(120,100%,50%) 120deg, hsl(150,100%,50%) 150deg,
+            hsl(180,100%,50%) 180deg, hsl(210,100%,50%) 210deg,
+            hsl(240,100%,50%) 240deg, hsl(270,100%,50%) 270deg,
+            hsl(300,100%,50%) 300deg, hsl(330,100%,50%) 330deg,
+            hsl(360,100%,50%) 360deg
+        );
+    display: none; cursor: crosshair; position: relative; pointer-events: none;
 }
-.roue-conteneur.mode-dessin .roue-centre-chromo  { display: flex; pointer-events: auto; }
+.roue-conteneur.mode-dessin .roue-centre-chromo  { display: block; pointer-events: auto; }
 .roue-conteneur.mode-dessin .roue-centre-icone   { display: none !important; }
-.chromo-ind { display: none; }
-
-/* Points couleur dans la roue */
-.roue-centre-chromo .swatch-dot {
-    width: 17px; height: 17px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid transparent;
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.25);
-    transition: transform 0.12s, border-color 0.12s;
-    flex-shrink: 0;
+.chromo-ind {
+    position: absolute; width: 8px; height: 8px; border-radius: 50%;
+    background: white; border: 2px solid rgba(0,0,0,0.35);
+    transform: translate(-50%, -50%);
+    left: 50%; top: 50%;
+    pointer-events: none; transition: left 0.06s, top 0.06s;
 }
-.roue-centre-chromo .swatch-dot:hover { transform: scale(1.25); }
-.roue-centre-chromo .swatch-dot.actif { border-color: white; box-shadow: 0 0 0 1px rgba(0,0,0,0.3), 1px 1px 4px rgba(0,0,0,0.3); }
 
 /* ── Toggle infill/contour (outil formes, mode slider) ── */
 .roue-centre-fillctrl {
@@ -864,43 +862,63 @@ body {
         visibility: hidden;
     }
 
-    /* Bouton logo mobile : affiché en fixe (ID direct, pas de :has) */
+    /* ── Barre supérieure mobile ─────────────────────────── */
+    #mobile-bar {
+        display: block;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 62px;
+        background: var(--bg);
+        box-shadow: 0 1px 0 rgba(0,0,0,0.07), 0 3px 12px rgba(0,0,0,0.06);
+        z-index: 998;
+    }
+
+    /* Logo : gauche */
     #mobile-logo-socket {
         display: flex;
         visibility: visible;
         position: fixed !important;
-        top: 16px; left: 16px;
+        top: 12px; left: 14px;
         z-index: 1001;
     }
 
-    /* Import + œil + archive : toujours visibles, fixés en haut */
-    .socket-bouton:has(#conteneur-fichier),
+    /* Groupe actions : droite (archive · oeil · lumière · import) */
+    .socket-bouton:has(#btn-archive),
     .socket-bouton:has(#conteneur-oeil),
-    .socket-bouton:has(#btn-archive) {
+    .socket-bouton:has(#conteneur-lumiere),
+    .socket-bouton:has(#conteneur-fichier) {
         visibility: visible;
         position: fixed !important;
-        top: 16px;
+        top: 12px;
+        left: auto;
         z-index: 1000;
     }
-    /* logo=16px (46px) + 8px gap → import à 70px, œil à 124px, archive à 178px */
-    .socket-bouton:has(#conteneur-fichier) { left: 70px; }
-    .socket-bouton:has(#conteneur-oeil)    { left: 124px; }
-    .socket-bouton:has(#btn-archive)       { left: 178px; }
+    /* De droite à gauche : archive 14px | oeil 62px | lumière 110px | import 158px */
+    .socket-bouton:has(#btn-archive)        { right: 14px; }
+    .socket-bouton:has(#conteneur-oeil)     { right: 62px; }
+    .socket-bouton:has(#conteneur-lumiere)  { right: 110px; }
+    .socket-bouton:has(#conteneur-fichier)  { right: 158px; }
 
-    /* Style du bouton logo mobile */
-    #btn-mobile-logo {
+    /* Style des boutons de la barre mobile */
+    #btn-mobile-logo,
+    .socket-bouton:has(#btn-archive) button,
+    .socket-bouton:has(#conteneur-oeil) button,
+    .socket-bouton:has(#conteneur-lumiere) button,
+    .socket-bouton:has(#conteneur-fichier) button {
         width: 38px; height: 38px;
         border-radius: 50%;
         background: var(--bg);
         border: none;
         cursor: pointer;
         display: flex; align-items: center; justify-content: center;
-        color: var(--text-mid);
         box-shadow: var(--neu-flat);
         transition: box-shadow 0.12s ease, color 0.12s;
         padding: 0;
         touch-action: manipulation;
+        -webkit-appearance: none;
+        appearance: none;
     }
+    #btn-mobile-logo { color: var(--text-mid); }
     #btn-mobile-logo svg { width: 26px; height: auto; display: block; }
     #btn-mobile-logo:active { box-shadow: var(--neu-pressed); color: var(--flamme); }
 
@@ -1244,7 +1262,7 @@ body {
     width: 88%;
     overflow: hidden;
 }
-.roue-conteneur.mode-texte:not(.mode-texte-sliders) .roue-centre-chromo { display: flex; pointer-events: auto; }
+.roue-conteneur.mode-texte:not(.mode-texte-sliders) .roue-centre-chromo { display: block; pointer-events: auto; }
 .roue-conteneur.mode-texte .roue-centre-icone                            { display: none !important; }
 .roue-conteneur.mode-texte-sliders .roue-centre-textctrl                 { display: flex; }
 .roue-conteneur.mode-texte-sliders .roue-centre-icone                    { display: none !important; }
@@ -1255,7 +1273,7 @@ body {
 .roue-conteneur.mode-collaboration .roue-icones          { opacity: 0; pointer-events: none; }
 .roue-conteneur.mode-collaboration .roue-centre-icone    { display: none !important; }
 
-.roue-conteneur.mode-formes:not(.mode-formes-sliders) .roue-centre-chromo { display: flex; pointer-events: auto; }
+.roue-conteneur.mode-formes:not(.mode-formes-sliders) .roue-centre-chromo { display: block; pointer-events: auto; }
 .roue-conteneur.mode-formes .roue-centre-icone         { display: none !important; }
 
 /* ── Carte archive dans le carrousel ────────────────────────────────── */
