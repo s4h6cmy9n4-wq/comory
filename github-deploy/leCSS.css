@@ -864,14 +864,14 @@ body {
         visibility: hidden;
     }
 
-    /* ── Barre supérieure mobile ─────────────────────────── */
+    /* ── Barre supérieure mobile — fond retiré (les boutons flottent seuls) ── */
     #mobile-bar {
         display: block;
         position: fixed;
         top: 0; left: 0; right: 0;
         height: 62px;
-        background: var(--bg);
-        box-shadow: 0 1px 0 rgba(0,0,0,0.07), 0 3px 12px rgba(0,0,0,0.06);
+        background: transparent;
+        box-shadow: none;
         z-index: 998;
     }
 

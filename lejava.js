@@ -737,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // ── Zone de saisie texte ─────────────────────────────────────────────
-        function creerZoneTexte(x, y, w, h, onCommit = null, onDone = null) {
+        function creerZoneTexte(x, y, w, h, onCommit = null, onDone = null, initialText = '') {
             const et = window.etatTexte || { fontFamily: 'DM Sans', fontSize: 52, fontWeight: 500, color: 'hsl(0, 100%, 50%)' };
             const couleur = et.color || paintState.color || '#262623';
 
@@ -765,28 +765,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 'background:transparent',
             ].join(';');
 
+            // Pré-remplir si texte existant
+            if (initialText) div.innerText = initialText;
             planDeTravail.appendChild(div);
             div.focus();
 
-            // Place le curseur au début
+            // Curseur : fin si pré-rempli, début sinon
             const range = document.createRange();
             range.selectNodeContents(div);
-            range.collapse(true);
+            range.collapse(!initialText); // true = début, false = fin
             const sel = window.getSelection();
             if (sel) { sel.removeAllRanges(); sel.addRange(range); }
 
+            // Exposer le div actif pour les mises à jour live depuis le panel typo
+            window._activeTextDiv = div;
+
+            // ── Protection focus : la roue ne doit pas voler le focus du div ──
+            const roueEl = document.getElementById('roue-conteneur');
+            let _blurFromRoue = false;
+            const guardFocus    = e => { if (!committed) e.preventDefault(); };
+            const _setBlurGuard = () => { _blurFromRoue = true; setTimeout(() => { _blurFromRoue = false; }, 350); };
+            if (roueEl) {
+                roueEl.addEventListener('mousedown', guardFocus);           // desktop
+                roueEl.addEventListener('touchstart', _setBlurGuard, { passive: true }); // mobile
+            }
+
             const commit = () => {
+                window._activeTextDiv = null;
+                if (roueEl) {
+                    roueEl.removeEventListener('mousedown', guardFocus);
+                    roueEl.removeEventListener('touchstart', _setBlurGuard);
+                }
                 const text = div.innerText || '';
                 div.remove();
-                if (!text.trim()) return;
+                if (!text.trim()) { if (onDone) onDone(); return; }
+
+                // Utiliser les valeurs ACTUELLES de etatTexte (peuvent avoir changé via panel)
+                const liveEt      = window.etatTexte || et;
+                const liveCouleur = liveEt.color || couleur;
 
                 // Rendu texte → canvas temporaire (DPR pour netteté)
                 const dpr        = window.devicePixelRatio || 1;
-                const lineHeight = et.fontSize * 1.4;
+                const lineHeight = liveEt.fontSize * 1.4;
                 const pad        = 6;
                 const tmp  = document.createElement('canvas');
                 const tctx = tmp.getContext('2d');
-                tctx.font  = `${et.fontWeight} ${et.fontSize}px '${et.fontFamily}',sans-serif`;
+                tctx.font  = `${liveEt.fontWeight} ${liveEt.fontSize}px '${liveEt.fontFamily}',sans-serif`;
 
                 // Découpe des lignes avec word-wrap
                 const rawLines = text.split('\n');
@@ -807,8 +831,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 tmp.width      = Math.round(w       * dpr);
                 tmp.height     = Math.round(renderH * dpr);
                 tctx.scale(dpr, dpr);
-                tctx.font         = `${et.fontWeight} ${et.fontSize}px '${et.fontFamily}',sans-serif`;
-                tctx.fillStyle    = couleur;
+                tctx.font         = `${liveEt.fontWeight} ${liveEt.fontSize}px '${liveEt.fontFamily}',sans-serif`;
+                tctx.fillStyle    = liveCouleur;
                 tctx.textBaseline = 'top';
                 wrappedLines.forEach((line, i) => tctx.fillText(line, pad, pad + i * lineHeight));
 
@@ -818,8 +842,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const obj = {
                     type: 'text', el, x, y, w, h: renderH, rotation: 0,
                     // Propriétés stockées pour re-rendu sans déformation
-                    _text: text, _fontFamily: et.fontFamily,
-                    _fontSize: et.fontSize, _fontWeight: et.fontWeight, _color: couleur,
+                    _text: text, _fontFamily: liveEt.fontFamily,
+                    _fontSize: liveEt.fontSize, _fontWeight: liveEt.fontWeight, _color: liveCouleur,
                 };
                 mettreAJourElement(obj);
                 planDeTravail.appendChild(el);
@@ -835,9 +859,32 @@ document.addEventListener('DOMContentLoaded', () => {
             let committed = false;
             const commitOnce = () => { if (!committed) { committed = true; commit(); } };
 
-            div.addEventListener('blur', commitOnce);
+            // Blur intelligent : ne valide pas si c'est la roue qui a pris le focus
+            div.addEventListener('blur', () => {
+                if (_blurFromRoue) {
+                    requestAnimationFrame(() => { if (!committed) div.focus({ preventScroll: true }); });
+                    return;
+                }
+                requestAnimationFrame(() => {
+                    if (committed) return;
+                    const f = document.activeElement;
+                    if (roueEl && (roueEl === f || roueEl.contains(f))) {
+                        div.focus({ preventScroll: true }); return;
+                    }
+                    commitOnce();
+                });
+            });
             div.addEventListener('keydown', e => {
-                if (e.key === 'Escape') { committed = true; div.remove(); if (onDone) onDone(); }
+                if (e.key === 'Escape') {
+                    committed = true;
+                    window._activeTextDiv = null;
+                    if (roueEl) {
+                        roueEl.removeEventListener('mousedown', guardFocus);
+                        roueEl.removeEventListener('touchstart', _setBlurGuard);
+                    }
+                    div.remove();
+                    if (onDone) onDone();
+                }
                 // Cmd/Ctrl+Entrée → valider
                 if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                     e.preventDefault(); commitOnce();
@@ -1513,11 +1560,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, { passive: false }); // passive:false requis pour e.preventDefault()
 
-        imgOverlay.addEventListener('touchend', () => {
+        // Double-tap mobile pour déclencher l'édition texte
+        // (touch-action:none sur imgOverlay empêche le navigateur de synthétiser dblclick)
+        let _overlayLastTap = 0;
+        imgOverlay.addEventListener('touchend', (e) => {
             if (isDraggingImage || isResizingImage || isPinchResizing) {
                 isDraggingImage = false; isResizingImage = false; isPinchResizing = false; activeCorner = null;
                 window.mobileObjectDragging = false;
                 saveState();
+                _overlayLastTap = 0;
+                return;
+            }
+            // Détection double-tap (le navigateur ne synthétise pas dblclick avec touch-action:none)
+            const now = Date.now();
+            if (now - _overlayLastTap < 350 && selectedObjects.length === 1) {
+                imgOverlay.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+                _overlayLastTap = 0;
+            } else {
+                _overlayLastTap = now;
             }
         });
 
@@ -1528,10 +1588,40 @@ document.addEventListener('DOMContentLoaded', () => {
             window.mobileObjectDragging = false;
         });
 
-        // ── Double-clic sur un tableau → session d'édition des cellules ─────
+        // ── Double-clic sur un objet → édition ──────────────────────────────
         imgOverlay.addEventListener('dblclick', (e) => {
             if (selectedObjects.length !== 1) return;
             const obj = selectedObjects[0];
+
+            // ── Texte : réouvrir la zone d'édition pré-remplie ───────────────
+            if (obj.type === 'text') {
+                e.preventDefault(); e.stopPropagation();
+                // Charger les propriétés de l'objet dans etatTexte
+                window.etatTexte = window.etatTexte || {};
+                window.etatTexte.fontFamily = obj._fontFamily || 'DM Sans';
+                window.etatTexte.fontSize   = obj._fontSize   || 52;
+                window.etatTexte.fontWeight = obj._fontWeight || 400;
+                window.etatTexte.color      = obj._color      || '#000000';
+                // Retirer l'objet du canvas (sera recréé après validation)
+                const idx = placedObjects.indexOf(obj);
+                if (idx !== -1) placedObjects.splice(idx, 1);
+                obj.el.remove();
+                masquerSelection();
+                // Activer l'outil texte et ouvrir la zone d'édition
+                if (window.matchMedia('(max-width: 768px)').matches) {
+                    // Mobile : activer directement sans animation de roue
+                    ouvrirPanel(7);
+                    creerZoneTexte(obj.x, obj.y, obj.w, obj.h, null, null, obj._text || '');
+                } else {
+                    _fanOpen();
+                    animerVers(angleVersTete(4), () => {
+                        selectionnerOutil(7, 4, false);
+                        creerZoneTexte(obj.x, obj.y, obj.w, obj.h, null, null, obj._text || '');
+                    });
+                }
+                return;
+            }
+
             if (obj.type !== 'table') return;
             e.preventDefault(); e.stopPropagation();
 
@@ -4136,7 +4226,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const chromo = document.getElementById('roue-centre-chromo');
         const chromoTCleanup = buildChromoWheel(
             chromo,
-            c => { window.etatTexte.color = c; },
+            c => { window.etatTexte.color = c; if (window._activeTextDiv) window._activeTextDiv.style.color = c; },
             () => window.etatTexte.color
         );
 
@@ -4254,6 +4344,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 seg.addEventListener('click', e => {
                     e.stopPropagation();
                     window.etatTexte.fontFamily = font.family;
+                    // Mise à jour live si une zone texte est en cours d'édition
+                    if (window._activeTextDiv) window._activeTextDiv.style.fontFamily = `'${font.family}',sans-serif`;
                     buildSliders();
                 });
             });
@@ -4388,6 +4480,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const raw = Math.max(0, Math.min(1, (a + Math.PI) / Math.PI));
                     const t   = snapSz(raw);
                     window.etatTexte.fontSize = Math.round(8 + t * 88);
+                    if (window._activeTextDiv) window._activeTextDiv.style.fontSize = window.etatTexte.fontSize + 'px';
                     arcT.setT(t);
                     showVal(window.etatTexte.fontSize, 'taille');
                 } else {
@@ -4395,6 +4488,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const raw = Math.max(0, Math.min(1, (Math.PI - a) / Math.PI));
                     const t   = snapWt(raw);
                     window.etatTexte.fontWeight = Math.round(100 + t * 800);
+                    if (window._activeTextDiv) window._activeTextDiv.style.fontWeight = window.etatTexte.fontWeight;
                     arcB.setT(t);
                     showVal(window.etatTexte.fontWeight, 'graisse');
                 }
