@@ -1831,8 +1831,8 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     justify-content: center;
 }
 .accueil-logo-wordmark {
-    height: 28px;
-    width: 134px; /* 28 × (344.38 / 71.85) — ratio exact du viewBox */
+    height: 40px;
+    width: 192px; /* 40 × (344.38 / 71.85) — ratio exact du viewBox */
     display: block;
     flex-shrink: 0;
     color: var(--text-dark, #1e293b);
@@ -1849,9 +1849,9 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     letter-spacing: .02em;
 }
 .accueil-heure {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: -.02em;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: .01em;
     color: var(--text-mid, #64748b);
     font-variant-numeric: tabular-nums;
     line-height: 1;
