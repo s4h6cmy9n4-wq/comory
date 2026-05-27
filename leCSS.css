@@ -1910,6 +1910,16 @@ select.accueil-input {
     gap: 8px;
 }
 .accueil-selects .accueil-input { flex: 1; }
+.accueil-nom-cours {
+    border-style: dashed;
+    opacity: .7;
+    transition: opacity .15s, border-style .15s;
+}
+.accueil-nom-cours:focus,
+.accueil-nom-cours:not(:placeholder-shown) {
+    border-style: solid;
+    opacity: 1;
+}
 .accueil-erreur {
     min-height: 18px;
     font-size: 13px;

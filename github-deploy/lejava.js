@@ -6677,9 +6677,10 @@ function mettreAJourArrondi() {
         const form       = document.getElementById('accueil-form');
         const inputId    = document.getElementById('accueil-id');
         const inputPass  = document.getElementById('accueil-pass');
-        const selClasse  = document.getElementById('accueil-classe');
-        const selMat     = document.getElementById('accueil-matiere');
-        const errEl      = document.getElementById('accueil-erreur');
+        const selClasse   = document.getElementById('accueil-classe');
+        const selMat      = document.getElementById('accueil-matiere');
+        const inputNomCours = document.getElementById('accueil-nom-cours');
+        const errEl       = document.getElementById('accueil-erreur');
         const btnSubmit      = document.getElementById('accueil-btn-submit');
         const btnReprise     = document.getElementById('accueil-reprendre');
         const btnPassToggle  = document.getElementById('accueil-pass-toggle');
@@ -6754,6 +6755,7 @@ function mettreAJourArrondi() {
                 majMatieres(ctx.niveauId);
             }
             if (ctx.matiereId) selMat.value = ctx.matiereId;
+            if (inputNomCours && ctx.nomCours) inputNomCours.value = ctx.nomCours;
         }
 
         // ── Ouvrir l'overlay accueil (logo → canvas) ─────────────
@@ -6795,10 +6797,11 @@ function mettreAJourArrondi() {
 
             const niveauId     = selClasse.value;
             const matiereId    = selMat.value;
+            const nomCours     = (inputNomCours?.value || '').trim();
             const classLabel   = ARCHIVE_NIVEAUX.find(n => n.id === niveauId)?.label  || niveauId;
             const matiereLabel = (MATIERES_STD2A[niveauId] || []).find(m => m.id === matiereId)?.nom || matiereId;
 
-            const newCtx = { identifiant: id, niveauId, matiereId, classLabel, matiereLabel, startTime: Date.now() };
+            const newCtx = { identifiant: id, niveauId, matiereId, nomCours, classLabel, matiereLabel, startTime: Date.now() };
             localStorage.setItem(LS_CONTEXT, JSON.stringify(newCtx));
             window._sessionContext = newCtx;
 
