@@ -736,8 +736,129 @@ document.addEventListener('DOMContentLoaded', () => {
             CONNECTEURS_END */
         }
 
+        // ── Utilitaires rendu texte multi-couleur + alignement ───────────────
+        function _hasColorSpans(html) {
+            return /<font\b|<span\b[^>]+color/i.test(html);
+        }
+        function _htmlToCharColors(html, def) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            const ch = [];
+            function walk(n, c) {
+                if (n.nodeType === 3) { for (const k of n.textContent) ch.push({ ch: k, color: c }); }
+                else if (n.nodeName === 'BR') { ch.push({ ch: '\n', color: c }); }
+                else if (n.nodeType === 1) {
+                    let nc = c;
+                    if (n.nodeName === 'FONT' && n.getAttribute('color')) nc = n.getAttribute('color');
+                    else if (n.style && n.style.color) nc = n.style.color;
+                    if (['DIV','P'].includes(n.nodeName) && ch.length && ch[ch.length-1].ch !== '\n')
+                        ch.push({ ch: '\n', color: nc });
+                    for (const k of n.childNodes) walk(k, nc);
+                }
+            }
+            walk(tmp, def);
+            return ch;
+        }
+        function _charsToTokens(chars) {
+            const t = []; let cur = null;
+            for (const c of chars) {
+                if (c.ch === '\n') {
+                    if (cur) { t.push(cur); cur = null; }
+                    t.push({ type: 'nl', text: '\n', color: c.color });
+                } else if (c.ch === ' ') {
+                    if (cur) { t.push(cur); cur = null; }
+                    t.push({ type: 'sp', text: ' ', color: c.color });
+                } else {
+                    if (!cur) cur = { type: 'w', text: '', color: c.color };
+                    cur.text += c.ch;
+                }
+            }
+            if (cur) t.push(cur);
+            return t;
+        }
+        function _wrapTokenLines(ctx, tokens, maxW, pad) {
+            const lines = []; let line = [], lineW = 0;
+            const flush = () => {
+                while (line.length && line[line.length-1].type === 'sp') line.pop();
+                lines.push(line); line = []; lineW = 0;
+            };
+            for (const t of tokens) {
+                if (t.type === 'nl') { flush(); }
+                else if (t.type === 'sp') {
+                    if (line.length) { line.push(t); lineW += ctx.measureText(' ').width; }
+                } else {
+                    const ww = ctx.measureText(t.text).width;
+                    if (lineW + ww > maxW - pad * 2 && line.some(x => x.type === 'w')) {
+                        flush(); line = [t]; lineW = ww;
+                    } else { line.push(t); lineW += ww; }
+                }
+            }
+            flush();
+            return lines;
+        }
+        function _drawTokenLine(ctx, lineTokens, y, align, cw, pad, justify) {
+            const words = lineTokens.filter(t => t.type === 'w');
+            const lineW = lineTokens.reduce((a, t) => a + ctx.measureText(t.text).width, 0);
+            if (align === 'justify' && justify && words.length > 1) {
+                const tww = words.reduce((a, w) => a + ctx.measureText(w.text).width, 0);
+                const gap = (cw - pad * 2 - tww) / (words.length - 1);
+                let cx = pad;
+                words.forEach(w => { ctx.fillStyle = w.color; ctx.fillText(w.text, cx, y); cx += ctx.measureText(w.text).width + gap; });
+            } else {
+                let cx = align === 'right'  ? cw - pad - lineW
+                       : align === 'center' ? (cw - lineW) / 2 : pad;
+                lineTokens.forEach(t => {
+                    if (t.type !== 'nl') { ctx.fillStyle = t.color; ctx.fillText(t.text, cx, y); cx += ctx.measureText(t.text).width; }
+                });
+            }
+        }
+        function _renderTextToDataURL(html, plainText, fontStr, cw, minH, align, defColor, dpr, pad, lh) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.font = fontStr;
+            if (html && _hasColorSpans(html)) {
+                // Chemin multi-couleur
+                const lines = _wrapTokenLines(ctx, _charsToTokens(_htmlToCharColors(html, defColor)), cw, pad);
+                const rh = Math.max(minH, lines.length * lh + pad * 2);
+                canvas.width = Math.round(cw * dpr); canvas.height = Math.round(rh * dpr);
+                ctx.scale(dpr, dpr); ctx.font = fontStr; ctx.textBaseline = 'top';
+                lines.forEach((ln, li) => _drawTokenLine(ctx, ln, pad + li * lh, align, cw, pad, li < lines.length - 1));
+                return { dataURL: canvas.toDataURL('image/png'), renderH: rh };
+            } else {
+                // Chemin couleur unique (compatible historique + performant)
+                const rawLines = plainText.split('\n'); const wl = [];
+                for (const raw of rawLines) {
+                    const words = raw.split(' '); let cur = '';
+                    for (const word of words) {
+                        const test = cur ? cur + ' ' + word : word;
+                        if (ctx.measureText(test).width > cw - pad * 2 && cur) { wl.push(cur); cur = word; } else cur = test;
+                    }
+                    wl.push(cur);
+                }
+                const rh = Math.max(minH, wl.length * lh + pad * 2);
+                canvas.width = Math.round(cw * dpr); canvas.height = Math.round(rh * dpr);
+                ctx.scale(dpr, dpr); ctx.font = fontStr; ctx.textBaseline = 'top'; ctx.fillStyle = defColor;
+                wl.forEach((line, i) => {
+                    const y = pad + i * lh;
+                    if (align === 'right') {
+                        ctx.fillText(line, cw - pad - ctx.measureText(line).width, y);
+                    } else if (align === 'center') {
+                        ctx.fillText(line, (cw - ctx.measureText(line).width) / 2, y);
+                    } else if (align === 'justify' && i < wl.length - 1 && line.includes(' ')) {
+                        const ws = line.split(' ');
+                        const tw = ws.reduce((a, w) => a + ctx.measureText(w).width, 0);
+                        const g  = (cw - pad * 2 - tw) / (ws.length - 1);
+                        let cx = pad; ws.forEach(w => { ctx.fillText(w, cx, y); cx += ctx.measureText(w).width + g; });
+                    } else {
+                        ctx.fillText(line, pad, y);
+                    }
+                });
+                return { dataURL: canvas.toDataURL('image/png'), renderH: rh };
+            }
+        }
+
         // ── Zone de saisie texte ─────────────────────────────────────────────
-        function creerZoneTexte(x, y, w, h, onCommit = null, onDone = null, initialText = '') {
+        function creerZoneTexte(x, y, w, h, onCommit = null, onDone = null, initialText = '', initialHtml = null) {
             const et = window.etatTexte || { fontFamily: 'DM Sans', fontSize: 52, fontWeight: 500, color: 'hsl(0, 100%, 50%)' };
             const couleur = et.color || paintState.color || '#262623';
 
@@ -766,7 +887,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ].join(';');
 
             // Pré-remplir si texte existant
-            if (initialText) div.innerText = initialText;
+            if (initialHtml) div.innerHTML = initialHtml;
+            else if (initialText) div.innerText = initialText;
             planDeTravail.appendChild(div);
             div.focus();
 
@@ -797,53 +919,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     roueEl.removeEventListener('touchstart', _setBlurGuard);
                 }
                 const text = div.innerText || '';
+                const html = div.innerHTML || '';
                 div.remove();
                 if (!text.trim()) { if (onDone) onDone(); return; }
 
                 // Utiliser les valeurs ACTUELLES de etatTexte (peuvent avoir changé via panel)
                 const liveEt      = window.etatTexte || et;
                 const liveCouleur = liveEt.color || couleur;
+                const liveAlign   = liveEt.align  || 'left';
 
-                // Rendu texte → canvas temporaire (DPR pour netteté)
+                // Rendu texte → canvas (multi-couleur + alignement)
                 const dpr        = window.devicePixelRatio || 1;
                 const lineHeight = liveEt.fontSize * 1.4;
                 const pad        = 6;
-                const tmp  = document.createElement('canvas');
-                const tctx = tmp.getContext('2d');
-                tctx.font  = `${liveEt.fontWeight} ${liveEt.fontSize}px '${liveEt.fontFamily}',sans-serif`;
+                const fontStr    = `${liveEt.fontWeight} ${liveEt.fontSize}px '${liveEt.fontFamily}',sans-serif`;
 
-                // Découpe des lignes avec word-wrap
-                const rawLines = text.split('\n');
-                const wrappedLines = [];
-                for (const raw of rawLines) {
-                    const words = raw.split(' ');
-                    let cur = '';
-                    for (const word of words) {
-                        const test = cur ? cur + ' ' + word : word;
-                        if (tctx.measureText(test).width > w - pad * 2 && cur) {
-                            wrappedLines.push(cur); cur = word;
-                        } else { cur = test; }
-                    }
-                    wrappedLines.push(cur);
-                }
+                const { dataURL, renderH } = _renderTextToDataURL(
+                    html, text, fontStr, w, h, liveAlign, liveCouleur, dpr, pad, lineHeight
+                );
 
-                const renderH  = Math.max(h, wrappedLines.length * lineHeight + pad * 2);
-                tmp.width      = Math.round(w       * dpr);
-                tmp.height     = Math.round(renderH * dpr);
-                tctx.scale(dpr, dpr);
-                tctx.font         = `${liveEt.fontWeight} ${liveEt.fontSize}px '${liveEt.fontFamily}',sans-serif`;
-                tctx.fillStyle    = liveCouleur;
-                tctx.textBaseline = 'top';
-                wrappedLines.forEach((line, i) => tctx.fillText(line, pad, pad + i * lineHeight));
-
-                const dataURL = tmp.toDataURL('image/png');
                 const el = document.createElement('img');
                 el.style.cssText = 'position:absolute;z-index:3;pointer-events:none;';
                 const obj = {
                     type: 'text', el, x, y, w, h: renderH, rotation: 0,
-                    // Propriétés stockées pour re-rendu sans déformation
-                    _text: text, _fontFamily: liveEt.fontFamily,
-                    _fontSize: liveEt.fontSize, _fontWeight: liveEt.fontWeight, _color: liveCouleur,
+                    _text: text, _textHtml: html,
+                    _fontFamily: liveEt.fontFamily,
+                    _fontSize: liveEt.fontSize, _fontWeight: liveEt.fontWeight,
+                    _color: liveCouleur, _textAlign: liveAlign,
                 };
                 mettreAJourElement(obj);
                 planDeTravail.appendChild(el);
@@ -958,46 +1060,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Re-rendu d'un objet texte à la largeur actuelle (évite la déformation)
         function reRenderText(obj) {
-            if (!obj._text) return;
-            const dpr        = window.devicePixelRatio || 1;
-            const fontFamily = obj._fontFamily || 'DM Sans';
-            const fontSize   = obj._fontSize   || 24;
-            const fontWeight = obj._fontWeight || 400;
-            const color      = obj._color      || '#262623';
-            const w          = obj.w;
-            const lineHeight = fontSize * 1.4;
-            const pad        = 6;
-
-            const tmp  = document.createElement('canvas');
-            const tctx = tmp.getContext('2d');
-            tctx.font  = `${fontWeight} ${fontSize}px '${fontFamily}',sans-serif`;
-
-            // Recalcul des lignes avec word-wrap pour la nouvelle largeur
-            const rawLines     = obj._text.split('\n');
-            const wrappedLines = [];
-            for (const raw of rawLines) {
-                const words = raw.split(' ');
-                let cur = '';
-                for (const word of words) {
-                    const test = cur ? cur + ' ' + word : word;
-                    if (tctx.measureText(test).width > w - pad * 2 && cur) {
-                        wrappedLines.push(cur); cur = word;
-                    } else { cur = test; }
-                }
-                wrappedLines.push(cur);
-            }
-
-            const renderH  = Math.max(40, wrappedLines.length * lineHeight + pad * 2);
-            tmp.width      = Math.round(w      * dpr);
-            tmp.height     = Math.round(renderH * dpr);
-            tctx.scale(dpr, dpr);
-            tctx.font         = `${fontWeight} ${fontSize}px '${fontFamily}',sans-serif`;
-            tctx.fillStyle    = color;
-            tctx.textBaseline = 'top';
-            wrappedLines.forEach((line, i) => tctx.fillText(line, pad, pad + i * lineHeight));
-
-            obj.el.src = tmp.toDataURL('image/png');
-            obj.h = renderH; // hauteur mise à jour
+            if (!obj._text && !obj._textHtml) return;
+            const dpr     = window.devicePixelRatio || 1;
+            const fontStr = `${obj._fontWeight||400} ${obj._fontSize||24}px '${obj._fontFamily||'DM Sans'}',sans-serif`;
+            const lh      = (obj._fontSize || 24) * 1.4;
+            const pad     = 6;
+            const { dataURL, renderH } = _renderTextToDataURL(
+                obj._textHtml || null, obj._text || '', fontStr,
+                obj.w, 40, obj._textAlign || 'left', obj._color || '#262623', dpr, pad, lh
+            );
+            obj.el.src = dataURL;
+            obj.h = renderH;
         }
 
         /* CONNECTEURS_START — décommenter pour réactiver
@@ -1299,6 +1372,55 @@ document.addEventListener('DOMContentLoaded', () => {
         actionPanel.appendChild(btnDelete);
         actionPanel.appendChild(btnDup);
         actionPanel.appendChild(btnPdf);
+
+        // ── Séparateur + boutons d'alignement (texte uniquement) ──────────
+        const sepAlign = document.createElement('div');
+        sepAlign.style.cssText = 'width:1px;height:22px;background:rgba(0,0,0,0.15);margin:0 2px;flex-shrink:0;display:none;';
+
+        const ALIGN_OPTS = [
+            { key: 'left',    title: 'Ferrer à gauche',  svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>` },
+            { key: 'center',  title: 'Centrer',           svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>` },
+            { key: 'right',   title: 'Ferrer à droite',  svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>` },
+            { key: 'justify', title: 'Justifier (pavé)',  svg: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="15" y2="18"/></svg>` },
+        ];
+        const alignBtns = {};
+        ALIGN_OPTS.forEach(({ key, title, svg }) => {
+            const btn = document.createElement('button');
+            btn.title = title;
+            btn.dataset.align = key;
+            btn.style.cssText = 'width:34px;height:34px;border:none;border-radius:7px;background:transparent;cursor:pointer;display:none;align-items:center;justify-content:center;transition:background 0.15s;-webkit-appearance:none;appearance:none;color:var(--text-dark,#1a1a1a);';
+            btn.innerHTML = svg;
+            btn.addEventListener('mouseenter', () => { if (!btn.classList.contains('actif')) btn.style.background = 'rgba(255,64,0,0.12)'; });
+            btn.addEventListener('mouseleave', () => { if (!btn.classList.contains('actif')) btn.style.background = 'transparent'; });
+            btn.addEventListener('click', () => {
+                if (selectedObjects.length !== 1 || selectedObjects[0].type !== 'text') return;
+                const obj = selectedObjects[0];
+                obj._textAlign = key;
+                window.etatTexte = window.etatTexte || {};
+                window.etatTexte.align = key;
+                // Re-rendu avec le nouvel alignement
+                reRenderText(obj);
+                mettreAJourElement(obj);
+                saveState();
+                // Mettre à jour l'apparence des boutons
+                Object.values(alignBtns).forEach(b => {
+                    b.classList.remove('actif');
+                    b.style.background = 'transparent';
+                    b.style.color = 'var(--text-dark,#1a1a1a)';
+                });
+                btn.classList.add('actif');
+                btn.style.background = 'rgba(255,64,0,0.12)';
+                btn.style.color = 'var(--flamme,#ff4000)';
+            });
+            alignBtns[key] = btn;
+        });
+
+        actionPanel.appendChild(sepAlign);
+        actionPanel.appendChild(alignBtns['left']);
+        actionPanel.appendChild(alignBtns['center']);
+        actionPanel.appendChild(alignBtns['right']);
+        actionPanel.appendChild(alignBtns['justify']);
+
         // Mobile : empêcher le touchstart de remonter au document
         // (sinon mobileTap() désélectionne l'objet avant que le clic ne s'exécute)
         actionPanel.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
@@ -1308,6 +1430,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (selectedObjects.length === 0) { actionPanel.style.display = 'none'; return; }
             actionPanel.style.display = 'flex';
             btnPdf.style.display = selectedObjects.some(o => o._pdfPath) ? 'flex' : 'none';
+            // Boutons d'alignement : visibles seulement pour un seul objet texte
+            const isText = selectedObjects.length === 1 && selectedObjects[0].type === 'text';
+            sepAlign.style.display = isText ? 'block' : 'none';
+            Object.values(alignBtns).forEach(b => {
+                b.style.display = isText ? 'flex' : 'none';
+                b.classList.remove('actif');
+                b.style.background = 'transparent';
+                b.style.color = 'var(--text-dark,#1a1a1a)';
+            });
+            if (isText) {
+                const curAlign = selectedObjects[0]._textAlign || 'left';
+                const active = alignBtns[curAlign];
+                if (active) {
+                    active.classList.add('actif');
+                    active.style.background = 'rgba(255,64,0,0.12)';
+                    active.style.color = 'var(--flamme,#ff4000)';
+                }
+            }
             requestAnimationFrame(() => {
                 const pw = actionPanel.offsetWidth, ph = actionPanel.offsetHeight;
                 const vw = window.innerWidth,       vh = window.innerHeight;
@@ -1602,6 +1742,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.etatTexte.fontSize   = obj._fontSize   || 52;
                 window.etatTexte.fontWeight = obj._fontWeight || 400;
                 window.etatTexte.color      = obj._color      || '#000000';
+                window.etatTexte.align      = obj._textAlign  || 'left';
                 // Retirer l'objet du canvas (sera recréé après validation)
                 const idx = placedObjects.indexOf(obj);
                 if (idx !== -1) placedObjects.splice(idx, 1);
@@ -1611,12 +1752,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (window.matchMedia('(max-width: 768px)').matches) {
                     // Mobile : activer directement sans animation de roue
                     ouvrirPanel(7);
-                    creerZoneTexte(obj.x, obj.y, obj.w, obj.h, null, null, obj._text || '');
+                    creerZoneTexte(obj.x, obj.y, obj.w, obj.h, null, null, obj._text || '', obj._textHtml || null);
                 } else {
                     _fanOpen();
                     animerVers(angleVersTete(4), () => {
                         selectionnerOutil(7, 4, false);
-                        creerZoneTexte(obj.x, obj.y, obj.w, obj.h, null, null, obj._text || '');
+                        creerZoneTexte(obj.x, obj.y, obj.w, obj.h, null, null, obj._text || '', obj._textHtml || null);
                     });
                 }
                 return;
@@ -4179,8 +4320,10 @@ document.addEventListener('DOMContentLoaded', () => {
             fontSize   : 52,   // px — plage 8–96, milieu = 52
             fontWeight : 500,  // 100–900, milieu = 500
             color      : '#000000',
+            align      : 'left',
         };
         if (!window.etatTexte.color) window.etatTexte.color = '#000000';
+        if (!window.etatTexte.align) window.etatTexte.align = 'left';
 
         const Ro = 0.90, Ri = 0.38, Rm = (Ro + Ri) / 2;
         const ns    = 'http://www.w3.org/2000/svg';
@@ -4226,7 +4369,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const chromo = document.getElementById('roue-centre-chromo');
         const chromoTCleanup = buildChromoWheel(
             chromo,
-            c => { window.etatTexte.color = c; if (window._activeTextDiv) window._activeTextDiv.style.color = c; },
+            c => {
+                window.etatTexte.color = c;
+                if (window._activeTextDiv) {
+                    const sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0 && !sel.isCollapsed &&
+                            window._activeTextDiv.contains(sel.anchorNode)) {
+                        // Sélection active dans le div → colorier seulement la partie sélectionnée
+                        document.execCommand('foreColor', false, c);
+                    } else {
+                        // Pas de sélection → changer la couleur globale du div (future saisie)
+                        window._activeTextDiv.style.color = c;
+                    }
+                }
+            },
             () => window.etatTexte.color
         );
 
@@ -4528,7 +4684,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const dialSvg = document.getElementById('roue-dial-svg');
         if (!dialSvg) return;
 
-        window.etatCollaboration = window.etatCollaboration || { mode: 'question', levees: new Set() };
+        window.etatCollaboration = window.etatCollaboration || { mode: null, levees: new Set() };
         if (!window.etatCollaboration.levees) window.etatCollaboration.levees = new Set();
 
         const Ro = 0.90, Ri = 0.38, Rm = (Ro + Ri) / 2;
