@@ -1448,47 +1448,38 @@ body.mode-sombre .arc-info-pill {
 .arc-ssub.open { display: flex; }
 .arc-ssub .arc-sitem { font-size: 10.5px; padding: 3px 0; white-space: normal; line-height: 1.5; }
 
-/* ── Bande "5 derniers tableaux" ── */
+/* ── Section "5 derniers" en tête de colonne drum ── */
 .arc-recents {
-    position: fixed;
-    top: 70px;
-    left: 0;
-    right: 0;
-    height: 100px;
+    width: 100%;
+    flex-shrink: 0;
     display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 0 24px;
-    background: var(--bg);
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px 10px;
     border-bottom: 1px solid var(--shadow-dark, #e2e8f0);
-    z-index: 810;
-    overflow: hidden;
 }
+body.mode-sombre .arc-recents { border-bottom-color: rgba(255,255,255,0.07); }
 .arc-recents-label {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
-    letter-spacing: .08em;
+    letter-spacing: .1em;
     text-transform: uppercase;
     color: var(--text-muted, #94a3b8);
-    white-space: nowrap;
-    flex-shrink: 0;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
+    margin-bottom: 6px;
 }
 .arc-recents-strip {
     display: flex;
-    gap: 10px;
-    align-items: center;
+    gap: 6px;
+    align-items: flex-start;
     overflow-x: auto;
     scrollbar-width: none;
-    flex: 1;
 }
 .arc-recents-strip::-webkit-scrollbar { display: none; }
 .arc-recent-card {
     flex-shrink: 0;
-    width: 130px;
-    height: 80px;
-    border-radius: 8px;
+    width: 48px;
+    height: 36px;
+    border-radius: 5px;
     overflow: hidden;
     cursor: pointer;
     background: var(--bg-card, #f1f5f9);
@@ -1499,7 +1490,7 @@ body.mode-sombre .arc-info-pill {
 }
 .arc-recent-card:hover {
     box-shadow: var(--neu-hover);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     border-color: var(--orange, #ff4000);
 }
 .arc-recent-card img {
@@ -1509,15 +1500,14 @@ body.mode-sombre .arc-info-pill {
 .arc-recent-card-ph {
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 10px; color: var(--text-muted, #94a3b8);
 }
 .arc-recent-card-label {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,.45));
+    background: linear-gradient(transparent, rgba(0,0,0,.5));
     color: #fff;
-    font-size: 9px;
-    padding: 4px 6px 3px;
+    font-size: 7px;
+    padding: 3px 4px 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1527,7 +1517,7 @@ body.mode-sombre .arc-info-pill {
 .arc-main-layout {
     position: fixed;
     inset: 0;
-    top: 170px; /* 70 header + 100 bande recents */
+    top: 70px;
     display: flex;
     overflow: hidden;
 }
@@ -1540,8 +1530,8 @@ body.mode-sombre .arc-info-pill {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
+    justify-content: flex-start;
+    gap: 0;
     border-right: 1px solid rgba(0,0,0,0.07);
     overflow: hidden;
     position: relative;
@@ -1659,9 +1649,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 
 /* Responsive mobile */
 @media (max-width: 768px) {
-    .arc-recents { height: 80px; top: 56px; padding: 0 12px; gap: 10px; }
-    .arc-recent-card { width: 100px; height: 62px; }
-    .arc-main-layout { flex-direction: column; top: 136px; }
+    .arc-main-layout { flex-direction: column; top: 62px; }
     .arc-drum-col { width: 100%; height: 240px; border-right: none; border-bottom: 1px solid rgba(0,0,0,0.07); }
     body.mode-sombre .arc-drum-col { border-bottom-color: rgba(255,255,255,0.07); }
     .arc-drum { width: 100%; height: 210px; }
