@@ -1492,11 +1492,7 @@ body.mode-sombre .arc-recents { border-bottom-color: rgba(255,255,255,0.07); }
     display: flex;
     flex-direction: column;
 }
-.arc-recent-card:hover {
-    box-shadow: var(--neu-hover);
-    transform: translateY(-1px);
-    border-color: var(--orange, #ff4000);
-}
+/* pas de survol sur les cartes récentes */
 .arc-recent-card img {
     width: 100%; height: 44px;
     object-fit: cover; display: block; flex-shrink: 0;

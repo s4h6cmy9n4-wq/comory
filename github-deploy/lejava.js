@@ -6063,8 +6063,17 @@ function mettreAJourArrondi() {
                 const newId    = nextBoardId++;
                 const _nc      = window._sessionContext?.nomCours || '';
                 const newBoard = { id: newId, label: `Tableau ${newId}`, nomCours: _nc, thumbnail: null };
-                if (boards.length >= 5) boards.shift(); // retirer le plus ancien de l'accès rapide
-                boards.push(newBoard);              // toujours présent en IndexedDB (archive)
+                if (boards.length >= 5) {
+                    // Persister le plus ancien dans IndexedDB avant de le retirer du carrousel
+                    const oldest = boards[0];
+                    if (oldest && boardCache[oldest.id]) {
+                        const cached = boardCache[oldest.id];
+                        const canvasPNG = imageDataToPNG(cached.imageData);
+                        dbPut({ id: oldest.id, thumbnail: oldest.thumbnail, canvasPNG, objs: cached.objs }).catch(() => {});
+                    }
+                    boards.shift(); // retirer du carrousel rapide (reste dans l'archive complète)
+                }
+                boards.push(newBoard); // toujours présent en IndexedDB (archive)
                 saveBoardList();
 
                 activeBoardId = newId;
@@ -6091,6 +6100,44 @@ function mettreAJourArrondi() {
             isSwitching = false;
             render();
             // Sync : écouter le nouveau tableau + notifier les autres appareils
+            window._syncListenBoard?.(id);
+            document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: id } }));
+        };
+
+        // ── Ouvrir depuis les récents de l'archive : ajoute au carrousel rapide ──
+        window._openBoardAndActivate = async function(id, boardMeta) {
+            if (isSwitching) return;
+            isSwitching = true;
+            await captureActive(); // sauvegarder le tableau actuel
+
+            // Ajouter au carrousel rapide si absent
+            if (!boards.find(b => b.id === id)) {
+                // Persister le plus ancien dans IndexedDB avant de le retirer du carrousel
+                if (boards.length >= 5) {
+                    const oldest = boards[0];
+                    if (oldest && boardCache[oldest.id]) {
+                        const cached = boardCache[oldest.id];
+                        const canvasPNG = imageDataToPNG(cached.imageData);
+                        dbPut({ id: oldest.id, thumbnail: oldest.thumbnail, canvasPNG, objs: cached.objs }).catch(() => {});
+                    }
+                    boards.shift();
+                }
+                boards.push({
+                    id,
+                    label:     boardMeta?.label     || `Tableau ${id}`,
+                    nomCours:  boardMeta?.nomCours   || '',
+                    thumbnail: boardMeta?.thumbnail  || null,
+                });
+                saveBoardList();
+            }
+
+            activeBoardId = id;
+            visualBoardId = id;
+            window._activeBoardIdForResume = id;
+            localStorage.setItem(LS_ACTIVE_ID, String(id));
+            await openBoard(id);
+            isSwitching = false;
+            render();
             window._syncListenBoard?.(id);
             document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: id } }));
         };
@@ -6783,20 +6830,18 @@ function mettreAJourArrondi() {
                 lbl.textContent = cardLabel;
                 card.appendChild(lbl);
 
-                // Clic → sélectionner ce tableau dans le drum
+                // Clic → ouvrir dans le carrousel rapide et fermer l'archive
                 card.addEventListener('click', () => {
-                    const idx = arcDisplay.findIndex(b => b.id === board.id);
-                    if (idx >= 0) {
-                        arcDrumIdx = idx;
-                        arcRenderDrum();
-                    } else {
-                        // Réinitialiser les filtres et re-chercher
-                        arcFilterClasse = null;
-                        arcFilterMat = null;
-                        arcApplySort();
-                        const i2 = arcDisplay.findIndex(b => b.id === board.id);
-                        if (i2 >= 0) { arcDrumIdx = i2; arcRenderDrum(); }
+                    if (window._openBoardAndActivate) {
+                        window._openBoardAndActivate(board.id, {
+                            label:    board.label,
+                            nomCours: board.nomCours,
+                            thumbnail: board.thumbnail || board.canvasPNG || null,
+                        });
                     }
+                    // Fermer l'overlay archive
+                    const ov = document.getElementById('archive-overlay');
+                    if (ov) { ov.classList.remove('ouvert'); ov.setAttribute('aria-hidden', 'true'); }
                 });
 
                 strip.appendChild(card);
