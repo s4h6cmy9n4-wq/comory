@@ -187,14 +187,6 @@
 
     <!-- Panneau de tri — ferré bas-droit -->
     <div class="arc-sort-panel" id="arc-sort-panel">
-        <div class="arc-search-row">
-            <button class="arc-search-btn" id="arc-search-btn" title="Rechercher">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor">
-                    <circle cx="11" cy="11" r="7.5"/><line x1="20" y1="20" x2="15.8" y2="15.8"/>
-                </svg>
-            </button>
-            <input type="text" class="arc-search-inp" id="arc-search-inp" placeholder="Rechercher…">
-        </div>
         <div class="arc-sitem active" data-arc-sort="all">Tout</div>
         <div class="arc-sitem" data-arc-sort="recent">Du plus récent</div>
         <div class="arc-sitem" data-arc-sort="oldest">Du moins récent</div>
@@ -210,6 +202,12 @@
             <span class="arc-section-hdr-label" data-arc-expand="matiere">Par matière</span>
         </div>
         <div class="arc-ssub" id="arc-ssub-matiere"></div>
+    </div>
+
+    <!-- Bande 5 derniers tableaux -->
+    <div class="arc-recents" id="arc-recents">
+        <span class="arc-recents-label">Récents</span>
+        <div class="arc-recents-strip" id="arc-recents-strip"></div>
     </div>
 
     <!-- Layout principal : drum + détail -->

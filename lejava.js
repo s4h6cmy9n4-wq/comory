@@ -6064,18 +6064,6 @@ function mettreAJourArrondi() {
         function arcInitSortPanel() {
             arcLoadGroups();
 
-            // Recherche
-            const searchBtn = document.getElementById('arc-search-btn');
-            const searchInp = document.getElementById('arc-search-inp');
-            if (searchBtn && searchInp) {
-                searchBtn.addEventListener('click', () => {
-                    searchInp.classList.toggle('open');
-                    if (searchInp.classList.contains('open')) searchInp.focus();
-                    else { searchInp.value=''; arcSearchQ=''; arcApplySort(); }
-                });
-                searchInp.addEventListener('input', e => { arcSearchQ=e.target.value.trim(); arcApplySort(); });
-            }
-
             // Boutons de direction de tri (date)
             document.querySelectorAll('.arc-sitem[data-arc-sort]').forEach(el => {
                 el.addEventListener('click', () => {
@@ -6244,8 +6232,70 @@ function mettreAJourArrondi() {
                 arcLoaded = true;
             }
             arcApplySort();
+            arcRenderRecents();
 
             // (hint de scroll supprimé — grille fixe)
+        }
+
+        // ── Bande 5 derniers tableaux ─────────────────────────────────────
+        function arcRenderRecents() {
+            const strip = document.getElementById('arc-recents-strip');
+            if (!strip) return;
+            strip.innerHTML = '';
+
+            // Les 5 plus récents (tri par date décroissante)
+            const toTs = d => {
+                if (!d) return 0;
+                if (d instanceof Date) return d.getTime();
+                if (typeof d === 'number') return d;
+                const t = new Date(d).getTime();
+                return isNaN(t) ? 0 : t;
+            };
+            const sorted = [...arcAllBoards].sort((a, b) => toTs(b.date) - toTs(a.date));
+            const recents = sorted.slice(0, 5);
+
+            recents.forEach(board => {
+                const card = document.createElement('div');
+                card.className = 'arc-recent-card';
+                card.title = board.label;
+
+                const src = board.canvasPNG || board.thumbnail;
+                if (src) {
+                    const img = document.createElement('img');
+                    img.src = typeof src === 'string' ? src : URL.createObjectURL(src);
+                    img.alt = '';
+                    card.appendChild(img);
+                } else {
+                    const ph = document.createElement('div');
+                    ph.className = 'arc-recent-card-ph';
+                    const col = arcMatieres?.find(m => m.id === board.matiereId)?.color;
+                    if (col) ph.style.background = col;
+                    card.appendChild(ph);
+                }
+
+                const lbl = document.createElement('div');
+                lbl.className = 'arc-recent-card-label';
+                lbl.textContent = board.label;
+                card.appendChild(lbl);
+
+                // Clic → sélectionner ce tableau dans le drum
+                card.addEventListener('click', () => {
+                    const idx = arcDisplay.findIndex(b => b.id === board.id);
+                    if (idx >= 0) {
+                        arcDrumIdx = idx;
+                        arcRenderDrum();
+                    } else {
+                        // Réinitialiser les filtres et re-chercher
+                        arcFilterClasse = null;
+                        arcFilterMat = null;
+                        arcApplySort();
+                        const i2 = arcDisplay.findIndex(b => b.id === board.id);
+                        if (i2 >= 0) { arcDrumIdx = i2; arcRenderDrum(); }
+                    }
+                });
+
+                strip.appendChild(card);
+            });
         }
 
         // ── Exposition pour le carrousel ──────────────────────────────────

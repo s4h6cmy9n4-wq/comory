@@ -1264,15 +1264,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const vw = window.innerWidth,       vh = window.innerHeight;
                 const ov = imgOverlay.getBoundingClientRect();
                 const m  = 12;
-                // Idéal : juste à droite du coin bas-droit de la sélection
-                let left = ov.right + 8;
-                let top  = ov.bottom - ph;
-                // Si ça déborde à droite → passer à gauche de la sélection
-                if (left + pw > vw - m) left = Math.max(m, ov.left - pw - 8);
-                // Clamp vertical et horizontal
-                if (top + ph > vh - m) top = vh - ph - m;
-                if (top  < m)          top = m;
-                if (left < m)          left = m;
+                // Idéal : en dessous du coin bas-droit, ras bord droit de la sélection
+                let left = ov.right - pw;
+                let top  = ov.bottom + 6;
+                // Si ça déborde à droite
+                if (left + pw > vw - m) left = vw - pw - m;
+                // Si ça déborde en bas → passer au-dessus de la sélection
+                if (top + ph > vh - m) top = Math.max(m, ov.top - ph - 6);
+                // Gardes minimales
+                if (top  < m)  top  = m;
+                if (left < m)  left = m;
                 actionPanel.style.left = left + 'px';
                 actionPanel.style.top  = top  + 'px';
             });
@@ -2927,6 +2928,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ouvrir quand la souris entre sur le centre (toujours visible) ou sur le disque (quand ouvert)
     roueCentre.addEventListener('mouseenter', _fanOpen);
     roueConteneur.addEventListener('mouseenter', _fanOpen);
+    // Le hover-pad (inset: -36px) étend la zone d'ouverture — roueConteneur a pointer-events:none
+    // donc son mouseenter ne se déclenche pas ; on écoute directement le pad.
+    const roueHoverPad = document.getElementById('roue-hover-pad');
+    if (roueHoverPad) {
+        roueHoverPad.addEventListener('mouseenter', _fanOpen);
+        roueHoverPad.addEventListener('mouseleave', _fanClose);
+    }
     // Fermer quand la souris quitte le disque entier
     roueConteneur.addEventListener('mouseleave', _fanClose);
 
@@ -6056,18 +6064,6 @@ function mettreAJourArrondi() {
         function arcInitSortPanel() {
             arcLoadGroups();
 
-            // Recherche
-            const searchBtn = document.getElementById('arc-search-btn');
-            const searchInp = document.getElementById('arc-search-inp');
-            if (searchBtn && searchInp) {
-                searchBtn.addEventListener('click', () => {
-                    searchInp.classList.toggle('open');
-                    if (searchInp.classList.contains('open')) searchInp.focus();
-                    else { searchInp.value=''; arcSearchQ=''; arcApplySort(); }
-                });
-                searchInp.addEventListener('input', e => { arcSearchQ=e.target.value.trim(); arcApplySort(); });
-            }
-
             // Boutons de direction de tri (date)
             document.querySelectorAll('.arc-sitem[data-arc-sort]').forEach(el => {
                 el.addEventListener('click', () => {
@@ -6127,47 +6123,7 @@ function mettreAJourArrondi() {
             });
 
             // ── Panel draggable ────────────────────────────────────────────
-            const panel  = document.getElementById('arc-sort-panel');
-            const handle = document.getElementById('arc-panel-handle');
-            if (panel && handle) {
-                // Position initiale : bas-droite
-                const initPos = () => {
-                    const r = panel.getBoundingClientRect();
-                    panel.style.left   = (window.innerWidth  - r.width  - 14) + 'px';
-                    panel.style.top    = (window.innerHeight - r.height - 24) + 'px';
-                    panel.style.bottom = 'auto';
-                    panel.style.right  = 'auto';
-                };
-                requestAnimationFrame(initPos);
-
-                // Recadrer le panel si la fenêtre rétrécit
-                const clampPanel = () => {
-                    const l = parseFloat(panel.style.left) || 0;
-                    const t = parseFloat(panel.style.top)  || 0;
-                    panel.style.left = Math.max(0, Math.min(window.innerWidth  - panel.offsetWidth,  l)) + 'px';
-                    panel.style.top  = Math.max(0, Math.min(window.innerHeight - panel.offsetHeight, t)) + 'px';
-                };
-                window.addEventListener('resize', clampPanel);
-
-                let dragging = false, ox = 0, oy = 0;
-                handle.addEventListener('mousedown', e => {
-                    dragging = true;
-                    const r = panel.getBoundingClientRect();
-                    ox = e.clientX - r.left;
-                    oy = e.clientY - r.top;
-                    handle.style.cursor = 'grabbing';
-                    e.preventDefault();
-                });
-                document.addEventListener('mousemove', e => {
-                    if (!dragging) return;
-                    panel.style.left = Math.max(0, Math.min(window.innerWidth  - panel.offsetWidth,  e.clientX - ox)) + 'px';
-                    panel.style.top  = Math.max(0, Math.min(window.innerHeight - panel.offsetHeight, e.clientY - oy)) + 'px';
-                });
-                document.addEventListener('mouseup', () => {
-                    dragging = false;
-                    handle.style.cursor = 'grab';
-                });
-            }
+            // Panel de tri : positionné par CSS (position:absolute bottom:0 right:0), pas de drag.
 
             // ── Redimensionnement → recalcule le drum ────────────────────
             const drumEl = document.getElementById('arc-drum');
@@ -6276,8 +6232,70 @@ function mettreAJourArrondi() {
                 arcLoaded = true;
             }
             arcApplySort();
+            arcRenderRecents();
 
             // (hint de scroll supprimé — grille fixe)
+        }
+
+        // ── Bande 5 derniers tableaux ─────────────────────────────────────
+        function arcRenderRecents() {
+            const strip = document.getElementById('arc-recents-strip');
+            if (!strip) return;
+            strip.innerHTML = '';
+
+            // Les 5 plus récents (tri par date décroissante)
+            const toTs = d => {
+                if (!d) return 0;
+                if (d instanceof Date) return d.getTime();
+                if (typeof d === 'number') return d;
+                const t = new Date(d).getTime();
+                return isNaN(t) ? 0 : t;
+            };
+            const sorted = [...arcAllBoards].sort((a, b) => toTs(b.date) - toTs(a.date));
+            const recents = sorted.slice(0, 5);
+
+            recents.forEach(board => {
+                const card = document.createElement('div');
+                card.className = 'arc-recent-card';
+                card.title = board.label;
+
+                const src = board.canvasPNG || board.thumbnail;
+                if (src) {
+                    const img = document.createElement('img');
+                    img.src = typeof src === 'string' ? src : URL.createObjectURL(src);
+                    img.alt = '';
+                    card.appendChild(img);
+                } else {
+                    const ph = document.createElement('div');
+                    ph.className = 'arc-recent-card-ph';
+                    const col = arcMatieres?.find(m => m.id === board.matiereId)?.color;
+                    if (col) ph.style.background = col;
+                    card.appendChild(ph);
+                }
+
+                const lbl = document.createElement('div');
+                lbl.className = 'arc-recent-card-label';
+                lbl.textContent = board.label;
+                card.appendChild(lbl);
+
+                // Clic → sélectionner ce tableau dans le drum
+                card.addEventListener('click', () => {
+                    const idx = arcDisplay.findIndex(b => b.id === board.id);
+                    if (idx >= 0) {
+                        arcDrumIdx = idx;
+                        arcRenderDrum();
+                    } else {
+                        // Réinitialiser les filtres et re-chercher
+                        arcFilterClasse = null;
+                        arcFilterMat = null;
+                        arcApplySort();
+                        const i2 = arcDisplay.findIndex(b => b.id === board.id);
+                        if (i2 >= 0) { arcDrumIdx = i2; arcRenderDrum(); }
+                    }
+                });
+
+                strip.appendChild(card);
+            });
         }
 
         // ── Exposition pour le carrousel ──────────────────────────────────
@@ -6649,7 +6667,10 @@ function mettreAJourArrondi() {
     // ACCUEIL ENSEIGNANT — login + choix classe/matière
     // ══════════════════════════════════════════════════════════════
     (function initAccueil() {
-        const LS_PASS    = 'mory_teacher_pass';
+        // ── Identifiants fixes ────────────────────────────────────
+        const ID_CORRECT   = 'prof';
+        const PASS_CORRECT = '1234';
+
         const LS_CONTEXT = 'mory_session_ctx';
 
         const overlay    = document.getElementById('accueil-overlay');
@@ -6659,12 +6680,28 @@ function mettreAJourArrondi() {
         const selClasse  = document.getElementById('accueil-classe');
         const selMat     = document.getElementById('accueil-matiere');
         const errEl      = document.getElementById('accueil-erreur');
-        const btnSubmit  = document.getElementById('accueil-btn-submit');
-        const btnReprise = document.getElementById('accueil-reprendre');
+        const btnSubmit      = document.getElementById('accueil-btn-submit');
+        const btnReprise     = document.getElementById('accueil-reprendre');
+        const btnPassToggle  = document.getElementById('accueil-pass-toggle');
         const elDate     = document.getElementById('accueil-date');
         const elHeure    = document.getElementById('accueil-heure');
 
         if (!overlay) return;
+
+        // ── Œil mot de passe ─────────────────────────────────────
+        if (btnPassToggle) {
+            btnPassToggle.addEventListener('click', () => {
+                const visible = inputPass.type === 'text';
+                inputPass.type = visible ? 'password' : 'text';
+                btnPassToggle.querySelector('.pass-eye-ouvert').style.display = visible ? '' : 'none';
+                btnPassToggle.querySelector('.pass-eye-ferme').style.display  = visible ? 'none' : '';
+            });
+        }
+
+        // ── Clic hors du cadre → retour canvas ───────────────────
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) ouvrir();
+        });
 
         // ── Horloge temps réel ────────────────────────────────────
         function majHorloge() {
@@ -6719,10 +6756,6 @@ function mettreAJourArrondi() {
             if (ctx.matiereId) selMat.value = ctx.matiereId;
         }
 
-        // ── Texte du bouton (1er lancement = création compte) ─────
-        const passStocke = localStorage.getItem(LS_PASS);
-        if (!passStocke) btnSubmit.textContent = 'Créer mon accès';
-
         // ── Ouvrir l'overlay accueil (logo → canvas) ─────────────
         window._openAccueilOverlay = function () {
             overlay.classList.remove('accueil-hidden');
@@ -6748,11 +6781,12 @@ function mettreAJourArrondi() {
             if (!id)   { errEl.textContent = 'L\'identifiant est requis.'; inputId.focus();   return; }
             if (!pass) { errEl.textContent = 'Le mot de passe est requis.'; inputPass.focus(); return; }
 
-            const stored = localStorage.getItem(LS_PASS);
-            if (!stored) {
-                // Premier accès → enregistrer le mot de passe
-                localStorage.setItem(LS_PASS, pass);
-            } else if (pass !== stored) {
+            if (id !== ID_CORRECT) {
+                errEl.textContent = 'Identifiant incorrect.';
+                inputId.select(); inputId.focus();
+                return;
+            }
+            if (pass !== PASS_CORRECT) {
                 errEl.textContent = 'Mot de passe incorrect.';
                 inputPass.value = '';
                 inputPass.focus();

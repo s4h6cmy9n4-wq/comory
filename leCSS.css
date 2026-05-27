@@ -1426,24 +1426,6 @@ body.mode-sombre .arc-info-pill {
 .arc-sort-panel::-webkit-scrollbar { display: none; }
 /* Poignée supprimée */
 .arc-panel-handle { display: none; }
-.arc-search-btn {
-    width: 32px; height: 32px; border-radius: 50%; border: none;
-    background: var(--bg); box-shadow: var(--neu-flat);
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    color: var(--text-mid); flex-shrink: 0;
-    transition: box-shadow 0.12s, color 0.12s;
-}
-.arc-search-btn:hover { box-shadow: var(--neu-pressed); color: var(--orange); }
-.arc-search-btn svg   { width: 15px; height: 15px; }
-.arc-search-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.arc-search-inp {
-    width: 0; opacity: 0; border: none;
-    border-bottom: 2px solid var(--shadow-dark);
-    background: transparent; font-family: inherit; font-size: 12px;
-    color: var(--text-dark); outline: none;
-    transition: width 0.3s, opacity 0.3s; padding: 2px 0;
-}
-.arc-search-inp.open { width: 120px; opacity: 1; }
 .arc-sitem {
     font-size: 11.5px; padding: 5px 0; cursor: pointer;
     color: var(--text-mid); display: flex; align-items: baseline; gap: 4px;
@@ -1466,11 +1448,86 @@ body.mode-sombre .arc-info-pill {
 .arc-ssub.open { display: flex; }
 .arc-ssub .arc-sitem { font-size: 10.5px; padding: 3px 0; white-space: normal; line-height: 1.5; }
 
+/* ── Bande "5 derniers tableaux" ── */
+.arc-recents {
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 24px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--shadow-dark, #e2e8f0);
+    z-index: 810;
+    overflow: hidden;
+}
+.arc-recents-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted, #94a3b8);
+    white-space: nowrap;
+    flex-shrink: 0;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+}
+.arc-recents-strip {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+}
+.arc-recents-strip::-webkit-scrollbar { display: none; }
+.arc-recent-card {
+    flex-shrink: 0;
+    width: 130px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--bg-card, #f1f5f9);
+    box-shadow: var(--neu-flat);
+    transition: box-shadow .15s, transform .15s;
+    position: relative;
+    border: 2px solid transparent;
+}
+.arc-recent-card:hover {
+    box-shadow: var(--neu-hover);
+    transform: translateY(-2px);
+    border-color: var(--orange, #ff4000);
+}
+.arc-recent-card img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+}
+.arc-recent-card-ph {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--text-muted, #94a3b8);
+}
+.arc-recent-card-label {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,.45));
+    color: #fff;
+    font-size: 9px;
+    padding: 4px 6px 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* ── Layout principal archive : drum + détail ── */
 .arc-main-layout {
     position: fixed;
     inset: 0;
-    top: 70px;
+    top: 170px; /* 70 header + 100 bande recents */
     display: flex;
     overflow: hidden;
 }
@@ -1602,7 +1659,9 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 
 /* Responsive mobile */
 @media (max-width: 768px) {
-    .arc-main-layout { flex-direction: column; top: 62px; }
+    .arc-recents { height: 80px; top: 56px; padding: 0 12px; gap: 10px; }
+    .arc-recent-card { width: 100px; height: 62px; }
+    .arc-main-layout { flex-direction: column; top: 136px; }
     .arc-drum-col { width: 100%; height: 240px; border-right: none; border-bottom: 1px solid rgba(0,0,0,0.07); }
     body.mode-sombre .arc-drum-col { border-bottom-color: rgba(255,255,255,0.07); }
     .arc-drum { width: 100%; height: 210px; }
@@ -1781,19 +1840,19 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 .accueil-datetime {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
 }
 .accueil-date {
-    font-size: 12.5px;
-    color: var(--text-muted, #64748b);
+    font-size: 9px;
+    color: var(--text-muted, #94a3b8);
     text-transform: capitalize;
-    letter-spacing: .01em;
+    letter-spacing: .02em;
 }
 .accueil-heure {
-    font-size: 44px;
-    font-weight: 700;
-    letter-spacing: -.04em;
-    color: var(--text-dark, #1e293b);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -.02em;
+    color: var(--text-mid, #64748b);
     font-variant-numeric: tabular-nums;
     line-height: 1;
 }
