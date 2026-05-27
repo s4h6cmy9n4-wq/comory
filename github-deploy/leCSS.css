@@ -497,6 +497,9 @@ body {
     z-index: 10;
 }
 .bloc-chrono.deplie .chrono-tours { display: block; }
+/* Quand la liste est ouverte, l'angle gauche du bloc chrono devient carré
+   pour se raccorder proprement avec l'angle bas-gauche du panneau tours */
+.bloc-chrono.deplie { border-top-left-radius: 0 !important; }
 .chrono-tour-ligne {
     display: flex; justify-content: space-between; align-items: center;
     padding: 2px 5px; border-radius: 4px; cursor: default; transition: background 0.1s;
@@ -1477,16 +1480,17 @@ body.mode-sombre .arc-recents { border-bottom-color: rgba(255,255,255,0.07); }
 .arc-recents-strip::-webkit-scrollbar { display: none; }
 .arc-recent-card {
     flex-shrink: 0;
-    width: 48px;
-    height: 36px;
-    border-radius: 5px;
+    width: 64px;
+    height: auto;
+    border-radius: 6px;
     overflow: hidden;
     cursor: pointer;
     background: var(--bg-card, #f1f5f9);
     box-shadow: var(--neu-flat);
     transition: box-shadow .15s, transform .15s;
-    position: relative;
     border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
 }
 .arc-recent-card:hover {
     box-shadow: var(--neu-hover);
@@ -1494,23 +1498,24 @@ body.mode-sombre .arc-recents { border-bottom-color: rgba(255,255,255,0.07); }
     border-color: var(--orange, #ff4000);
 }
 .arc-recent-card img {
-    width: 100%; height: 100%;
-    object-fit: cover; display: block;
+    width: 100%; height: 44px;
+    object-fit: cover; display: block; flex-shrink: 0;
 }
 .arc-recent-card-ph {
-    width: 100%; height: 100%;
+    width: 100%; height: 44px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
 }
 .arc-recent-card-label {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,.5));
-    color: #fff;
-    font-size: 7px;
-    padding: 3px 4px 2px;
-    white-space: nowrap;
+    padding: 3px 5px 4px;
+    font-size: 8.5px; font-weight: 500;
+    color: var(--text-mid);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
+    border-top: 1px solid rgba(0,0,0,0.06);
+    background: var(--bg);
 }
 
 /* ── Layout principal archive : drum + détail ── */
@@ -1524,7 +1529,7 @@ body.mode-sombre .arc-recents { border-bottom-color: rgba(255,255,255,0.07); }
 
 /* Colonne gauche : drum */
 .arc-drum-col {
-    width: 300px;
+    width: 380px;
     flex-shrink: 0;
     height: 100%;
     display: flex;
@@ -1541,7 +1546,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 /* Drum container — cartes en absolute, centrées */
 .arc-drum {
     position: relative;
-    width: 260px;
+    width: 330px;
     height: 75vh;
     max-height: 680px;
     perspective: 900px;
@@ -1552,8 +1557,8 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 .arc-drum-card {
     position: absolute;
     top: 50%; left: 50%;
-    width: 240px;
-    height: 160px;
+    width: 310px;
+    height: 200px;
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
@@ -1593,10 +1598,18 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 32px 60px;
-    gap: 24px;
-    overflow: hidden;
+    justify-content: flex-start;
+    padding: 28px 60px 40px;
+    gap: 14px;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+.arc-detail-col::-webkit-scrollbar { display: none; }
+
+/* En-tête date (au-dessus de l'aperçu) */
+.arc-detail-header {
+    width: 100%; max-width: 680px;
+    flex-shrink: 0;
 }
 
 /* Aperçu 16:9 */
@@ -1647,14 +1660,34 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     margin-top: 10px; line-height: 1.5;
 }
 
+/* Résumé de séance */
+.arc-detail-resume {
+    width: 100%; max-width: 680px;
+    flex-shrink: 0;
+}
+.arc-detail-resume-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; color: var(--text-mid);
+    line-height: 1.7; margin: 0;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--shadow-dark);
+}
+.arc-detail-resume-empty {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; color: var(--text-mid);
+    opacity: 0.4; font-style: italic;
+    padding-top: 12px;
+    border-top: 1px solid var(--shadow-dark);
+}
+
 /* Responsive mobile */
 @media (max-width: 768px) {
     .arc-main-layout { flex-direction: column; top: 62px; }
-    .arc-drum-col { width: 100%; height: 240px; border-right: none; border-bottom: 1px solid rgba(0,0,0,0.07); }
+    .arc-drum-col { width: 100%; height: 260px; border-right: none; border-bottom: 1px solid rgba(0,0,0,0.07); }
     body.mode-sombre .arc-drum-col { border-bottom-color: rgba(255,255,255,0.07); }
-    .arc-drum { width: 100%; height: 210px; }
-    .arc-drum-card { width: 150px; height: 100px; }
-    .arc-detail-col { padding: 20px 24px; }
+    .arc-drum { width: 100%; height: 220px; }
+    .arc-drum-card { width: 180px; height: 120px; }
+    .arc-detail-col { padding: 20px 24px 32px; }
     .arc-detail-date { font-size: 22px; }
 }
 

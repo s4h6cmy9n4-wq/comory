@@ -39,7 +39,7 @@
             <div class="tableau-liste" id="tableau-liste"></div>
             <button class="tableau-arc-full-btn" id="tableau-arc-full-btn" title="Voir toutes les archives">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
             </button>
             <button class="tableau-nouveau-btn" id="tableau-nouveau-btn" title="Nouveau tableau">
@@ -218,8 +218,10 @@
         </div>
         <!-- Colonne droite : détail de la session sélectionnée -->
         <div class="arc-detail-col" id="arc-detail-col">
+            <div class="arc-detail-header" id="arc-detail-header"></div>
             <div class="arc-detail-preview" id="arc-detail-preview"></div>
             <div class="arc-detail-meta" id="arc-detail-meta"></div>
+            <div class="arc-detail-resume" id="arc-detail-resume"></div>
         </div>
     </div>
 

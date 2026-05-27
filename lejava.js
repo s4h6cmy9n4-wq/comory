@@ -4528,7 +4528,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const dialSvg = document.getElementById('roue-dial-svg');
         if (!dialSvg) return;
 
-        window.etatCollaboration = window.etatCollaboration || { mode: 'question' };
+        window.etatCollaboration = window.etatCollaboration || { mode: 'question', levees: new Set() };
+        if (!window.etatCollaboration.levees) window.etatCollaboration.levees = new Set();
 
         const Ro = 0.90, Ri = 0.38, Rm = (Ro + Ri) / 2;
         const ns = 'http://www.w3.org/2000/svg';
@@ -4581,6 +4582,104 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fanPinned) { fanPinned = false; roueConteneur.classList.remove('epingle'); }
             _fanClose();
         };
+
+        // ── 31 cases numérotées (mode Question) ──────────────────────────────
+        function buildQuestionBoxes() {
+            dialSvg.innerHTML = '';
+            window.etatCollaboration.levees = window.etatCollaboration.levees || new Set();
+
+            const N = 31;
+            const BW = 0.082, BH = 0.082, BR = 0.641, BRX = 0.010;
+
+            // Cercle central — retour au picker
+            const backDisc = mk('circle', {
+                cx: 0, cy: 0, r: '0.33',
+                fill: 'var(--bg)', cursor: 'pointer',
+                stroke: 'var(--shadow-dark)', 'stroke-width': '0.010',
+            });
+            dialSvg.appendChild(backDisc);
+
+            const countTxt = mk('text', {
+                x: 0, y: '-0.04',
+                'text-anchor': 'middle', 'dominant-baseline': 'central',
+                'font-family': "'DM Sans',sans-serif", 'font-size': '0.18',
+                fill: 'var(--flamme)', 'font-weight': '700', 'pointer-events': 'none',
+            });
+            const subTxt = mk('text', {
+                x: 0, y: '0.11',
+                'text-anchor': 'middle', 'dominant-baseline': 'central',
+                'font-family': "'DM Sans',sans-serif", 'font-size': '0.065',
+                fill: 'var(--bleu-mid)', 'pointer-events': 'none',
+            });
+            const backTxt = mk('text', {
+                x: 0, y: '0.225',
+                'text-anchor': 'middle', 'dominant-baseline': 'central',
+                'font-family': "'DM Sans',sans-serif", 'font-size': '0.058',
+                fill: 'var(--bleu-mid)', 'pointer-events': 'none',
+            });
+            backTxt.textContent = '↩ retour';
+            dialSvg.appendChild(countTxt);
+            dialSvg.appendChild(subTxt);
+            dialSvg.appendChild(backTxt);
+
+            const refreshCenter = () => {
+                const n = window.etatCollaboration.levees.size;
+                countTxt.textContent = n === 0 ? '?' : String(n);
+                subTxt.textContent   = n === 0 ? 'questions' : n === 1 ? 'sélectionnée' : 'sélectionnées';
+            };
+
+            backDisc.addEventListener('click', e => { e.stopPropagation(); buildPicker(); });
+
+            // 31 cases
+            for (let i = 0; i < N; i++) {
+                const angle = -Math.PI / 2 + (2 * Math.PI * i / N);
+                const [cx, cy] = P(angle, BR);
+                const isSel = window.etatCollaboration.levees.has(i + 1);
+
+                const g = mk('g', { transform: `translate(${cx.toFixed(4)},${cy.toFixed(4)})`, cursor: 'pointer' });
+
+                const rect = mk('rect', {
+                    x: (-BW / 2).toFixed(4), y: (-BH / 2).toFixed(4),
+                    width: BW, height: BH,
+                    fill:   isSel ? 'var(--flamme)' : 'var(--bg)',
+                    stroke: isSel ? 'var(--flamme)' : 'var(--shadow-dark)',
+                    'stroke-width': '0.008', rx: BRX,
+                });
+                const num = mk('text', {
+                    x: 0, y: '0.003',
+                    'text-anchor': 'middle', 'dominant-baseline': 'central',
+                    'font-family': "'DM Sans',sans-serif",
+                    'font-size': i + 1 >= 10 ? '0.038' : '0.046',
+                    fill: isSel ? 'white' : 'var(--bleu-mid)',
+                    'font-weight': '600', 'pointer-events': 'none',
+                });
+                num.textContent = String(i + 1);
+
+                g.appendChild(rect);
+                g.appendChild(num);
+
+                g.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const n = i + 1;
+                    if (window.etatCollaboration.levees.has(n)) {
+                        window.etatCollaboration.levees.delete(n);
+                        rect.setAttribute('fill', 'var(--bg)');
+                        rect.setAttribute('stroke', 'var(--shadow-dark)');
+                        num.setAttribute('fill', 'var(--bleu-mid)');
+                    } else {
+                        window.etatCollaboration.levees.add(n);
+                        rect.setAttribute('fill', 'var(--flamme)');
+                        rect.setAttribute('stroke', 'var(--flamme)');
+                        num.setAttribute('fill', 'white');
+                    }
+                    refreshCenter();
+                });
+
+                dialSvg.appendChild(g);
+            }
+
+            refreshCenter();
+        }
 
         // ── Construction des secteurs ─────────────────────────────────────────
         function buildPicker() {
@@ -4643,7 +4742,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 seg.addEventListener('click', e => {
                     e.stopPropagation();
                     window.etatCollaboration.mode = opt.key;
-                    buildPicker();
+                    if (opt.key === 'question') {
+                        buildQuestionBoxes();
+                    } else {
+                        buildPicker();
+                    }
                 });
             });
         }
@@ -5867,12 +5970,33 @@ function mettreAJourArrondi() {
             }
 
             function updateDetail() {
-                const board   = arcDisplay[arcDrumIdx];
-                const prevEl  = document.getElementById('arc-detail-preview');
-                const metaEl  = document.getElementById('arc-detail-meta');
+                const board    = arcDisplay[arcDrumIdx];
+                const headerEl = document.getElementById('arc-detail-header');
+                const prevEl   = document.getElementById('arc-detail-preview');
+                const metaEl   = document.getElementById('arc-detail-meta');
+                const resumeEl = document.getElementById('arc-detail-resume');
                 if (!board || !prevEl || !metaEl) return;
 
-                // Aperçu (thumbnail)
+                const d2   = board.date ? new Date(board.date) : new Date();
+                const MOIS = ['janvier','février','mars','avril','mai','juin',
+                              'juillet','août','septembre','octobre','novembre','décembre'];
+                const hh = String(d2.getHours()).padStart(2,'0');
+                const mm = String(d2.getMinutes()).padStart(2,'0');
+
+                // ── En-tête date + heure (au-dessus de l'aperçu) ────────────
+                if (headerEl) {
+                    headerEl.innerHTML = '';
+                    const dateEl = document.createElement('div');
+                    dateEl.className = 'arc-detail-date';
+                    dateEl.textContent = `${d2.getDate()} ${MOIS[d2.getMonth()]} ${d2.getFullYear()}`;
+                    headerEl.appendChild(dateEl);
+                    const timeEl = document.createElement('div');
+                    timeEl.className = 'arc-detail-time';
+                    timeEl.textContent = `${hh}h${mm}`;
+                    headerEl.appendChild(timeEl);
+                }
+
+                // ── Aperçu (thumbnail) ───────────────────────────────────────
                 prevEl.innerHTML = '';
                 const src = board.canvasPNG || board.thumbnail;
                 if (src) {
@@ -5888,25 +6012,8 @@ function mettreAJourArrondi() {
                     prevEl.classList.add('arc-detail-placeholder');
                 }
 
-                // Méta
+                // ── Méta : tags + label (sans date) ─────────────────────────
                 metaEl.innerHTML = '';
-                const d2 = board.date ? new Date(board.date) : new Date();
-                const MOIS = ['janvier','février','mars','avril','mai','juin',
-                              'juillet','août','septembre','octobre','novembre','décembre'];
-                const hh = String(d2.getHours()).padStart(2,'0');
-                const mm = String(d2.getMinutes()).padStart(2,'0');
-
-                const dateEl = document.createElement('div');
-                dateEl.className = 'arc-detail-date';
-                dateEl.textContent = `${d2.getDate()} ${MOIS[d2.getMonth()]} ${d2.getFullYear()}`;
-                metaEl.appendChild(dateEl);
-
-                const timeEl = document.createElement('div');
-                timeEl.className = 'arc-detail-time';
-                timeEl.textContent = `${hh}h${mm}`;
-                metaEl.appendChild(timeEl);
-
-                // Tags matière + classe
                 arcLoadGroups?.();
                 const tagsEl = document.createElement('div');
                 tagsEl.className = 'arc-detail-tags';
@@ -5931,13 +6038,27 @@ function mettreAJourArrondi() {
                     }
                 }
                 if (tagsEl.children.length) metaEl.appendChild(tagsEl);
-
-                // Label
                 if (board.label) {
                     const lblEl = document.createElement('div');
                     lblEl.className = 'arc-detail-label';
                     lblEl.textContent = board.label;
                     metaEl.appendChild(lblEl);
+                }
+
+                // ── Résumé de séance (en dessous) ────────────────────────────
+                if (resumeEl) {
+                    resumeEl.innerHTML = '';
+                    if (board.resume) {
+                        const p = document.createElement('p');
+                        p.className = 'arc-detail-resume-text';
+                        p.textContent = board.resume;
+                        resumeEl.appendChild(p);
+                    } else {
+                        const emp = document.createElement('p');
+                        emp.className = 'arc-detail-resume-empty';
+                        emp.textContent = 'Aucun résumé pour cette séance.';
+                        resumeEl.appendChild(emp);
+                    }
                 }
             }
 
@@ -6943,6 +7064,12 @@ function mettreAJourArrondi() {
             window._sessionContext = ctx;
             ouvrir();
         });
+
+        // ── Mobile : passer directement au canvas sans login ──────
+        if (window.matchMedia('(max-width: 768px)').matches) {
+            if (ctx) window._sessionContext = ctx;
+            ouvrir();
+        }
     })();
 
 }); // Fin du DOMContentLoaded

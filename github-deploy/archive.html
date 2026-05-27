@@ -126,69 +126,63 @@ html, body {
   opacity: 0.55;
 }
 
-/* ── SORT PANEL (bottom-left) — panneau néomorphique surélevé ── */
+/* ── SORT PANEL (bottom-left) — texte plat ── */
 #sort-panel {
   position: fixed;
-  bottom: 24px; left: 14px;
+  bottom: 20px; left: 18px;
   z-index: 300;
   display: flex;
   flex-direction: column;
   gap: 0;
   width: 200px;
-  background: var(--bg);
-  border-radius: 20px;
-  padding: 18px 20px 16px;
-  box-shadow: var(--neu-raised);
+  background: transparent;
+  padding: 0;
 }
 
 .sort-search-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
-/* Bouton loupe — socket rond néomorphique */
+/* Bouton loupe — discret, sans fond */
 .sort-search-btn {
-  width: 32px; height: 32px;
-  border-radius: 50%;
+  width: 20px; height: 20px;
   border: none;
-  background: var(--bg);
-  box-shadow: var(--neu-flat);
+  background: transparent;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   color: var(--text-mid);
   flex-shrink: 0;
-  transition: box-shadow 0.12s, color 0.12s;
+  padding: 0;
+  transition: color 0.15s;
 }
-.sort-search-btn:hover {
-  box-shadow: var(--neu-pressed);
-  color: var(--flamme);
-}
-.sort-search-btn svg { width: 15px; height: 15px; stroke: currentColor; }
+.sort-search-btn:hover { color: var(--text-dark); }
+.sort-search-btn svg { width: 13px; height: 13px; stroke: currentColor; }
 
 #search-inp {
   width: 0; opacity: 0;
   border: none;
-  border-bottom: 2px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
   background: transparent;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-dark);
   outline: none;
   transition: width 0.3s, opacity 0.3s;
-  padding: 2px 0;
+  padding: 1px 0;
 }
-#search-inp.open { width: 130px; opacity: 1; }
+#search-inp.open { width: 120px; opacity: 1; }
 
 .sitem {
-  font-size: 11.5px;
-  padding: 5px 0;
+  font-size: 11px;
+  padding: 3px 0;
   cursor: pointer;
   color: var(--text-mid);
   display: flex; align-items: baseline; gap: 4px;
   line-height: 1.4;
   user-select: none;
-  transition: color 0.18s;
+  transition: color 0.15s;
 }
 .sitem:hover { color: var(--text-dark); }
 .sitem.active { color: var(--flamme); font-weight: 600; }
@@ -201,26 +195,26 @@ html, body {
 }
 .sitem.open .sarr { transform: rotate(90deg); }
 
-/* Séparateur inset discret entre sections */
+/* Séparateur minimal */
 .sitem-sep {
   height: 1px;
   background: var(--shadow-dark);
-  opacity: 0.35;
-  margin: 6px 0;
+  opacity: 0.25;
+  margin: 4px 0;
 }
 
 .ssub {
   display: none;
   flex-direction: column;
-  padding-left: 10px;
-  border-left: 2px solid var(--shadow-dark);
-  margin: 2px 0 4px;
-  opacity: 0.9;
+  padding-left: 8px;
+  border-left: 1px solid var(--shadow-dark);
+  margin: 2px 0 3px;
+  opacity: 0.85;
 }
 .ssub.open { display: flex; }
 .ssub .sitem {
-  font-size: 10.5px;
-  padding: 3px 0;
+  font-size: 10px;
+  padding: 2px 0;
   white-space: normal;
   line-height: 1.5;
 }
