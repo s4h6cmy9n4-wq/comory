@@ -1824,6 +1824,32 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     flex-direction: column;
     gap: 8px;
 }
+/* ── Wrapper champ mot de passe + bouton œil ── */
+.accueil-pass-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.accueil-pass-wrapper .accueil-input {
+    padding-right: 42px;
+}
+.accueil-pass-eye {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: var(--text-mid, #64748b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .15s;
+    flex-shrink: 0;
+}
+.accueil-pass-eye:hover { color: var(--orange, #ff4000); }
+.accueil-pass-eye svg  { width: 17px; height: 17px; display: block; }
+
 .accueil-input {
     width: 100%;
     padding: 11px 14px;
@@ -1840,8 +1866,8 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     -webkit-appearance: none;
 }
 .accueil-input:focus {
-    border-color: var(--flamme, #ff2d55);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--flamme,#ff2d55) 15%, transparent);
+    border-color: var(--orange, #ff4000);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--orange,#ff4000) 15%, transparent);
 }
 select.accueil-input {
     cursor: pointer;

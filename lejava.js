@@ -6657,7 +6657,10 @@ function mettreAJourArrondi() {
     // ACCUEIL ENSEIGNANT — login + choix classe/matière
     // ══════════════════════════════════════════════════════════════
     (function initAccueil() {
-        const LS_PASS    = 'mory_teacher_pass';
+        // ── Identifiants fixes ────────────────────────────────────
+        const ID_CORRECT   = 'prof';
+        const PASS_CORRECT = '1234';
+
         const LS_CONTEXT = 'mory_session_ctx';
 
         const overlay    = document.getElementById('accueil-overlay');
@@ -6667,12 +6670,28 @@ function mettreAJourArrondi() {
         const selClasse  = document.getElementById('accueil-classe');
         const selMat     = document.getElementById('accueil-matiere');
         const errEl      = document.getElementById('accueil-erreur');
-        const btnSubmit  = document.getElementById('accueil-btn-submit');
-        const btnReprise = document.getElementById('accueil-reprendre');
+        const btnSubmit      = document.getElementById('accueil-btn-submit');
+        const btnReprise     = document.getElementById('accueil-reprendre');
+        const btnPassToggle  = document.getElementById('accueil-pass-toggle');
         const elDate     = document.getElementById('accueil-date');
         const elHeure    = document.getElementById('accueil-heure');
 
         if (!overlay) return;
+
+        // ── Œil mot de passe ─────────────────────────────────────
+        if (btnPassToggle) {
+            btnPassToggle.addEventListener('click', () => {
+                const visible = inputPass.type === 'text';
+                inputPass.type = visible ? 'password' : 'text';
+                btnPassToggle.querySelector('.pass-eye-ouvert').style.display = visible ? '' : 'none';
+                btnPassToggle.querySelector('.pass-eye-ferme').style.display  = visible ? 'none' : '';
+            });
+        }
+
+        // ── Clic hors du cadre → retour canvas ───────────────────
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) ouvrir();
+        });
 
         // ── Horloge temps réel ────────────────────────────────────
         function majHorloge() {
@@ -6727,10 +6746,6 @@ function mettreAJourArrondi() {
             if (ctx.matiereId) selMat.value = ctx.matiereId;
         }
 
-        // ── Texte du bouton (1er lancement = création compte) ─────
-        const passStocke = localStorage.getItem(LS_PASS);
-        if (!passStocke) btnSubmit.textContent = 'Créer mon accès';
-
         // ── Ouvrir l'overlay accueil (logo → canvas) ─────────────
         window._openAccueilOverlay = function () {
             overlay.classList.remove('accueil-hidden');
@@ -6756,11 +6771,12 @@ function mettreAJourArrondi() {
             if (!id)   { errEl.textContent = 'L\'identifiant est requis.'; inputId.focus();   return; }
             if (!pass) { errEl.textContent = 'Le mot de passe est requis.'; inputPass.focus(); return; }
 
-            const stored = localStorage.getItem(LS_PASS);
-            if (!stored) {
-                // Premier accès → enregistrer le mot de passe
-                localStorage.setItem(LS_PASS, pass);
-            } else if (pass !== stored) {
+            if (id !== ID_CORRECT) {
+                errEl.textContent = 'Identifiant incorrect.';
+                inputId.select(); inputId.focus();
+                return;
+            }
+            if (pass !== PASS_CORRECT) {
                 errEl.textContent = 'Mot de passe incorrect.';
                 inputPass.value = '';
                 inputPass.focus();

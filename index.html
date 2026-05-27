@@ -256,7 +256,7 @@
 <div id="sync-dot" style="position:fixed;bottom:14px;right:14px;width:8px;height:8px;border-radius:50%;background:#94a3b8;z-index:9999;transition:background .4s;pointer-events:none;" title="Sync"></div>
 
 <!-- ── Accueil enseignant ─────────────────────────────────────── -->
-<div id="accueil-overlay" class="accueil-overlay accueil-hidden" aria-modal="true" role="dialog" aria-label="Accès enseignant">
+<div id="accueil-overlay" class="accueil-overlay" aria-modal="true" role="dialog" aria-label="Accès enseignant">
     <div class="accueil-card">
 
         <div class="accueil-header">
@@ -274,7 +274,20 @@
         <form id="accueil-form" class="accueil-form" autocomplete="off" novalidate>
             <div class="accueil-champs">
                 <input type="text"     id="accueil-id"   class="accueil-input" placeholder="Identifiant"   autocomplete="off"          spellcheck="false">
-                <input type="password" id="accueil-pass" class="accueil-input" placeholder="Mot de passe"  autocomplete="new-password">
+                <div class="accueil-pass-wrapper">
+                    <input type="password" id="accueil-pass" class="accueil-input" placeholder="Mot de passe" autocomplete="new-password">
+                    <button type="button" id="accueil-pass-toggle" class="accueil-pass-eye" tabindex="-1" aria-label="Afficher le mot de passe">
+                        <svg class="pass-eye-ouvert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <svg class="pass-eye-ferme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <div class="accueil-selects">
                 <select id="accueil-classe"  class="accueil-input" aria-label="Classe"></select>
