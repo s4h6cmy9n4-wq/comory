@@ -33,3 +33,12 @@ Archivage automatique. Fichiers modifiés : lehtml.html, leCSS.css, lejava.js. V
 
 ### Archive 21 — 2026-05-21
 Archivage automatique. Fichiers modifiés : index.html, leCSS.css, lejava.js, archive.html, projection.html, favicon.svg, .gitignore. Voir changelog.pdf dans /archive/archive 21/.
+
+### Archive 22 — 2026-05-23
+Archivage automatique. Fichiers modifiés : index.html, leCSS.css, lejava.js. Nouveaux fichiers détectés : apple-touch-icon.png, icon-192.png, icon-512.png, manifest.json, sync-config.js, sync.js. Voir changelog.pdf dans /archive/archive 22/.
+
+### Archive 23 — 2026-05-26
+Archivage automatique. Nouveau fichier détecté : soutenance-tables.js (inclus dans l'archive et le déploiement — à ajouter de façon permanente à la fiche si nécessaire). Voir changelog.pdf dans /archive/archive 23/.
+
+### Archive 24 — 2026-05-27
+Archivage automatique. Fichiers modifiés : index.html, leCSS.css, lejava.js, archive.html. Nouveau fichier détecté : soutenance-tables-natifs.js (inclus dans l'archive et le déploiement — à ajouter de façon permanente à la fiche si nécessaire). Voir changelog.pdf dans /archive/archive 24/.

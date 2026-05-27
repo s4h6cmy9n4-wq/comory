@@ -668,6 +668,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (window.desactiverOutil) window.desactiverOutil();
                     } else if ((wasDrawing || wasShape) && window.desactiverOutil) {
                         window.desactiverOutil();
+                        // Fermer la roue mobile si elle était épinglée pour ce tracé
+                        if (window._fermerRoueMobile) window._fermerRoueMobile();
                     }
                 }
             }
@@ -6602,13 +6604,20 @@ function mettreAJourArrondi() {
             document.body.classList.remove('mobile-roue-visible');
             roue.classList.remove('ouvert');
         }
+        // Exposer pour que stopInteraction puisse fermer la roue après un tracé
+        window._fermerRoueMobile = fermerRoueMobile;
 
         document.addEventListener('touchstart', (e) => {
             // Roue épinglée → tap hors de la roue ET du panel = fermer
             if (rouePinned) {
                 const el = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
                 const rp = document.getElementById('roue-panel');
-                if (!roue.contains(el) && !(rp && rp.contains(el))) fermerRoueMobile();
+                if (!roue.contains(el) && !(rp && rp.contains(el))) {
+                    // Outil de dessin actif → ne pas fermer la roue maintenant,
+                    // laisser le canvas gérer le tracé ; la roue se fermera après touchend
+                    const drawingActive = window.activeToolMode && window.activeToolMode !== 'hand';
+                    if (!drawingActive) fermerRoueMobile();
+                }
                 return;
             }
             // Pinch (2 doigts) → annuler le holdTimer, ne pas déclencher la roue
