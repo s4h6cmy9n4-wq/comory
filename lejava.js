@@ -5262,14 +5262,18 @@ function mettreAJourArrondi() {
                     const parsed = JSON.parse(raw);
                     if (Array.isArray(parsed) && parsed.length > 0) {
                         // Garder uniquement les 5 plus récents
-                        return parsed.slice(-5).map(b => ({ id: b.id, label: b.label, thumbnail: null }));
+                        return parsed.slice(-5).map(b => ({ id: b.id, label: b.label, nomCours: b.nomCours || '', thumbnail: null }));
                     }
                 }
             } catch (e) {}
             return Array.from({ length: 5 }, (_, i) => ({ id: i + 1, label: `Tableau ${i + 1}`, thumbnail: null }));
         }
         function saveBoardList() {
-            localStorage.setItem(LS_BOARD_LIST, JSON.stringify(boards.map(b => ({ id: b.id, label: b.label }))));
+            localStorage.setItem(LS_BOARD_LIST, JSON.stringify(boards.map(b => ({
+                id: b.id,
+                label: b.label,
+                nomCours: b.nomCours || window._sessionContext?.nomCours || '',
+            }))));
             localStorage.setItem(LS_NEXT_ID, String(nextBoardId));
         }
 
@@ -5593,7 +5597,8 @@ function mettreAJourArrondi() {
                 await captureActive();              // sauvegarder le tableau actuel
 
                 const newId    = nextBoardId++;
-                const newBoard = { id: newId, label: `Tableau ${newId}`, thumbnail: null };
+                const _nc      = window._sessionContext?.nomCours || '';
+                const newBoard = { id: newId, label: `Tableau ${newId}`, nomCours: _nc, thumbnail: null };
                 if (boards.length >= 5) boards.shift(); // retirer le plus ancien de l'accès rapide
                 boards.push(newBoard);              // toujours présent en IndexedDB (archive)
                 saveBoardList();
@@ -5711,7 +5716,7 @@ function mettreAJourArrondi() {
             try {
                 const list = JSON.parse(localStorage.getItem('mory_board_list') || '[]');
                 const m = {};
-                list.forEach(b => { m[b.id] = b.label || `Tableau ${b.id}`; });
+                list.forEach(b => { m[b.id] = { label: b.label || `Tableau ${b.id}`, nomCours: b.nomCours || '' }; });
                 return m;
             } catch(e) { return {}; }
         }
@@ -6161,14 +6166,19 @@ function mettreAJourArrondi() {
             if (!arcLoaded) {
                 const labels   = arcLabelMap();
                 const dbBoards = await arcLoadFromDB();
-                arcAllBoards   = dbBoards.map(b => ({
-                    ...b, label: labels[b.id] || b.label || `Tableau ${b.id}`
-                }));
+                arcAllBoards   = dbBoards.map(b => {
+                    const entry = labels[b.id];
+                    return {
+                        ...b,
+                        label:    (entry?.label)    || b.label    || `Tableau ${b.id}`,
+                        nomCours: (entry?.nomCours) || b.nomCours || '',
+                    };
+                });
                 // Fallback localStorage
                 if (arcAllBoards.length === 0) {
                     try {
                         const list = JSON.parse(localStorage.getItem('mory_board_list')||'[]');
-                        arcAllBoards = list.map(b=>({id:b.id,label:b.label||`Tableau ${b.id}`,thumbnail:b.thumbnail||null,canvasPNG:null}));
+                        arcAllBoards = list.map(b=>({id:b.id,label:b.label||`Tableau ${b.id}`,nomCours:b.nomCours||'',thumbnail:b.thumbnail||null,canvasPNG:null}));
                     } catch(e) {}
                 }
                 // Démo : compléter jusqu'à 80 tableaux avec attributs
@@ -6254,10 +6264,22 @@ function mettreAJourArrondi() {
             const sorted = [...arcAllBoards].sort((a, b) => toTs(b.date) - toTs(a.date));
             const recents = sorted.slice(0, 5);
 
+            // Construire un index pour numéroter par nomCours (du + récent au + ancien)
+            // nomCours → compteur (1 = le plus récent de ce cours)
+            const nomCoursCounter = {};
+
             recents.forEach(board => {
                 const card = document.createElement('div');
                 card.className = 'arc-recent-card';
-                card.title = board.label;
+
+                // Étiquette : "[nomCours] N" si nomCours présent, sinon label
+                let cardLabel = board.label;
+                if (board.nomCours) {
+                    if (!nomCoursCounter[board.nomCours]) nomCoursCounter[board.nomCours] = 0;
+                    nomCoursCounter[board.nomCours]++;
+                    cardLabel = `${board.nomCours} ${nomCoursCounter[board.nomCours]}`;
+                }
+                card.title = cardLabel;
 
                 const src = board.canvasPNG || board.thumbnail;
                 if (src) {
@@ -6275,7 +6297,7 @@ function mettreAJourArrondi() {
 
                 const lbl = document.createElement('div');
                 lbl.className = 'arc-recent-card-label';
-                lbl.textContent = board.label;
+                lbl.textContent = cardLabel;
                 card.appendChild(lbl);
 
                 // Clic → sélectionner ce tableau dans le drum
@@ -6704,12 +6726,12 @@ function mettreAJourArrondi() {
             if (e.target === overlay) ouvrir();
         });
 
-        // ── Horloge temps réel ────────────────────────────────────
+        // ── Horloge temps réel (éléments optionnels — masqués par CSS) ──────
         function majHorloge() {
             const now = new Date();
-            elDate.textContent = now.toLocaleDateString('fr-FR',
+            if (elDate)  elDate.textContent  = now.toLocaleDateString('fr-FR',
                 { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
-            elHeure.textContent = now.toLocaleTimeString('fr-FR',
+            if (elHeure) elHeure.textContent = now.toLocaleTimeString('fr-FR',
                 { hour:'2-digit', minute:'2-digit', second:'2-digit' });
         }
         majHorloge();
