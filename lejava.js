@@ -6360,20 +6360,21 @@ function mettreAJourArrondi() {
             const sorted = [...arcAllBoards].sort((a, b) => toTs(b.date) - toTs(a.date));
             const recents = sorted.slice(0, 5);
 
-            // Construire un index pour numéroter par nomCours (du + récent au + ancien)
-            // nomCours → compteur (1 = le plus récent de ce cours)
+            // Nom de cours : priorité à la session en cours, fallback sur le board
+            const sessionCours = window._sessionContext?.nomCours || '';
             const nomCoursCounter = {};
 
             recents.forEach(board => {
                 const card = document.createElement('div');
                 card.className = 'arc-recent-card';
 
-                // Étiquette : "[nomCours] N" si nomCours présent, sinon label
+                // Étiquette : "[nomCours] N" si un nom de cours est actif (session ou board)
+                const cours = sessionCours || board.nomCours || '';
                 let cardLabel = board.label;
-                if (board.nomCours) {
-                    if (!nomCoursCounter[board.nomCours]) nomCoursCounter[board.nomCours] = 0;
-                    nomCoursCounter[board.nomCours]++;
-                    cardLabel = `${board.nomCours} ${nomCoursCounter[board.nomCours]}`;
+                if (cours) {
+                    if (!nomCoursCounter[cours]) nomCoursCounter[cours] = 0;
+                    nomCoursCounter[cours]++;
+                    cardLabel = `${cours} ${nomCoursCounter[cours]}`;
                 }
                 card.title = cardLabel;
 
