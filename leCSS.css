@@ -1827,15 +1827,16 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 /* ── Wrapper champ mot de passe + bouton œil ── */
 .accueil-pass-wrapper {
     position: relative;
-    display: flex;
-    align-items: center;
 }
 .accueil-pass-wrapper .accueil-input {
-    padding-right: 42px;
+    width: 100%;
+    padding-right: 44px;
 }
 .accueil-pass-eye {
     position: absolute;
     right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
     background: none;
     border: none;
     padding: 4px;
@@ -1845,7 +1846,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     align-items: center;
     justify-content: center;
     transition: color .15s;
-    flex-shrink: 0;
+    line-height: 0;
 }
 .accueil-pass-eye:hover { color: var(--orange, #ff4000); }
 .accueil-pass-eye svg  { width: 17px; height: 17px; display: block; }
