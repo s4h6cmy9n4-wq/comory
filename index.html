@@ -185,19 +185,16 @@
 
     </div><!-- fin .arc-header-bar -->
 
-    <!-- Recherche — coin bas-droit, hors du panneau de tri -->
-    <div class="arc-search-corner" id="arc-search-corner">
-        <input type="text" class="arc-search-inp" id="arc-search-inp" placeholder="Rechercher…">
-        <button class="arc-search-btn" id="arc-search-btn" title="Rechercher">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor">
-                <circle cx="11" cy="11" r="7.5"/><line x1="20" y1="20" x2="15.8" y2="15.8"/>
-            </svg>
-        </button>
-    </div>
-
-    <!-- Panneau de tri (bas-droite) -->
+    <!-- Panneau de tri — ferré bas-droit -->
     <div class="arc-sort-panel" id="arc-sort-panel">
-        <div class="arc-panel-handle" id="arc-panel-handle"></div>
+        <div class="arc-search-row">
+            <button class="arc-search-btn" id="arc-search-btn" title="Rechercher">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor">
+                    <circle cx="11" cy="11" r="7.5"/><line x1="20" y1="20" x2="15.8" y2="15.8"/>
+                </svg>
+            </button>
+            <input type="text" class="arc-search-inp" id="arc-search-inp" placeholder="Rechercher…">
+        </div>
         <div class="arc-sitem active" data-arc-sort="all">Tout</div>
         <div class="arc-sitem" data-arc-sort="recent">Du plus récent</div>
         <div class="arc-sitem" data-arc-sort="oldest">Du moins récent</div>

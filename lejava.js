@@ -6135,47 +6135,7 @@ function mettreAJourArrondi() {
             });
 
             // ── Panel draggable ────────────────────────────────────────────
-            const panel  = document.getElementById('arc-sort-panel');
-            const handle = document.getElementById('arc-panel-handle');
-            if (panel && handle) {
-                // Position initiale : bas-droite
-                const initPos = () => {
-                    const r = panel.getBoundingClientRect();
-                    panel.style.left   = (window.innerWidth  - r.width  - 14) + 'px';
-                    panel.style.top    = (window.innerHeight - r.height - 24) + 'px';
-                    panel.style.bottom = 'auto';
-                    panel.style.right  = 'auto';
-                };
-                requestAnimationFrame(initPos);
-
-                // Recadrer le panel si la fenêtre rétrécit
-                const clampPanel = () => {
-                    const l = parseFloat(panel.style.left) || 0;
-                    const t = parseFloat(panel.style.top)  || 0;
-                    panel.style.left = Math.max(0, Math.min(window.innerWidth  - panel.offsetWidth,  l)) + 'px';
-                    panel.style.top  = Math.max(0, Math.min(window.innerHeight - panel.offsetHeight, t)) + 'px';
-                };
-                window.addEventListener('resize', clampPanel);
-
-                let dragging = false, ox = 0, oy = 0;
-                handle.addEventListener('mousedown', e => {
-                    dragging = true;
-                    const r = panel.getBoundingClientRect();
-                    ox = e.clientX - r.left;
-                    oy = e.clientY - r.top;
-                    handle.style.cursor = 'grabbing';
-                    e.preventDefault();
-                });
-                document.addEventListener('mousemove', e => {
-                    if (!dragging) return;
-                    panel.style.left = Math.max(0, Math.min(window.innerWidth  - panel.offsetWidth,  e.clientX - ox)) + 'px';
-                    panel.style.top  = Math.max(0, Math.min(window.innerHeight - panel.offsetHeight, e.clientY - oy)) + 'px';
-                });
-                document.addEventListener('mouseup', () => {
-                    dragging = false;
-                    handle.style.cursor = 'grab';
-                });
-            }
+            // Panel de tri : positionné par CSS (position:absolute bottom:0 right:0), pas de drag.
 
             // ── Redimensionnement → recalcule le drum ────────────────────
             const drumEl = document.getElementById('arc-drum');

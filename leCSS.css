@@ -1408,50 +1408,24 @@ body.mode-sombre .arc-info-pill {
 
 /* ── Panneau de tri (déplaçable) ── */
 .arc-sort-panel {
-    position: fixed;
+    position: absolute;
+    bottom: 0; right: 0;
     z-index: 820;
-    width: 200px;
+    width: 190px;
     background: var(--bg);
-    border-radius: 20px;
-    padding: 0 18px 14px;
-    box-shadow: 6px 6px 14px var(--shadow-dark); /* ombre seule, sans lumière */
+    border-radius: 14px 0 0 0; /* ras dans le coin bas-droit */
+    padding: 16px 18px 16px 20px;
+    box-shadow: -4px -4px 14px var(--shadow-outer-dark);
     display: flex; flex-direction: column; gap: 0;
     font-family: 'DM Sans', sans-serif;
     user-select: none;
-    /* Toujours visible sur petit écran */
-    max-height: calc(100vh - 20px);
+    max-height: calc(100vh - 80px);
     overflow-y: auto;
     scrollbar-width: none;
 }
 .arc-sort-panel::-webkit-scrollbar { display: none; }
-/* Poignée de déplacement */
-.arc-panel-handle {
-    height: 28px; display: flex; align-items: center; justify-content: center;
-    cursor: grab; margin: 0 -18px; border-radius: 20px 20px 0 0;
-}
-.arc-panel-handle:active { cursor: grabbing; }
-.arc-panel-handle::before {
-    content: '';
-    width: 32px; height: 4px;
-    background: var(--shadow-dark); opacity: 0.35;
-    border-radius: 2px;
-}
-/* ── Recherche archives — coin bas-droit ── */
-.arc-search-corner {
-    position: absolute;
-    bottom: 0; right: 0;
-    z-index: 821;
-    display: flex;
-    align-items: center;
-    flex-direction: row-reverse; /* bouton loupe à droite */
-    gap: 0;
-    background: var(--bg);
-    border-radius: 14px 0 0 0; /* coin arrondi haut-gauche, les 3 autres ras */
-    padding: 10px 14px 12px 16px;
-    box-shadow: -4px -4px 14px var(--shadow-outer-dark),
-                2px 0 0 var(--shadow-light) inset,
-                0 2px 0 var(--shadow-light) inset;
-}
+/* Poignée supprimée */
+.arc-panel-handle { display: none; }
 .arc-search-btn {
     width: 32px; height: 32px; border-radius: 50%; border: none;
     background: var(--bg); box-shadow: var(--neu-flat);
@@ -1461,14 +1435,15 @@ body.mode-sombre .arc-info-pill {
 }
 .arc-search-btn:hover { box-shadow: var(--neu-pressed); color: var(--orange); }
 .arc-search-btn svg   { width: 15px; height: 15px; }
+.arc-search-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .arc-search-inp {
     width: 0; opacity: 0; border: none;
     border-bottom: 2px solid var(--shadow-dark);
-    background: transparent; font-family: inherit; font-size: 13px;
+    background: transparent; font-family: inherit; font-size: 12px;
     color: var(--text-dark); outline: none;
-    transition: width 0.3s, opacity 0.3s; padding: 2px 4px;
+    transition: width 0.3s, opacity 0.3s; padding: 2px 0;
 }
-.arc-search-inp.open { width: 160px; opacity: 1; }
+.arc-search-inp.open { width: 120px; opacity: 1; }
 .arc-sitem {
     font-size: 11.5px; padding: 5px 0; cursor: pointer;
     color: var(--text-mid); display: flex; align-items: baseline; gap: 4px;
@@ -1794,13 +1769,14 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 .accueil-header {
     display: flex;
     align-items: center;
+    justify-content: center;
 }
 .accueil-logo-wordmark {
-    height: 26px;
-    width: auto;
+    height: 28px;
+    width: 134px; /* 28 × (344.38 / 71.85) — ratio exact du viewBox */
     display: block;
-    color: var(--text-dark, #1e293b);
     flex-shrink: 0;
+    color: var(--text-dark, #1e293b);
 }
 .accueil-datetime {
     display: flex;
