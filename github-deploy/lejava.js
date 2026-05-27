@@ -4846,98 +4846,102 @@ document.addEventListener('DOMContentLoaded', () => {
             refreshCenter();
         }
 
-        // ── Panel QR code (mode Collaborer) ──────────────────────────────────
-        function buildCollaborerPanel() {
+        // ── Panel Autorisation (3 outils toggle : Dessin, Formes, Texte) ────────
+        function buildAutorisationPanel() {
             dialSvg.innerHTML = '';
             window.etatCollaboration.mode = 'collaborer';
+            if (!window.etatCollaboration.autorisations) {
+                window.etatCollaboration.autorisations = new Set();
+            }
+            const auth = window.etatCollaboration.autorisations;
 
-            const MOBILE_URL = 'https://s4h6cmy9n4-wq.github.io/comory/mobile.html';
-            const QR_SRC = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(MOBILE_URL)}&bgcolor=ffffff&color=262623&margin=2`;
+            const AUTH_TOOLS = [
+                { num: 6, label: 'Dessin' },
+                { num: 5, label: 'Formes' },
+                { num: 7, label: 'Texte'  },
+            ];
+            const authStep = (2 * Math.PI) / 3;
 
-            // Anneau de fond (décoratif)
-            dialSvg.appendChild(mk('circle', {
-                cx: 0, cy: 0, r: Ro,
-                fill: 'var(--shadow-light)', stroke: 'var(--shadow-dark)', 'stroke-width': '0.010',
-            }));
-            dialSvg.appendChild(mk('circle', {
-                cx: 0, cy: 0, r: Ri,
-                fill: 'var(--bg)', stroke: 'var(--shadow-dark)', 'stroke-width': '0.010',
-            }));
+            AUTH_TOOLS.forEach((tool, i) => {
+                const center = -Math.PI / 2 + i * authStep;
+                const a0     = center - authStep / 2;
+                const a1     = center + authStep / 2;
+                const active = auth.has(tool.num);
+                const fg     = active ? 'white' : 'var(--bleu-mid)';
 
-            // Texte dans l'anneau
-            const ringTxt = mk('text', {
-                x: 0, y: -(Ro + Ri) / 2,
-                'text-anchor': 'middle', 'dominant-baseline': 'central',
-                'font-family': "'DM Sans',sans-serif", 'font-size': '0.072',
-                fill: 'var(--bleu-mid)', 'font-weight': '600',
+                const seg = mk('path', {
+                    d:      secPath(a0, a1),
+                    fill:   active ? 'var(--bleu-mid)' : 'var(--bg)',
+                    stroke: 'var(--shadow-dark)', 'stroke-width': '0.010',
+                    cursor: 'pointer',
+                });
+                dialSvg.appendChild(seg);
+
+                // Icône dans le secteur
+                const [tx, ty] = P(center, Rm);
+                const iconG = mk('g', { transform: `translate(${tx},${ty})`, 'pointer-events': 'none' });
+
+                if (tool.num === 6) {
+                    // Dessin — trait de crayon diagonal
+                    iconG.appendChild(mk('line', {
+                        x1: '-0.055', y1: '0.055', x2: '0.055', y2: '-0.055',
+                        stroke: fg, 'stroke-width': '0.026', 'stroke-linecap': 'round',
+                    }));
+                } else if (tool.num === 5) {
+                    // Formes — carré légèrement incliné
+                    iconG.appendChild(mk('rect', {
+                        x: '-0.048', y: '-0.048', width: '0.096', height: '0.096',
+                        fill: 'none', stroke: fg, 'stroke-width': '0.022',
+                        rx: '0.010', transform: 'rotate(12)',
+                    }));
+                } else {
+                    // Texte — lettre T
+                    const t = mk('text', {
+                        x: 0, y: '0.010',
+                        'text-anchor': 'middle', 'dominant-baseline': 'central',
+                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.148',
+                        fill: fg, 'font-weight': '700',
+                    });
+                    t.textContent = 'T';
+                    iconG.appendChild(t);
+                }
+                dialSvg.appendChild(iconG);
+
+                // Hover
+                seg.addEventListener('mouseenter', () => {
+                    if (!auth.has(tool.num)) seg.setAttribute('fill', 'var(--shadow-light)');
+                });
+                seg.addEventListener('mouseleave', () => {
+                    seg.setAttribute('fill', auth.has(tool.num) ? 'var(--bleu-mid)' : 'var(--bg)');
+                });
+
+                // Toggle : clic → activer/désactiver, pas de sous-panneau
+                seg.addEventListener('click', e => {
+                    e.stopPropagation();
+                    if (auth.has(tool.num)) auth.delete(tool.num);
+                    else                    auth.add(tool.num);
+                    buildAutorisationPanel(); // redessiner pour mettre à jour les couleurs
+                });
             });
-            ringTxt.textContent = 'Scanner pour rejoindre';
-            dialSvg.appendChild(ringTxt);
 
-            // Disque central cliquable → retour picker
+            // Disque central — retour picker
             const backDisc = mk('circle', {
                 cx: 0, cy: 0, r: '0.33',
-                fill: 'white', cursor: 'pointer',
-                stroke: 'var(--shadow-dark)', 'stroke-width': '0.012',
+                fill: 'var(--bg)', cursor: 'pointer',
+                stroke: 'var(--shadow-dark)', 'stroke-width': '0.010',
             });
             dialSvg.appendChild(backDisc);
 
-            // QR code (image externe — nécessite internet)
-            const qrImg = mk('image', {
-                href: QR_SRC,
-                x: '-0.26', y: '-0.26', width: '0.52', height: '0.52',
-                cursor: 'pointer',
-            });
-            dialSvg.appendChild(qrImg);
-
-            // Retour label
-            const backLbl = mk('text', {
-                x: 0, y: '0.298',
+            const backTxt = mk('text', {
+                x: 0, y: '0',
                 'text-anchor': 'middle', 'dominant-baseline': 'central',
-                'font-family': "'DM Sans',sans-serif", 'font-size': '0.058',
+                'font-family': "'DM Sans',sans-serif", 'font-size': '0.060',
                 fill: 'var(--bleu-mid)', 'pointer-events': 'none',
             });
-            backLbl.textContent = '↩ retour';
-            dialSvg.appendChild(backLbl);
+            backTxt.textContent = '↩ retour';
+            dialSvg.appendChild(backTxt);
 
-            // Clic disque central → retour picker
             backDisc.addEventListener('click', e => { e.stopPropagation(); buildPicker(); });
-
-            // Clic QR → overlay plein écran
-            qrImg.addEventListener('click', e => {
-                e.stopPropagation();
-                const overlay = document.createElement('div');
-                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
-
-                const card = document.createElement('div');
-                card.style.cssText = 'background:white;border-radius:18px;padding:28px 28px 22px;display:flex;flex-direction:column;align-items:center;gap:14px;cursor:default;box-shadow:0 24px 60px rgba(0,0,0,0.5);';
-                card.addEventListener('click', e2 => e2.stopPropagation());
-
-                const ttl = document.createElement('p');
-                ttl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:16px;font-weight:700;color:#374151;text-align:center;letter-spacing:-0.01em;';
-                ttl.textContent = 'Scannez pour rejoindre comory';
-                card.appendChild(ttl);
-
-                const qrBig = document.createElement('img');
-                qrBig.style.cssText = 'width:260px;height:260px;display:block;border-radius:10px;border:3px solid #f0f0f0;';
-                qrBig.src = `https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=${encodeURIComponent(MOBILE_URL)}&bgcolor=ffffff&color=1a1a2e&margin=2`;
-                qrBig.alt = 'QR Code comory élève';
-                card.appendChild(qrBig);
-
-                const urlEl = document.createElement('p');
-                urlEl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:10px;color:#94a3b8;text-align:center;word-break:break-all;max-width:240px;';
-                urlEl.textContent = MOBILE_URL;
-                card.appendChild(urlEl);
-
-                const dismissEl = document.createElement('p');
-                dismissEl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:11px;color:#cbd5e1;text-align:center;';
-                dismissEl.textContent = 'Cliquer en dehors pour fermer';
-                card.appendChild(dismissEl);
-
-                overlay.appendChild(card);
-                overlay.addEventListener('click', () => overlay.remove());
-                document.body.appendChild(overlay);
-            });
         }
 
         // ── Construction des secteurs ─────────────────────────────────────────
@@ -4979,13 +4983,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     // Triangle avertissement + !
                     iconG.appendChild(mk('polygon', {
-                        points: '0,-0.072 -0.068,0.054 0.068,0.054',
+                        points: '0,-0.086 -0.080,0.062 0.080,0.062',
                         fill: 'none', stroke: fg, 'stroke-width': '0.016',
                         'stroke-linejoin': 'round',
                     }));
-                    const excl = mk('text', { x: 0, y: '0.044',
+                    const excl = mk('text', { x: 0, y: '0.010',
                         'text-anchor': 'middle', 'dominant-baseline': 'central',
-                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.058',
+                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.062',
                         fill: fg, 'font-weight': '700' });
                     excl.textContent = '!';
                     iconG.appendChild(excl);
@@ -5004,7 +5008,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (opt.key === 'question') {
                         buildQuestionBoxes();
                     } else if (opt.key === 'collaborer') {
-                        buildCollaborerPanel();
+                        buildAutorisationPanel();
                     } else {
                         buildPicker();
                     }
