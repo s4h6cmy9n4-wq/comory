@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>comory — élève</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <!-- iOS home screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="comory élève">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <!-- Android / Chrome theme -->
+    <meta name="theme-color" content="#E8E3DD">
+    <link rel="stylesheet" href="leCSS.css">
+    <style>
+        /* ── Mode élève : masquer les éléments enseignant ── */
+        .desktop-version,
+        .mobile-version,
+        .cote-gauche,
+        .super-conteneur-gauche,
+        .tableau-carrousel,
+        .header-wrapper,
+        .barre-outils-bas,
+        .barre-outils-droite,
+        .carrousel-zone,
+        #archive-overlay,
+        #sync-dot,
+        #btn-archive,
+        #conteneur-fichier,
+        #btn-mobile-logo,
+        .socket-bouton,
+        .top-bar,
+        #roue-panel {
+            display: none !important;
+        }
+
+        /* Canvas plein écran */
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: var(--bg, #E8E3DD);
+            touch-action: none;
+        }
+
+        .page-wrapper {
+            width: 100%; height: 100%;
+            display: flex;
+            align-items: stretch;
+        }
+
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mon-conteneur {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Roue mobile : positionnée au centre bas au repos */
+        .roue-conteneur {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        /* Quand la roue est ouverte (JS la repositionne) */
+        body.mobile-roue-visible .roue-conteneur {
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="mode-eleve">
+
+<div class="page-wrapper">
+    <div class="main-wrapper">
+
+        <!-- Panneau gauche — requis par le JS, masqué -->
+        <div class="super-conteneur-gauche">
+            <div class="cote-gauche">
+                <input type="file" id="file-input" multiple accept="image/*,application/pdf" style="display:none;">
+                <div class="roue-panel-inline" id="roue-panel">
+                    <div class="roue-panel-inner" id="roue-panel-inner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carrousel tableaux — requis par JS, masqué -->
+        <div class="tableau-carrousel" id="tableau-carrousel">
+            <div class="tableau-liste" id="tableau-liste"></div>
+            <button class="tableau-arc-full-btn" id="tableau-arc-full-btn"></button>
+            <button class="tableau-nouveau-btn"  id="tableau-nouveau-btn"></button>
+        </div>
+
+        <!-- Roue outil -->
+        <div class="roue-conteneur" id="roue-conteneur">
+            <div id="roue-hover-pad"></div>
+            <div class="roue-top-marker" id="roue-top-marker"></div>
+            <svg class="roue-svg" id="roue-svg" viewBox="-1 -1 2 2"></svg>
+            <div class="roue-icones" id="roue-icones"></div>
+            <svg class="roue-dial-svg" id="roue-dial-svg" viewBox="-1 -1 2 2"></svg>
+            <div class="roue-centre" id="roue-centre">
+                <span class="roue-centre-label" id="roue-centre-label"></span>
+                <div class="roue-centre-chromo"    id="roue-centre-chromo"><div class="chromo-ind"></div></div>
+                <div class="roue-centre-fillctrl"  id="roue-centre-fillctrl"></div>
+                <div class="roue-centre-textctrl"  id="roue-centre-textctrl"></div>
+                <svg class="roue-centre-icone" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Zone de dessin principale -->
+        <div class="mon-conteneur">
+            <div class="carrousel-zone"   id="carrousel-zone"></div>
+            <div class="header-wrapper">
+                <div class="socket-bouton" id="mobile-logo-socket">
+                    <button id="btn-mobile-logo"></button>
+                </div>
+                <div class="top-bar" id="top-bar"></div>
+                <div class="socket-bouton">
+                    <button class="conteneur-fichier" id="conteneur-fichier" type="button"></button>
+                </div>
+                <div class="socket-bouton">
+                    <button class="conteneur-oeil" id="conteneur-oeil" title="Masquer le contenu">
+                        <svg class="oeil-ouvert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <svg class="oeil-ferme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="socket-bouton">
+                    <button class="btn-archive" id="btn-archive"></button>
+                </div>
+                <div class="socket-bouton">
+                    <button class="conteneur-lumiere" id="conteneur-lumiere" title="Allumer la lumière">
+                        <svg class="ampoule-eteinte" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21h6"/><path d="M10 17h4"/>
+                            <path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.3 6H8.3C6.3 13.7 5 11.5 5 9a7 7 0 0 1 7-7z"/>
+                        </svg>
+                        <svg class="ampoule-allumee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21h6"/><path d="M10 17h4"/>
+                            <path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.3 6H8.3C6.3 13.7 5 11.5 5 9a7 7 0 0 1 7-7z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="barre-outils-bas"   id="barre-outils-bas"></div>
+            <div class="barre-outils-droite" id="barre-outils-droite"></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Archive overlay — requis par JS (ne doit pas être null), masqué -->
+<div id="archive-overlay" class="archive-overlay" aria-hidden="true" style="display:none!important">
+    <div class="arc-header-bar">
+        <button class="top-bar arc-close-btn" id="arc-close-btn"></button>
+    </div>
+    <div class="arc-sort-panel" id="arc-sort-panel">
+        <div class="arc-section-hdr" id="arc-hdr-classe">
+            <span class="arc-section-hdr-label" data-arc-expand="classe">Par classe</span>
+        </div>
+        <div class="arc-ssub" id="arc-ssub-classe"></div>
+        <div class="arc-section-hdr" id="arc-hdr-matiere">
+            <span class="arc-section-hdr-label" data-arc-expand="matiere">Par matière</span>
+        </div>
+        <div class="arc-ssub" id="arc-ssub-matiere"></div>
+    </div>
+    <div class="arc-main-layout" id="arc-main-layout">
+        <div class="arc-drum-col">
+            <div class="arc-recents" id="arc-recents">
+                <span class="arc-recents-label">Récents</span>
+                <div class="arc-recents-strip" id="arc-recents-strip"></div>
+            </div>
+            <div class="arc-drum"       id="arc-drum"></div>
+            <div class="arc-drum-count" id="arc-drum-count"></div>
+        </div>
+        <div class="arc-detail-col"    id="arc-detail-col">
+            <div class="arc-detail-header"  id="arc-detail-header"></div>
+            <div class="arc-detail-preview" id="arc-detail-preview"></div>
+            <div class="arc-detail-meta"    id="arc-detail-meta"></div>
+            <div class="arc-detail-resume"  id="arc-detail-resume"></div>
+        </div>
+    </div>
+    <div class="arc-empty" id="arc-empty"></div>
+    <div class="arc-chromo-popup" id="arc-chromo-popup"></div>
+</div>
+
+<!-- Indicateur sync -->
+<div id="sync-dot" style="display:none"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="sync-config.js"></script>
+<script src="sync.js"></script>
+<script src="lejava.js"></script>
+
+</body>
+</html>
