@@ -6738,14 +6738,18 @@ function mettreAJourArrondi() {
         let _clockTimer = setInterval(majHorloge, 1000);
 
         // ── Peupler le select Classe ──────────────────────────────
-        ARCHIVE_NIVEAUX.forEach(n => {
-            const o = document.createElement('option');
-            o.value = n.id; o.textContent = n.label;
-            selClasse.appendChild(o);
-        });
+        if (selClasse) {
+            selClasse.innerHTML = '';
+            ARCHIVE_NIVEAUX.forEach(n => {
+                const o = document.createElement('option');
+                o.value = n.id; o.textContent = n.label;
+                selClasse.appendChild(o);
+            });
+        }
 
         // ── Peupler le select Matière selon la classe ─────────────
         function majMatieres(niveauId) {
+            if (!selMat) return;
             selMat.innerHTML = '';
             const mats = MATIERES_STD2A[niveauId] || [];
             mats.forEach(m => {
@@ -6755,7 +6759,7 @@ function mettreAJourArrondi() {
             });
         }
         majMatieres(ARCHIVE_NIVEAUX[0].id);
-        selClasse.addEventListener('change', () => majMatieres(selClasse.value));
+        if (selClasse) selClasse.addEventListener('change', () => majMatieres(selClasse.value));
 
         // ── Session récente (< 4 h) ? Proposer reprise ────────────
         const RECENT_MS = 4 * 60 * 60 * 1000;

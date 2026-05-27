@@ -286,8 +286,19 @@
                 </div>
             </div>
             <div class="accueil-selects">
-                <select id="accueil-classe"  class="accueil-input" aria-label="Classe"></select>
-                <select id="accueil-matiere" class="accueil-input" aria-label="Matière"></select>
+                <select id="accueil-classe"  class="accueil-input" aria-label="Classe">
+                    <option value="terminale">Terminale</option>
+                    <option value="premiere">Première</option>
+                    <option value="seconde">Seconde</option>
+                    <option value="commun">Enseignement commun</option>
+                </select>
+                <select id="accueil-matiere" class="accueil-input" aria-label="Matière">
+                    <option value="daa">Design &amp; Arts Appliqués</option>
+                    <option value="proj">Projet en Design</option>
+                    <option value="atc">Arts, Tech. &amp; Civ.</option>
+                    <option value="rep">Représentation</option>
+                    <option value="hda">Histoire des Arts</option>
+                </select>
             </div>
             <input type="text" id="accueil-nom-cours" class="accueil-input accueil-nom-cours" placeholder="Nom du cours (facultatif)" autocomplete="off" spellcheck="false">
             <p class="accueil-erreur" id="accueil-erreur" aria-live="polite"></p>
