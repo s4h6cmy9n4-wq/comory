@@ -30,6 +30,7 @@
 
     /* Accent */
     --flamme:  #1a2535;   /* Navy Blue */
+    --orange:  #ff4000;   /* Orange accent — hover/actif boutons */
     --noir:    #1a2535;   /* Navy Blue */
 
     /* Textes */
@@ -123,6 +124,7 @@ body.mode-sombre .conteneur-lumiere.allume {
     box-shadow:
         inset 2px 2px 6px var(--shadow-dark),
         inset -1px -1px 4px rgba(86, 92, 110, 0.15);
+    color: var(--orange);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -228,7 +230,7 @@ body {
     padding: 0; /* neutralise le padding natif du <button> */
     -webkit-appearance: none; appearance: none;
 }
-.conteneur-fichier:hover { box-shadow: var(--neu-pressed); color: var(--flamme); }
+.conteneur-fichier:hover { box-shadow: var(--neu-pressed); color: var(--orange); }
 .conteneur-fichier .cls-1,
 .conteneur-fichier .cls-2,
 .conteneur-fichier .cls-3 {
@@ -253,7 +255,7 @@ body {
 /* Survol — enfoncement néomorphique + orange comme les autres boutons */
 .conteneur-oeil:hover, .conteneur-lumiere:hover {
     box-shadow: var(--neu-pressed);
-    color: var(--flamme);
+    color: var(--orange);
     transform: none;
 }
 
@@ -261,11 +263,11 @@ body {
 .conteneur-oeil svg { width: 17px; }
 .conteneur-lumiere svg { width: 16px; height: 16px; transition: color 0.12s; }
 
-/* Actif — enfoncé, icône flamme */
+/* Actif — enfoncé, icône orange */
 .conteneur-oeil.actif,
 .conteneur-lumiere.allume {
     box-shadow: var(--neu-pressed);
-    color: var(--flamme);
+    color: var(--orange);
     transform: none;
 }
 
@@ -1104,7 +1106,7 @@ body {
 .btn-archive svg { width: 18px; height: 18px; }
 .btn-archive:hover, .btn-archive.actif {
     box-shadow: var(--neu-pressed);
-    color: var(--flamme);
+    color: var(--orange);
 }
 
 .tableau-liste {

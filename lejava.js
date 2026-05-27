@@ -1264,15 +1264,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const vw = window.innerWidth,       vh = window.innerHeight;
                 const ov = imgOverlay.getBoundingClientRect();
                 const m  = 12;
-                // Idéal : juste à droite du coin bas-droit de la sélection
-                let left = ov.right + 8;
-                let top  = ov.bottom - ph;
-                // Si ça déborde à droite → passer à gauche de la sélection
-                if (left + pw > vw - m) left = Math.max(m, ov.left - pw - 8);
-                // Clamp vertical et horizontal
-                if (top + ph > vh - m) top = vh - ph - m;
-                if (top  < m)          top = m;
-                if (left < m)          left = m;
+                // Idéal : en dessous du coin bas-droit, ras bord droit de la sélection
+                let left = ov.right - pw;
+                let top  = ov.bottom + 6;
+                // Si ça déborde à droite
+                if (left + pw > vw - m) left = vw - pw - m;
+                // Si ça déborde en bas → passer au-dessus de la sélection
+                if (top + ph > vh - m) top = Math.max(m, ov.top - ph - 6);
+                // Gardes minimales
+                if (top  < m)  top  = m;
+                if (left < m)  left = m;
                 actionPanel.style.left = left + 'px';
                 actionPanel.style.top  = top  + 'px';
             });
@@ -2927,6 +2928,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ouvrir quand la souris entre sur le centre (toujours visible) ou sur le disque (quand ouvert)
     roueCentre.addEventListener('mouseenter', _fanOpen);
     roueConteneur.addEventListener('mouseenter', _fanOpen);
+    // Le hover-pad (inset: -36px) étend la zone d'ouverture — roueConteneur a pointer-events:none
+    // donc son mouseenter ne se déclenche pas ; on écoute directement le pad.
+    const roueHoverPad = document.getElementById('roue-hover-pad');
+    if (roueHoverPad) {
+        roueHoverPad.addEventListener('mouseenter', _fanOpen);
+        roueHoverPad.addEventListener('mouseleave', _fanClose);
+    }
     // Fermer quand la souris quitte le disque entier
     roueConteneur.addEventListener('mouseleave', _fanClose);
 
