@@ -4736,10 +4736,15 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         document.addEventListener('mousemove', onDocMouseMove);
 
+        // QR HTML element injecté dans roueConteneur (plus fiable que SVG <image>)
+        let _qrHtmlEl = null;
+        function _removeQR() { if (_qrHtmlEl) { _qrHtmlEl.remove(); _qrHtmlEl = null; } }
+
         const doClose = () => {
             clearTimeout(leaveTimer);
             document.removeEventListener('mousemove', onDocMouseMove);
             dialSvg.innerHTML = '';
+            _removeQR();
             roueConteneur.classList.remove('mode-collaboration');
             segmentsEls.forEach(s  => s.classList.remove('actif'));
             iconesEls.forEach(ic   => ic.classList.remove('actif'));
@@ -4849,6 +4854,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // ── Panel Autorisation (3 outils toggle : Dessin, Formes, Texte) ────────
         function buildAutorisationPanel() {
             dialSvg.innerHTML = '';
+            _removeQR();
             window.etatCollaboration.mode = 'collaborer';
             if (!window.etatCollaboration.autorisations) {
                 window.etatCollaboration.autorisations = new Set();
@@ -4924,29 +4930,92 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // Disque central — retour picker
+            // Disque central blanc — fond + zone de retour (pourtour du QR)
             const backDisc = mk('circle', {
                 cx: 0, cy: 0, r: '0.33',
-                fill: 'var(--bg)', cursor: 'pointer',
+                fill: 'white', cursor: 'pointer',
                 stroke: 'var(--shadow-dark)', 'stroke-width': '0.010',
             });
             dialSvg.appendChild(backDisc);
 
+            // "↩ retour" en bas du disque (visible autour du QR)
             const backTxt = mk('text', {
-                x: 0, y: '0',
+                x: 0, y: '0.265',
                 'text-anchor': 'middle', 'dominant-baseline': 'central',
-                'font-family': "'DM Sans',sans-serif", 'font-size': '0.060',
+                'font-family': "'DM Sans',sans-serif", 'font-size': '0.052',
                 fill: 'var(--bleu-mid)', 'pointer-events': 'none',
             });
             backTxt.textContent = '↩ retour';
             dialSvg.appendChild(backTxt);
 
             backDisc.addEventListener('click', e => { e.stopPropagation(); buildPicker(); });
+
+            // ── QR code HTML (fiable, pas de SVG <image>) ────────────────────
+            _removeQR();
+            const MOBILE_URL = 'https://s4h6cmy9n4-wq.github.io/comory/mobile.html';
+            const QR_SRC = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(MOBILE_URL)}&bgcolor=ffffff&color=262623&margin=2`;
+
+            const qrEl = document.createElement('img');
+            qrEl.src = QR_SRC;
+            qrEl.alt = 'QR — comory élève';
+            // Taille : diamètre ≈ disque SVG r=0.33 → 0.33 × roue-size (légèrement réduit)
+            qrEl.style.cssText = [
+                'position:absolute',
+                'top:50%', 'left:50%',
+                'transform:translate(-50%,-50%) translateY(-7%)',
+                'width:calc(var(--roue-size) * 0.47)',
+                'height:calc(var(--roue-size) * 0.47)',
+                'border-radius:50%',
+                'object-fit:contain',
+                'background:white',
+                'cursor:pointer',
+                'z-index:6',
+                'pointer-events:auto',
+            ].join(';');
+
+            qrEl.addEventListener('click', e => {
+                e.stopPropagation();
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+
+                const card = document.createElement('div');
+                card.style.cssText = 'background:white;border-radius:18px;padding:28px 28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;cursor:default;box-shadow:0 24px 60px rgba(0,0,0,0.5);';
+                card.addEventListener('click', e2 => e2.stopPropagation());
+
+                const ttl = document.createElement('p');
+                ttl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:16px;font-weight:700;color:#374151;text-align:center;margin:0;';
+                ttl.textContent = 'Scanner pour rejoindre comory';
+                card.appendChild(ttl);
+
+                const qrBig = document.createElement('img');
+                qrBig.style.cssText = 'width:260px;height:260px;display:block;border-radius:10px;border:3px solid #f0f0f0;';
+                qrBig.src = `https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=${encodeURIComponent(MOBILE_URL)}&bgcolor=ffffff&color=1a1a2e&margin=2`;
+                qrBig.alt = 'QR Code comory élève';
+                card.appendChild(qrBig);
+
+                const urlEl = document.createElement('p');
+                urlEl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:10px;color:#94a3b8;text-align:center;word-break:break-all;max-width:240px;margin:0;';
+                urlEl.textContent = MOBILE_URL;
+                card.appendChild(urlEl);
+
+                const hint = document.createElement('p');
+                hint.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:11px;color:#cbd5e1;text-align:center;margin:0;';
+                hint.textContent = 'Cliquer en dehors pour fermer';
+                card.appendChild(hint);
+
+                overlay.appendChild(card);
+                overlay.addEventListener('click', () => overlay.remove());
+                document.body.appendChild(overlay);
+            });
+
+            roueConteneur.appendChild(qrEl);
+            _qrHtmlEl = qrEl;
         }
 
         // ── Construction des secteurs ─────────────────────────────────────────
         function buildPicker() {
             dialSvg.innerHTML = '';
+            _removeQR();
             OPTIONS.forEach((opt, i) => {
                 const center  = -Math.PI / 2 + i * aStep;
                 const a0      = center - aStep / 2;
