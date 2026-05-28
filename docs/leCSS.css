@@ -1180,6 +1180,7 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     cursor: text;
+    pointer-events: auto;
 }
 .tableau-nom-input {
     font-family: 'DM Sans', sans-serif;
@@ -1427,44 +1428,47 @@ body.mode-sombre .arc-info-pill {
 /* ── Panneau de tri (déplaçable) ── */
 .arc-sort-panel {
     position: absolute;
-    bottom: 0; right: 0;
+    bottom: 12px; right: 14px;
     z-index: 820;
-    width: 190px;
-    background: var(--bg);
-    border-radius: 14px 0 0 0; /* ras dans le coin bas-droit */
-    padding: 16px 18px 16px 20px;
-    box-shadow: -4px -4px 14px var(--shadow-outer-dark);
+    width: 170px;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
     display: flex; flex-direction: column; gap: 0;
     font-family: 'DM Sans', sans-serif;
     user-select: none;
     max-height: calc(100vh - 80px);
     overflow-y: auto;
     scrollbar-width: none;
+    text-align: right;
 }
 .arc-sort-panel::-webkit-scrollbar { display: none; }
-/* Poignée supprimée */
 .arc-panel-handle { display: none; }
 .arc-sitem {
-    font-size: 11.5px; padding: 5px 0; cursor: pointer;
+    font-size: 10.5px; padding: 3px 0; cursor: pointer;
     color: var(--text-mid); display: flex; align-items: baseline; gap: 4px;
-    line-height: 1.4; user-select: none; transition: color 0.18s;
+    justify-content: flex-end;
+    line-height: 1.5; user-select: none; transition: color 0.18s, opacity 0.18s;
+    opacity: 0.55;
 }
-.arc-sitem:hover  { color: var(--text-dark); }
-.arc-sitem.active { color: var(--flamme); font-weight: 600; }
+.arc-sitem:hover  { color: var(--text-dark); opacity: 1; }
+.arc-sitem.active { color: var(--flamme); font-weight: 600; opacity: 1; }
 .arc-arr {
     font-size: 7px; display: inline-block;
     transition: transform 0.22s; line-height: 1;
 }
 .arc-expand.open .arc-arr { transform: rotate(90deg); }
 .arc-sep {
-    height: 1px; background: var(--shadow-dark); opacity: 0.3; margin: 6px 0;
+    height: 1px; background: var(--shadow-dark); opacity: 0.15; margin: 4px 0;
 }
 .arc-ssub {
     display: none; flex-direction: column;
-    margin: 2px 0 4px;
+    margin: 1px 0 3px;
+    align-items: flex-end;
 }
 .arc-ssub.open { display: flex; }
-.arc-ssub .arc-sitem { font-size: 10.5px; padding: 3px 0; white-space: normal; line-height: 1.5; }
+.arc-ssub .arc-sitem { font-size: 10px; padding: 2px 0; white-space: normal; line-height: 1.5; }
 
 /* ── Section "5 derniers" en tête de colonne drum ── */
 .arc-recents {
@@ -1755,15 +1759,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 }
 
 /* Bouton "+" ajout inline en bas de la sous-liste */
-.arc-add-inline {
-    align-self: center; margin-top: 5px;
-    width: 22px; height: 22px; border-radius: 50%; border: none;
-    background: var(--bg); box-shadow: var(--neu-flat);
-    cursor: pointer; font-size: 15px; line-height: 1;
-    color: var(--text-mid); display: flex; align-items: center; justify-content: center;
-    transition: box-shadow 0.12s, color 0.12s; flex-shrink: 0;
-}
-.arc-add-inline:hover { box-shadow: var(--neu-pressed); color: var(--flamme); }
+.arc-add-inline { display: none; } /* masqué en mode texte minimal */
 
 
 
@@ -1786,45 +1782,41 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 
 /* ── Swatches et sous-items arc ── */
 .arc-section-hdr {
-    display: flex; align-items: center; justify-content: space-between;
-    font-size: 11.5px; padding: 5px 0; color: var(--text-mid);
-    user-select: none;
+    display: flex; align-items: center; justify-content: flex-end;
+    font-size: 10.5px; padding: 3px 0; color: var(--text-mid);
+    user-select: none; opacity: 0.55;
 }
-.arc-section-hdr-label { cursor: pointer; transition: color 0.18s; }
-.arc-section-hdr-label:hover { color: var(--text-dark); }
-.arc-section-hdr-label.open { color: var(--flamme); font-weight: 600; }
-.arc-add-btn {
-    width: 18px; height: 18px; border-radius: 50%; border: none;
-    background: var(--bg); box-shadow: var(--neu-flat);
-    color: var(--text-mid); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; line-height: 1; transition: box-shadow 0.12s, color 0.12s;
-    flex-shrink: 0;
-}
-.arc-add-btn:hover { box-shadow: var(--neu-pressed); color: var(--flamme); }
+.arc-section-hdr-label { cursor: pointer; transition: color 0.18s, opacity 0.18s; }
+.arc-section-hdr-label:hover { color: var(--text-dark); opacity: 1; }
+.arc-section-hdr-label.open { color: var(--flamme); font-weight: 600; opacity: 1; }
+.arc-add-btn { display: none; } /* masqué en mode texte minimal */
 .arc-sub-row {
-    display: flex; align-items: center; gap: 7px;
-    padding: 3px 0; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    padding: 2px 0; cursor: pointer;
+    justify-content: flex-end;
 }
-.arc-sub-row:hover .arc-sub-lbl { color: var(--text-dark); }
-.arc-sub-row.active .arc-sub-lbl { color: var(--flamme); font-weight: 600; }
+.arc-sub-row:hover .arc-sub-lbl { color: var(--text-dark); opacity: 1; }
+.arc-sub-row.active .arc-sub-lbl { color: var(--flamme); font-weight: 600; opacity: 1; }
 .arc-swatch {
-    width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0;
-    cursor: pointer; border: 1.5px solid rgba(0,0,0,0.12);
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    cursor: pointer; border: none;
     transition: transform 0.15s;
+    order: 2; /* dot à droite du label */
 }
-.arc-swatch:hover { transform: scale(1.25); }
+.arc-swatch:hover { transform: scale(1.4); }
 .arc-sub-lbl {
-    font-size: 10.5px; color: var(--text-mid);
-    white-space: normal; line-height: 1.5; flex: 1;
+    font-size: 10px; color: var(--text-mid); opacity: 0.55;
+    white-space: normal; line-height: 1.5;
     outline: none;
     font-family: 'DM Sans', sans-serif;
+    text-align: right;
+    transition: color 0.18s, opacity 0.18s;
 }
 .arc-sub-lbl[contenteditable="true"] {
     background: var(--bg); border-radius: 3px;
-    padding: 1px 4px; margin-left: -4px;
+    padding: 1px 4px; margin-right: -4px;
     box-shadow: inset 1px 1px 4px var(--shadow-dark);
-    color: var(--text-dark);
+    color: var(--text-dark); opacity: 1;
 }
 
 /* ── Palette 10 couleurs (popup swatch, remplace mini-roue) ── */

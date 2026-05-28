@@ -6679,6 +6679,14 @@ function mettreAJourArrondi() {
         }
 
         function arcLoadGroups() {
+            // Migration : vider arcMatieres si elle contient des IDs obsolètes (atc/amd/ccda)
+            try {
+                const _saved = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null');
+                if (_saved) {
+                    const _valid = new Set(ARCHIVE_NIVEAUX.flatMap(n => n.matieres.map(m => m.id)));
+                    if (_saved.some(m => !_valid.has(m.id))) localStorage.removeItem('mory_arc_matieres');
+                }
+            } catch(e) {}
             arcClasses  = JSON.parse(localStorage.getItem('mory_arc_classes')  || 'null') || [
                 { id:'terminale', label:'Terminale', color:'#a8c5da' },
                 { id:'premiere',  label:'Première',  color:'#c5a8da' },
@@ -6955,8 +6963,8 @@ function mettreAJourArrondi() {
                 // quand ils sont poussés via _arcNotifyBoardArchived (compteur ↑).
 
                 // Démo : 20 tableaux de base, tous dans le passé, avec aperçus
-                { const DEMO_CLS    = ['terminale','premiere','seconde'];
-                  const DEMO_MAT    = ['atc','daa','amd','ccda'];
+                { const DEMO_CLS    = ['terminale','premiere','seconde','commun'];
+                  const DEMO_MAT    = ['daa','hda','ap','pc','maths','si','ang','eps','st','fr'];
                   const DEMO_IMAGES = [
                       'apercu/03-Poles-AA_jpo-site_PAV.png',
                       'apercu/04-Poles-AA_jpo-site_ATC.png',
@@ -7029,12 +7037,13 @@ function mettreAJourArrondi() {
                       }
                       dId++;
                   }
-                  // Dates par défaut pour les vrais tableaux venant de la DB
-                  const DEMO_CLS2 = DEMO_CLS; const DEMO_MAT2 = DEMO_MAT;
+                  // Dates + IDs de matière/classe par défaut (migration si IDs obsolètes)
+                  const _validMat = new Set(ARCHIVE_NIVEAUX.flatMap(n => n.matieres.map(m => m.id)));
+                  const _validCls = new Set(ARCHIVE_NIVEAUX.map(n => n.id));
                   arcAllBoards.forEach((b, idx) => {
                       if (!b.date)     b.date     = new Date(Date.now() - (idx + 1) * 86400000 * 2);
-                      if (!b.classeId) b.classeId = DEMO_CLS2[idx % 3];
-                      if (!b.matiereId) b.matiereId = DEMO_MAT2[idx % 4];
+                      if (!b.classeId  || !_validCls.has(b.classeId))  b.classeId  = DEMO_CLS[idx % DEMO_CLS.length];
+                      if (!b.matiereId || !_validMat.has(b.matiereId)) b.matiereId = DEMO_MAT[idx % DEMO_MAT.length];
                   });
                   // Appliquer les overrides (renommages / résumés sauvegardés)
                   try {
