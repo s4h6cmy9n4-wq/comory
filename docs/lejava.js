@@ -6250,6 +6250,7 @@ function mettreAJourArrondi() {
 
         // ── Init — charger les vignettes puis rendre ───────────────────────────
         window._activeBoardIdForResume = activeBoardId;
+        window._carrouselRender = render; // exposé pour mise à jour post-login
         loadThumbnails().then(() => {
             render();
         });
@@ -7428,6 +7429,8 @@ function mettreAJourArrondi() {
         function ouvrir() {
             clearInterval(_clockTimer);
             overlay.classList.add('accueil-hidden');
+            // Re-rendre le carrousel avec le nomCours de la session
+            setTimeout(() => window._carrouselRender?.(), 0);
         }
 
         // ── Soumission du formulaire ──────────────────────────────
