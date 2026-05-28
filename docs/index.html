@@ -92,6 +92,26 @@
                 </g>
             </svg>
         </div>
+        <!-- Bouton recherche — ouvre la barre de recherche archive -->
+        <div class="socket-bouton" id="btn-search-socket">
+            <button id="btn-search" title="Rechercher dans les archives">
+                <svg class="search-icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <svg class="search-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <!-- Barre de recherche — étendue (cachée par défaut) -->
+        <div class="arc-search-bar" id="arc-search-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;opacity:0.4;stroke:var(--text-mid)">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="arc-search-input" placeholder="Rechercher…" autocomplete="off">
+        </div>
                 <div class="socket-bouton">
                     <button class="conteneur-fichier" id="conteneur-fichier" type="button" title="Importer des fichiers">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -187,15 +207,19 @@
 
     <!-- Panneau de tri — ferré bas-droit -->
     <div class="arc-sort-panel" id="arc-sort-panel">
-        <div class="arc-sitem active" data-arc-sort="all">Tout</div>
-        <div class="arc-sitem" data-arc-sort="recent">Plus récent</div>
-        <div class="arc-sitem" data-arc-sort="oldest">Plus ancien</div>
-        <div class="arc-sep"></div>
-        <!-- Pastilles classes — remplies dynamiquement par JS -->
-        <div class="arc-pills-row" id="arc-pills-classe"></div>
-        <div class="arc-sep"></div>
-        <!-- Pastilles matières — remplies dynamiquement par JS -->
-        <div class="arc-pills-row" id="arc-pills-matiere"></div>
+        <!-- Tri par date : horloge + flèche toggle -->
+        <div class="arc-sort-date" id="arc-sort-date">
+            <svg class="arc-sort-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span class="arc-sort-arrow" id="arc-sort-arrow">›</span>
+        </div>
+        <!-- Deux colonnes : matières à gauche, classes à droite -->
+        <div class="arc-sort-cols">
+            <div class="arc-pills-col" id="arc-pills-matiere"></div>
+            <div class="arc-pills-col" id="arc-pills-classe"></div>
+        </div>
     </div>
 
     <!-- Layout principal : drum + détail -->

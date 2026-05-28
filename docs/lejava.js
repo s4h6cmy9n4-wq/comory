@@ -6203,8 +6203,10 @@ function mettreAJourArrondi() {
                             nomCours: oldest.nomCours || '',
                             thumbnail: oldest.thumbnail || null,
                             date: new Date(),
-                            classeId:  window._sessionContext?.niveauId  || null,
-                            matiereId: window._sessionContext?.matiereId || null,
+                            classeId:    window._sessionContext?.niveauId     || null,
+                            matiereId:   window._sessionContext?.matiereId    || null,
+                            matiereLabel: window._sessionContext?.matiereLabel || null,
+                            classeLabel:  window._sessionContext?.classLabel   || null,
                         });
                     }
                     // Tableau vide → suppression silencieuse (pas d'archive)
@@ -6264,8 +6266,10 @@ function mettreAJourArrondi() {
                             nomCours: oldest.nomCours || '',
                             thumbnail: oldest.thumbnail || null,
                             date: new Date(),
-                            classeId:  window._sessionContext?.niveauId  || null,
-                            matiereId: window._sessionContext?.matiereId || null,
+                            classeId:    window._sessionContext?.niveauId     || null,
+                            matiereId:   window._sessionContext?.matiereId    || null,
+                            matiereLabel: window._sessionContext?.matiereLabel || null,
+                            classeLabel:  window._sessionContext?.classLabel   || null,
                         });
                     }
                     boards.shift();
@@ -6504,8 +6508,9 @@ function mettreAJourArrondi() {
                         tag.className = 'arc-detail-tag';
                         tag.style.background = mat.color || 'var(--flamme)';
                         tag.style.cursor = 'pointer';
-                        tag.title = `Filtrer par ${mat.label}`;
-                        tag.textContent = mat.label;
+                        const _matLabel = board.matiereLabel || mat.label;
+                        tag.title = `Filtrer par ${_matLabel}`;
+                        tag.textContent = _matLabel;
                         tag.addEventListener('click', () => {
                             arcFilterMat = arcFilterMat === board.matiereId ? null : board.matiereId;
                             arcApplySort();
@@ -6853,19 +6858,20 @@ function mettreAJourArrondi() {
         function arcInitSortPanel() {
             arcLoadGroups();
 
-            // ── Boutons tri par date ──────────────────────────────────────
-            document.querySelectorAll('.arc-sitem[data-arc-sort]').forEach(el => {
-                el.addEventListener('click', () => {
-                    document.querySelectorAll('.arc-sitem[data-arc-sort]').forEach(x=>x.classList.remove('active'));
-                    el.classList.add('active');
-                    arcSortDir = el.dataset.arcSort === 'oldest' ? 'oldest' : 'recent';
-                    if (el.dataset.arcSort === 'all') {
-                        arcGroupBy = null; arcFilterClasse = null; arcFilterMat = null;
-                        arcSyncPills();
-                    }
+            // ── Toggle tri par date (horloge + flèche) ───────────────────
+            const sortDateEl = document.getElementById('arc-sort-date');
+            const sortArrow  = document.getElementById('arc-sort-arrow');
+            function syncSortArrow() {
+                if (sortArrow) sortArrow.style.transform = arcSortDir === 'oldest' ? 'scaleX(-1)' : '';
+            }
+            if (sortDateEl) {
+                sortDateEl.addEventListener('click', () => {
+                    arcSortDir = arcSortDir === 'recent' ? 'oldest' : 'recent';
+                    syncSortArrow();
                     arcApplySort();
                 });
-            });
+            }
+            syncSortArrow();
 
             // ── Construire les pastilles classes + matières ───────────────
             function arcBuildPills() {
@@ -6890,7 +6896,12 @@ function mettreAJourArrondi() {
                 });
 
                 rowMat.innerHTML = '';
-                arcMatieres.forEach(mat => {
+                // Filtrer les matières au niveau de la session courante (même liste que la page de connexion)
+                const _sessionNiveau = window._sessionContext?.niveauId;
+                const _pillMats = (_sessionNiveau && MATIERES_STD2A[_sessionNiveau])
+                    ? MATIERES_STD2A[_sessionNiveau].map(m => ({ id: m.id, label: m.nom, color: m.color }))
+                    : arcMatieres;
+                _pillMats.forEach(mat => {
                     const pill = document.createElement('div');
                     pill.className = 'arc-pill';
                     pill.dataset.pillMat = mat.id;
@@ -6922,8 +6933,9 @@ function mettreAJourArrondi() {
                     p.style.background = active ? (mat?.color || 'var(--flamme)') : '';
                 });
             }
-            // Rendre arcSyncPills accessible pour arcSyncSubRows et les tags du détail
+            // Rendre arcSyncPills et arcSetSearch accessibles
             window._arcSyncPills = arcSyncPills;
+            window._arcSetSearch = function(q) { arcSearchQ = q || ''; arcApplySort(); };
 
             // Roue chromatique : clic extérieur = ferme
             document.addEventListener('click', e => {
@@ -7710,6 +7722,55 @@ function mettreAJourArrondi() {
             if (ctx) window._sessionContext = ctx;
             ouvrir();
         }
+    })();
+
+    // ── Barre de recherche archive (bouton loupe dans le header) ─────────
+    (function initSearchBar() {
+        const btnSearch     = document.getElementById('btn-search');
+        const searchBar     = document.getElementById('arc-search-bar');
+        const searchInput   = document.getElementById('arc-search-input');
+        const headerWrapper = document.querySelector('.header-wrapper');
+        if (!btnSearch || !searchBar || !searchInput || !headerWrapper) return;
+
+        function openSearch() {
+            headerWrapper.classList.add('search-active');
+            searchBar.classList.add('active');
+            const iconSearch = btnSearch.querySelector('.search-icon-search');
+            const iconClose  = btnSearch.querySelector('.search-icon-close');
+            if (iconSearch) iconSearch.style.display = 'none';
+            if (iconClose)  iconClose.style.display  = '';
+            // Ouvrir l'archive si pas encore ouverte
+            const ov = document.getElementById('archive-overlay');
+            if (ov && !ov.classList.contains('ouvert')) {
+                ov.classList.add('ouvert');
+                ov.setAttribute('aria-hidden', 'false');
+                if (typeof window._arcLoadAndRender === 'function') window._arcLoadAndRender();
+            }
+            setTimeout(() => { searchInput.focus(); searchInput.select(); }, 50);
+        }
+        function closeSearch() {
+            headerWrapper.classList.remove('search-active');
+            searchBar.classList.remove('active');
+            const iconSearch = btnSearch.querySelector('.search-icon-search');
+            const iconClose  = btnSearch.querySelector('.search-icon-close');
+            if (iconSearch) iconSearch.style.display = '';
+            if (iconClose)  iconClose.style.display  = 'none';
+            window._arcSetSearch?.('');
+            searchInput.value = '';
+        }
+
+        btnSearch.addEventListener('click', () => {
+            if (headerWrapper.classList.contains('search-active')) closeSearch();
+            else openSearch();
+        });
+
+        searchInput.addEventListener('input', () => {
+            window._arcSetSearch?.(searchInput.value);
+        });
+
+        searchInput.addEventListener('keydown', e => {
+            if (e.key === 'Escape') { e.preventDefault(); closeSearch(); }
+        });
     })();
 
 }); // Fin du DOMContentLoaded

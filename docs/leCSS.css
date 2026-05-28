@@ -204,6 +204,33 @@ body {
 /* Bouton logo mobile — caché par défaut (visible uniquement sur mobile via media query) */
 #mobile-logo-socket { display: none; }
 
+/* ── Barre de recherche archive (header) ── */
+.arc-search-bar {
+    display: none;
+    flex: 1; height: 46px; min-width: 0;
+    background: var(--bg);
+    border-radius: 23px;
+    box-shadow:
+        8px 8px 20px var(--shadow-outer-dark),
+        -3px -3px 10px var(--shadow-outer-light),
+        inset 2px 2px 5px var(--shadow-light),
+        inset -2px -2px 5px var(--shadow-dark);
+    align-items: center;
+    padding: 0 16px; gap: 8px;
+}
+.arc-search-bar.active { display: flex; }
+#arc-search-input {
+    flex: 1; border: none; background: transparent; outline: none;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    color: var(--text-dark); min-width: 0;
+}
+#arc-search-input::placeholder { color: var(--text-mid); opacity: 0.55; }
+.header-wrapper.search-active .top-bar { display: none; }
+.header-wrapper.search-active .socket-bouton:not(#btn-search-socket) { display: none; }
+.header-wrapper.search-active { width: calc(100vw - 40px); }
+#btn-search-socket button { display: flex; align-items: center; justify-content: center; }
+#btn-search-socket button svg { width: 18px; height: 18px; }
+
 /* Boutons ronds top-bar — néomorphiques surélevés */
 .socket-bouton {
     width: 46px; height: 46px; border-radius: 50%;
@@ -1430,39 +1457,41 @@ body.mode-sombre .arc-info-pill {
     position: absolute;
     bottom: 12px; right: 14px;
     z-index: 820;
-    width: 170px;
+    width: auto;
     background: transparent;
     border-radius: 0;
     padding: 0;
     box-shadow: none;
-    display: flex; flex-direction: column; gap: 0;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 7px;
     font-family: 'DM Sans', sans-serif;
     user-select: none;
     max-height: calc(100vh - 80px);
     overflow-y: auto;
     scrollbar-width: none;
-    text-align: right;
 }
 .arc-sort-panel::-webkit-scrollbar { display: none; }
 .arc-panel-handle { display: none; }
-.arc-sitem {
-    font-size: 10.5px; padding: 3px 0; cursor: pointer;
-    color: var(--text-mid); display: flex; align-items: baseline; gap: 4px;
-    justify-content: flex-end;
-    line-height: 1.5; user-select: none; transition: color 0.18s, opacity 0.18s;
-    opacity: 0.55;
+
+/* ── Toggle tri par date ── */
+.arc-sort-date {
+    display: flex; align-items: center; gap: 5px;
+    cursor: pointer; color: var(--text-mid); opacity: 0.55;
+    transition: opacity 0.18s, color 0.18s;
 }
-.arc-sitem:hover  { color: var(--text-dark); opacity: 1; }
-.arc-sitem.active { color: var(--flamme); font-weight: 600; opacity: 1; }
-.arc-arr {
-    font-size: 7px; display: inline-block;
-    transition: transform 0.22s; line-height: 1;
+.arc-sort-date:hover { opacity: 1; color: var(--text-dark); }
+.arc-sort-clock { width: 13px; height: 13px; flex-shrink: 0; }
+.arc-sort-arrow {
+    font-size: 15px; line-height: 1; display: inline-block;
+    font-weight: 400; transition: transform 0.22s;
 }
-.arc-expand.open .arc-arr { transform: rotate(90deg); }
-.arc-sep {
-    height: 1px; background: var(--shadow-dark); opacity: 0.15; margin: 4px 0;
+
+/* ── Deux colonnes matières / classes ── */
+.arc-sort-cols {
+    display: flex; flex-direction: row; gap: 8px; align-items: flex-start;
 }
-.arc-ssub { display: none; } /* conservé pour compatibilité, non utilisé */
+.arc-pills-col {
+    display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+}
 
 /* ── Pastilles de filtre ── */
 .arc-pills-row {
