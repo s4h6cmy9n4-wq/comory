@@ -4870,9 +4870,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const auth = window.etatCollaboration.autorisations;
 
             const AUTH_TOOLS = [
-                { num: 7, label: 'Écrire'   },
-                { num: 6, label: 'Dessiner' },
-                { num: 4, label: 'Tableau'  },
+                { num: 6, label: 'Dessin'  },
+                { num: 4, label: 'Tableau' },
+                { num: 5, label: 'Formes'  },
             ];
             const authStep = (2 * Math.PI) / 3;
 
@@ -4891,37 +4891,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 dialSvg.appendChild(seg);
 
-                // Icône outil dans le secteur — formes SVG reproduisant les icônes de la roue
+                // Icône outil : SVG original de la roue embarqué en nested <svg>
                 const [tx, ty] = P(center, Rm);
-                const iconG = mk('g', { transform: `translate(${tx},${ty})`, 'pointer-events': 'none' });
-                const sw = '0.018'; // stroke-width standard
-                const sw2 = '0.014';
-
-                if (tool.num === 7) {
-                    // Écrire — T avec sérifs + 'a' (fidèle à l'icône outil Texte)
-                    iconG.appendChild(mk('line', { x1:'-0.050', y1:'-0.052', x2:'0.014', y2:'-0.052', stroke:fg, 'stroke-width':sw, 'stroke-linecap':'round' }));
-                    iconG.appendChild(mk('line', { x1:'-0.018', y1:'-0.052', x2:'-0.018', y2:'0.058', stroke:fg, 'stroke-width':sw, 'stroke-linecap':'round' }));
-                    iconG.appendChild(mk('line', { x1:'-0.040', y1:'0.058', x2:'0.004', y2:'0.058', stroke:fg, 'stroke-width':sw2, 'stroke-linecap':'round' }));
-                    // 'a' à droite
-                    const a = mk('text', { x:'0.030', y:'0.025', 'text-anchor':'middle', 'dominant-baseline':'central',
-                        'font-family':"'DM Sans',sans-serif", 'font-size':'0.090', fill:fg, 'font-weight':'700' });
-                    a.textContent = 'a';
-                    iconG.appendChild(a);
-                } else if (tool.num === 6) {
-                    // Dessiner — crayon : corps diagonal + capuchon + pointe
-                    const gPencil = mk('g', { transform: 'rotate(-45)' });
-                    gPencil.appendChild(mk('rect', { x:'-0.058', y:'-0.016', width:'0.095', height:'0.032', fill:'none', stroke:fg, 'stroke-width':sw, 'stroke-linejoin':'round' }));
-                    gPencil.appendChild(mk('rect', { x:'0.037', y:'-0.016', width:'0.022', height:'0.032', fill:fg, 'stroke-width':'0' }));
-                    gPencil.appendChild(mk('polygon', { points:'-0.058,-0.016 -0.080,0 -0.058,0.016', fill:fg }));
-                    iconG.appendChild(gPencil);
-                } else if (tool.num === 4) {
-                    // Tableau — grille : rect + ligne header + 2 colonnes
-                    iconG.appendChild(mk('rect', { x:'-0.060', y:'-0.055', width:'0.120', height:'0.110', fill:'none', stroke:fg, 'stroke-width':sw, 'stroke-linejoin':'round' }));
-                    iconG.appendChild(mk('line', { x1:'-0.060', y1:'-0.015', x2:'0.060', y2:'-0.015', stroke:fg, 'stroke-width':sw2 }));
-                    iconG.appendChild(mk('line', { x1:'-0.020', y1:'-0.015', x2:'-0.020', y2:'0.055', stroke:fg, 'stroke-width':sw2 }));
-                    iconG.appendChild(mk('line', { x1:'0.020', y1:'-0.015', x2:'0.020', y2:'0.055', stroke:fg, 'stroke-width':sw2 }));
-                }
-                dialSvg.appendChild(iconG);
+                const s = 0.22;
+                const toolVB = { 6:'0 0 171.68 171.68', 4:'0 0 180 180', 5:'0 0 200.18 168.49' };
+                const sw = `fill:none;stroke:${fg};stroke-width:18;stroke-miterlimit:10`;
+                const fi = `fill:${fg};stroke:none`;
+                const toolInner = {
+                    6: `<rect style="${sw}" x="18.25" y="73.17" width="132.58" height="27.96" transform="translate(-36.86 85.3) rotate(-45)"/><path style="${fi}" d="M136.5,8.61h26c.15,0,.27.12.27.27v27.4c0,.16-.13.29-.29.29h-25.98c-.16,0-.29-.13-.29-.29V8.9c0-.16.13-.29.29-.29Z" transform="translate(27.69 112.04) rotate(-45)"/><polygon style="${fi}" points="27.72 124.07 47.61 143.97 9 162.68 27.72 124.07"/>`,
+                    4: `<rect style="${sw}" x="10" y="10" width="160" height="160"/><line style="${sw}" x1="10" y1="55" x2="170" y2="55"/><line style="${sw}" x1="63.3" y1="55" x2="63.3" y2="170"/><line style="${sw}" x1="116.7" y1="55" x2="116.7" y2="170"/>`,
+                    5: `<circle style="fill:var(--bg);stroke:${fg};stroke-width:18;stroke-miterlimit:10" cx="60.26" cy="71.36" r="50.26"/><rect style="fill:var(--bg);stroke:${fg};stroke-width:18;stroke-miterlimit:10" x="83.99" y="20.96" width="95.24" height="95.24" transform="translate(-11.6 29.64) rotate(-12.31)"/><polygon style="fill:var(--bg);stroke:${fg};stroke-width:18;stroke-miterlimit:10" points="147.85 158.49 100.24 64.74 52.62 158.49 147.85 158.49"/>`,
+                };
+                const nestedSvg = mk('svg', {
+                    viewBox: toolVB[tool.num],
+                    x: tx - s, y: ty - s,
+                    width: s * 2, height: s * 2,
+                    'pointer-events': 'none',
+                    overflow: 'visible',
+                });
+                nestedSvg.innerHTML = toolInner[tool.num];
+                dialSvg.appendChild(nestedSvg);
 
                 // Hover
                 seg.addEventListener('mouseenter', () => {
@@ -5059,29 +5048,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 const iconG = mk('g', { transform: `translate(${tx},${ty})`, 'pointer-events': 'none' });
 
                 if (opt.key === 'question') {
-                    // Grand « ? »
-                    const q = mk('text', { x: 0, y: '0.012',
+                    const q = mk('text', { x: 0, y: '0.018',
                         'text-anchor': 'middle', 'dominant-baseline': 'central',
-                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.170',
+                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.240',
                         fill: fg, 'font-weight': '700' });
                     q.textContent = '?';
                     iconG.appendChild(q);
                 } else if (opt.key === 'sondage') {
-                    // Histogramme 3 barres (légèrement agrandi)
-                    [[-0.046, 0.022, 0.030], [0, -0.014, 0.064], [0.046, 0.008, 0.044]].forEach(([x, y, h]) => {
-                        iconG.appendChild(mk('rect', { x: x - 0.015, y, width: '0.030', height: h,
-                            fill: fg, rx: '0.007' }));
+                    [[-0.060, 0.028, 0.040], [0, -0.018, 0.083], [0.060, 0.010, 0.057]].forEach(([x, y, h]) => {
+                        iconG.appendChild(mk('rect', { x: x - 0.020, y, width: '0.040', height: h,
+                            fill: fg, rx: '0.009' }));
                     });
                 } else {
                     // Triangle avertissement + !
                     iconG.appendChild(mk('polygon', {
-                        points: '0,-0.086 -0.080,0.062 0.080,0.062',
-                        fill: 'none', stroke: fg, 'stroke-width': '0.016',
+                        points: '0,-0.110 -0.105,0.080 0.105,0.080',
+                        fill: 'none', stroke: fg, 'stroke-width': '0.020',
                         'stroke-linejoin': 'round',
                     }));
-                    const excl = mk('text', { x: 0, y: '0.010',
+                    const excl = mk('text', { x: 0, y: '0.016',
                         'text-anchor': 'middle', 'dominant-baseline': 'central',
-                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.062',
+                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.080',
                         fill: fg, 'font-weight': '700' });
                     excl.textContent = '!';
                     iconG.appendChild(excl);
