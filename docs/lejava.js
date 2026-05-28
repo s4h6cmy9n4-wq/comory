@@ -6156,15 +6156,19 @@ function mettreAJourArrondi() {
                 }
                 const newBoard = { id: newId, label: _newLabel, nomCours: _nc, thumbnail: null };
                 if (boards.length >= 5) {
-                    // Persister le plus ancien dans IndexedDB avant de le retirer du carrousel
                     const oldest = boards[0];
-                    if (oldest && boardCache[oldest.id]) {
-                        const cached = boardCache[oldest.id];
-                        const canvasPNG = imageDataToPNG(cached.imageData);
-                        dbPut({ id: oldest.id, thumbnail: oldest.thumbnail, canvasPNG, objs: cached.objs }).catch(() => {});
-                    }
-                    // Notifier l'archive pour mise à jour du compteur et de la vignette
-                    if (oldest) {
+                    // Vérifier si le tableau est vide (jamais dessiné dessus)
+                    const cachedOldest = oldest && boardCache[oldest.id];
+                    const oldestEmpty  = !oldest.thumbnail &&
+                                        (!cachedOldest ||
+                                         ((!cachedOldest.objs || cachedOldest.objs.length === 0) &&
+                                          isBlankImageData(cachedOldest.imageData)));
+                    if (!oldestEmpty) {
+                        // Tableau non vide → archiver
+                        if (cachedOldest) {
+                            const canvasPNG = imageDataToPNG(cachedOldest.imageData);
+                            dbPut({ id: oldest.id, thumbnail: oldest.thumbnail, canvasPNG, objs: cachedOldest.objs }).catch(() => {});
+                        }
                         window._arcNotifyBoardArchived?.({
                             id: oldest.id,
                             label: oldest.label,
@@ -6173,7 +6177,8 @@ function mettreAJourArrondi() {
                             date: new Date(),
                         });
                     }
-                    boards.shift(); // retirer du carrousel rapide (reste dans l'archive complète)
+                    // Tableau vide → suppression silencieuse (pas d'archive)
+                    boards.shift();
                 }
                 boards.push(newBoard); // toujours présent en IndexedDB (archive)
                 saveBoardList();
@@ -6834,13 +6839,9 @@ function mettreAJourArrondi() {
                         nomCours: (entry?.nomCours) || b.nomCours || '',
                     };
                 });
-                // Fallback localStorage
-                if (arcAllBoards.length === 0) {
-                    try {
-                        const list = JSON.parse(localStorage.getItem('mory_board_list')||'[]');
-                        arcAllBoards = list.map(b=>({id:b.id,label:b.label||`Tableau ${b.id}`,nomCours:b.nomCours||'',thumbnail:b.thumbnail||null,canvasPNG:null}));
-                    } catch(e) {}
-                }
+                // Note : on ne charge PAS le localStorage ici — les tableaux du carrousel
+                // apparaissent dans la bande "récents". Ils s'ajoutent à l'archive uniquement
+                // quand ils sont poussés via _arcNotifyBoardArchived (compteur ↑).
                 // Démo : compléter jusqu'à 80 tableaux avec attributs
                 { const DEMO_CLS = ['terminale','premiere','seconde'];
                   const DEMO_MAT = ['atc','daa','amd','ccda'];
@@ -6857,15 +6858,17 @@ function mettreAJourArrondi() {
                   const _dow = weekStart.getDay();
                   weekStart.setDate(weekStart.getDate() + (_dow===0 ? -6 : 1-_dow));
                   weekStart.setHours(0,0,0,0);
-                  let wId = 1000;
+                  // IDs démo >= 1000000 pour ne jamais entrer en conflit avec les vrais tableaux
+                  let wId = 1000000;
                   WEEK_SLOTS.forEach(([di,h], si) => {
                       const d = new Date(weekStart);
                       d.setDate(d.getDate() + di);
                       d.setHours(h, 0, 0, 0);
                       if(!used.has(wId)) {
                           arcAllBoards.push({
-                              id: wId, label:`Cours ${wId}`,
+                              id: wId, label:`Cours ${si + 1}`,
                               thumbnail: null, canvasPNG: null,
+                              _demo: true,
                               date: d,
                               classeId:  DEMO_CLS[si % 3],
                               matiereId: DEMO_MAT[si % 4],
@@ -6877,20 +6880,25 @@ function mettreAJourArrondi() {
                   // Boards historiques (3 jours d'écart)
                   const DEMO_HOURS = [9,10,14,15,17,11,16,13];
                   const DEMO_MINS  = [0,30,0,30,0,0,0,30];
-                  for(let i=1; arcAllBoards.length<80; i++){
-                      if(!used.has(i)){
-                          const demoDate = new Date(Date.now() - i * 3 * 86400000);
-                          const hIdx = (i - 1) % DEMO_HOURS.length;
+                  let dId = 1000015;
+                  let dNum = 1;
+                  while(arcAllBoards.length < 80) {
+                      if(!used.has(dId)){
+                          const demoDate = new Date(Date.now() - dNum * 3 * 86400000);
+                          const hIdx = (dNum - 1) % DEMO_HOURS.length;
                           demoDate.setHours(DEMO_HOURS[hIdx], DEMO_MINS[hIdx], 0, 0);
                           arcAllBoards.push({
-                              id: i, label:`Tableau ${i}`,
+                              id: dId, label:`Tableau ${dNum}`,
                               thumbnail: null, canvasPNG: null,
+                              _demo: true,
                               date: demoDate,
-                              classeId:  DEMO_CLS[(i-1) % 3],
-                              matiereId: DEMO_MAT[(i-1) % 4],
+                              classeId:  DEMO_CLS[(dNum-1) % 3],
+                              matiereId: DEMO_MAT[(dNum-1) % 4],
                           });
-                          used.add(i);
+                          used.add(dId);
+                          dNum++;
                       }
+                      dId++;
                   }
                   // S'assurer que les tableaux chargés depuis DB ont aussi des attributs par défaut
                   arcAllBoards.forEach((b,idx) => {
