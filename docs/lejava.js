@@ -4893,7 +4893,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Icône outil : SVG original de la roue embarqué en nested <svg>
                 const [tx, ty] = P(center, Rm);
-                const s = 0.22;
+                const s = 0.13;
                 const toolVB = { 6:'0 0 171.68 171.68', 4:'0 0 180 180', 5:'0 0 200.18 168.49' };
                 const sw = `fill:none;stroke:${fg};stroke-width:18;stroke-miterlimit:10`;
                 const fi = `fill:${fg};stroke:none`;
@@ -5048,27 +5048,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 const iconG = mk('g', { transform: `translate(${tx},${ty})`, 'pointer-events': 'none' });
 
                 if (opt.key === 'question') {
-                    const q = mk('text', { x: 0, y: '0.018',
+                    const q = mk('text', { x: 0, y: '0.012',
                         'text-anchor': 'middle', 'dominant-baseline': 'central',
-                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.240',
+                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.190',
                         fill: fg, 'font-weight': '700' });
                     q.textContent = '?';
                     iconG.appendChild(q);
                 } else if (opt.key === 'sondage') {
-                    [[-0.060, 0.028, 0.040], [0, -0.018, 0.083], [0.060, 0.010, 0.057]].forEach(([x, y, h]) => {
-                        iconG.appendChild(mk('rect', { x: x - 0.020, y, width: '0.040', height: h,
-                            fill: fg, rx: '0.009' }));
+                    [[-0.046, 0.022, 0.030], [0, -0.014, 0.064], [0.046, 0.008, 0.044]].forEach(([x, y, h]) => {
+                        iconG.appendChild(mk('rect', { x: x - 0.015, y, width: '0.030', height: h,
+                            fill: fg, rx: '0.007' }));
                     });
                 } else {
                     // Triangle avertissement + !
                     iconG.appendChild(mk('polygon', {
-                        points: '0,-0.110 -0.105,0.080 0.105,0.080',
-                        fill: 'none', stroke: fg, 'stroke-width': '0.020',
+                        points: '0,-0.086 -0.080,0.062 0.080,0.062',
+                        fill: 'none', stroke: fg, 'stroke-width': '0.016',
                         'stroke-linejoin': 'round',
                     }));
-                    const excl = mk('text', { x: 0, y: '0.016',
+                    const excl = mk('text', { x: 0, y: '0.010',
                         'text-anchor': 'middle', 'dominant-baseline': 'central',
-                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.080',
+                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.062',
                         fill: fg, 'font-weight': '700' });
                     excl.textContent = '!';
                     iconG.appendChild(excl);
@@ -5977,6 +5977,21 @@ function mettreAJourArrondi() {
         function render() {
             liste.innerHTML = '';
             const centerIdx = boards.findIndex(b => b.id === visualBoardId);
+
+            // Calcul dynamique des labels (même logique que l'archive) : newest = 1
+            const _ncSess = window._sessionContext?.nomCours || '';
+            const _ncCounter = {};
+            const _boardLabels = {};
+            [...boards].reverse().forEach(b => {
+                const nc = _ncSess || b.nomCours || '';
+                if (nc) {
+                    _ncCounter[nc] = (_ncCounter[nc] || 0) + 1;
+                    _boardLabels[b.id] = `${nc} ${_ncCounter[nc]}`;
+                } else {
+                    _boardLabels[b.id] = b.label;
+                }
+            });
+
             boards.forEach((board, i) => {
                 const d    = i - centerIdx;
                 const card = document.createElement('div');
@@ -5996,7 +6011,7 @@ function mettreAJourArrondi() {
                 const meta = document.createElement('div');
                 meta.className = 'tableau-meta';
                 const nom = document.createElement('span');
-                nom.className = 'tableau-nom'; nom.textContent = board.label;
+                nom.className = 'tableau-nom'; nom.textContent = _boardLabels[board.id] || board.label;
                 meta.appendChild(nom);
 
                 if (board.id === activeBoardId) {
