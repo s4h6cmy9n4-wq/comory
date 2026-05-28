@@ -6992,15 +6992,26 @@ function mettreAJourArrondi() {
         async function arcLoadAndRender() {
             if (!arcLoaded) {
                 const labels   = arcLabelMap();
+                // Métadonnées persistées lors de l'archivage (date, classeId, matiereId…)
+                const arcMeta  = (() => { try { return JSON.parse(localStorage.getItem('mory_arc_metadata') || '{}'); } catch(e) { return {}; } })();
+                // IDs des tableaux ACTIFS dans le carrousel (à exclure de l'archive)
+                const carrouselIds = new Set(Object.keys(labels).map(Number));
                 const dbBoards = await arcLoadFromDB();
-                arcAllBoards   = dbBoards.map(b => {
-                    const entry = labels[b.id];
-                    return {
-                        ...b,
-                        label:    (entry?.label)    || b.label    || `Tableau ${b.id}`,
-                        nomCours: (entry?.nomCours) || b.nomCours || '',
-                    };
-                });
+                arcAllBoards   = dbBoards
+                    .filter(b => !carrouselIds.has(b.id)) // exclure les tableaux du carrousel actif
+                    .map(b => {
+                        const meta = arcMeta[String(b.id)];
+                        return {
+                            ...b,
+                            label:        meta?.label        || b.label    || `Tableau ${b.id}`,
+                            nomCours:     meta?.nomCours     || b.nomCours || '',
+                            date:         meta?.date ? new Date(meta.date) : (b.date ? new Date(b.date) : null),
+                            classeId:     meta?.classeId     !== undefined ? meta.classeId     : (b.classeId     || null),
+                            matiereId:    meta?.matiereId    !== undefined ? meta.matiereId    : (b.matiereId    || null),
+                            matiereLabel: meta?.matiereLabel !== undefined ? meta.matiereLabel : (b.matiereLabel || null),
+                            classeLabel:  meta?.classeLabel  !== undefined ? meta.classeLabel  : (b.classeLabel  || null),
+                        };
+                    });
                 // Note : on ne charge PAS le localStorage ici — les tableaux du carrousel
                 // apparaissent dans la bande "récents". Ils s'ajoutent à l'archive uniquement
                 // quand ils sont poussés via _arcNotifyBoardArchived (compteur ↑).
@@ -7169,6 +7180,21 @@ function mettreAJourArrondi() {
 
         // Appelé par le carrousel quand il archive un tableau (maj compteur + vignette)
         window._arcNotifyBoardArchived = function(board) {
+            // Persister les métadonnées dans localStorage AVANT tout (même si l'archive n'est pas ouverte)
+            try {
+                const _meta = JSON.parse(localStorage.getItem('mory_arc_metadata') || '{}');
+                _meta[String(board.id)] = {
+                    label:        board.label        || `Tableau ${board.id}`,
+                    nomCours:     board.nomCours     || '',
+                    date:         board.date ? new Date(board.date).toISOString() : new Date().toISOString(),
+                    classeId:     board.classeId     || null,
+                    matiereId:    board.matiereId    || null,
+                    matiereLabel: board.matiereLabel || null,
+                    classeLabel:  board.classeLabel  || null,
+                };
+                localStorage.setItem('mory_arc_metadata', JSON.stringify(_meta));
+            } catch(e) {}
+
             if (!arcLoaded) return; // archive pas encore ouverte → sera chargé à la prochaine ouverture
             const idx = arcAllBoards.findIndex(b => b.id === board.id);
             const entry = { ...board, canvasPNG: null };
