@@ -6490,23 +6490,60 @@ function mettreAJourArrondi() {
                     const lblEl = document.createElement('div');
                     lblEl.className = 'arc-detail-label';
                     lblEl.textContent = board.label;
+                    lblEl.title = 'Cliquer pour renommer';
+                    lblEl.addEventListener('click', () => {
+                        const inp = document.createElement('input');
+                        inp.type = 'text';
+                        inp.value = board.label;
+                        inp.className = 'arc-detail-label-input';
+                        lblEl.replaceWith(inp);
+                        inp.focus(); inp.select();
+                        let saved = false;
+                        function saveLabel() {
+                            if (saved) return; saved = true;
+                            const v = inp.value.trim() || board.label;
+                            board.label = v;
+                            arcSaveLabel(board.id, v);
+                            updateDetail();
+                        }
+                        inp.addEventListener('blur', saveLabel);
+                        inp.addEventListener('keydown', e => {
+                            if (e.key === 'Enter')  { e.preventDefault(); inp.blur(); }
+                            if (e.key === 'Escape') { inp.value = board.label; inp.blur(); }
+                        });
+                    });
                     metaEl.appendChild(lblEl);
                 }
 
                 // ── Résumé de séance (en dessous) ────────────────────────────
                 if (resumeEl) {
                     resumeEl.innerHTML = '';
-                    if (board.resume) {
-                        const p = document.createElement('p');
-                        p.className = 'arc-detail-resume-text';
-                        p.textContent = board.resume;
-                        resumeEl.appendChild(p);
-                    } else {
-                        const emp = document.createElement('p');
-                        emp.className = 'arc-detail-resume-empty';
-                        emp.textContent = 'Aucun résumé pour cette séance.';
-                        resumeEl.appendChild(emp);
-                    }
+                    const resumeText = board.resume || '';
+                    const rEl = document.createElement('p');
+                    rEl.className = resumeText ? 'arc-detail-resume-text' : 'arc-detail-resume-empty';
+                    rEl.textContent = resumeText || 'Cliquer pour ajouter un résumé…';
+                    rEl.title = 'Cliquer pour modifier le résumé';
+                    rEl.addEventListener('click', () => {
+                        const ta = document.createElement('textarea');
+                        ta.className = 'arc-detail-resume-textarea';
+                        ta.value = resumeText;
+                        ta.placeholder = 'Résumé de la séance…';
+                        rEl.replaceWith(ta);
+                        ta.focus();
+                        let savedR = false;
+                        function saveResume() {
+                            if (savedR) return; savedR = true;
+                            const v = ta.value.trim();
+                            board.resume = v;
+                            arcSaveResume(board.id, v);
+                            updateDetail();
+                        }
+                        ta.addEventListener('blur', saveResume);
+                        ta.addEventListener('keydown', e => {
+                            if (e.key === 'Escape') { ta.value = resumeText; ta.blur(); }
+                        });
+                    });
+                    resumeEl.appendChild(rEl);
                 }
             }
 
@@ -6584,6 +6621,20 @@ function mettreAJourArrondi() {
         // ── Données classes / matières (persistées en localStorage) ──────────
         let arcClasses  = null;
         let arcMatieres = null;
+        // ── Persistance labels / résumés ─────────────────────────────────────
+        function arcSaveLabel(id, label) {
+            try {
+                const ov = JSON.parse(localStorage.getItem('mory_arc_label_overrides') || '{}');
+                ov[id] = label; localStorage.setItem('mory_arc_label_overrides', JSON.stringify(ov));
+            } catch(e) {}
+        }
+        function arcSaveResume(id, resume) {
+            try {
+                const rv = JSON.parse(localStorage.getItem('mory_arc_resumes') || '{}');
+                rv[id] = resume; localStorage.setItem('mory_arc_resumes', JSON.stringify(rv));
+            } catch(e) {}
+        }
+
         function arcLoadGroups() {
             arcClasses  = JSON.parse(localStorage.getItem('mory_arc_classes')  || 'null') || [
                 { id:'terminale', label:'Terminale', color:'#a8c5da' },
@@ -6842,70 +6893,68 @@ function mettreAJourArrondi() {
                 // Note : on ne charge PAS le localStorage ici — les tableaux du carrousel
                 // apparaissent dans la bande "récents". Ils s'ajoutent à l'archive uniquement
                 // quand ils sont poussés via _arcNotifyBoardArchived (compteur ↑).
-                // Démo : compléter jusqu'à 80 tableaux avec attributs
-                { const DEMO_CLS = ['terminale','premiere','seconde'];
-                  const DEMO_MAT = ['atc','daa','amd','ccda'];
-                  const used = new Set(arcAllBoards.map(b=>b.id));
-                  // Heures-types d'une journée scolaire (11 possibilités)
-                  // Boards dans la semaine courante (lun=0..ven=4, heures 9-18)
-                  const CAL_HOURS = [9,10,11,12,13,14,15,16,17,18];
-                  const WEEK_SLOTS = [
-                      [0,11],[1,10],[2,9],[3,12],[4,14],
-                      [0,13],[2,16],[1,15],[4,18],[3,9],
-                      [0,16],[4,11],[2,13],[3,15],[1,18],
+
+                // Démo : 20 tableaux de base, tous dans le passé, avec aperçus
+                { const DEMO_CLS    = ['terminale','premiere','seconde'];
+                  const DEMO_MAT    = ['atc','daa','amd','ccda'];
+                  const DEMO_IMAGES = [
+                      'apercu/03-Poles-AA_jpo-site_PAV.png',
+                      'apercu/04-Poles-AA_jpo-site_ATC.png',
+                      'apercu/06-Poles-AA_jpo-site_OLN.png',
+                      'apercu/1-2-fiche-catherine-de-robert-1200x.jpg',
+                      'apercu/5bde2b8fbded676d207f632164d513d3.jpg',
+                      'apercu/84eb8284c9f5ea0de730e3c1c5eabead.jpg',
+                      "apercu/Capture d'écran 2026-05-27 à 13.20.06.png",
+                      'apercu/bacstd2a.svg',
+                      'apercu/histoire_numerique.png',
+                      'apercu/images (1).png',
+                      'apercu/images.png',
+                      'apercu/std2a_05-672x672.jpg',
+                      'apercu/unnamed.jpg',
                   ];
-                  const weekStart = new Date();
-                  const _dow = weekStart.getDay();
-                  weekStart.setDate(weekStart.getDate() + (_dow===0 ? -6 : 1-_dow));
-                  weekStart.setHours(0,0,0,0);
-                  // IDs démo >= 1000000 pour ne jamais entrer en conflit avec les vrais tableaux
-                  let wId = 1000000;
-                  WEEK_SLOTS.forEach(([di,h], si) => {
-                      const d = new Date(weekStart);
-                      d.setDate(d.getDate() + di);
-                      d.setHours(h, 0, 0, 0);
-                      if(!used.has(wId)) {
+                  const DEMO_HOURS  = [9,10,14,15,8,11,16,13,17,9,10,14];
+                  const DEMO_MINS   = [0,30,0,30,0,0,0,30,0,0,15,45];
+                  const used = new Set(arcAllBoards.map(b => b.id));
+                  // IDs >= 1000000 : jamais en conflit avec les vrais tableaux
+                  let dId  = 1000000;
+                  let dNum = 0;
+                  while (arcAllBoards.length < 20) {
+                      if (!used.has(dId)) {
+                          const daysAgo  = (dNum + 1) * 3; // 3 jours d'écart, 100% dans le passé
+                          const demoDate = new Date(Date.now() - daysAgo * 86400000);
+                          demoDate.setHours(DEMO_HOURS[dNum % DEMO_HOURS.length],
+                                            DEMO_MINS [dNum % DEMO_MINS.length], 0, 0);
                           arcAllBoards.push({
-                              id: wId, label:`Cours ${si + 1}`,
-                              thumbnail: null, canvasPNG: null,
-                              _demo: true,
-                              date: d,
-                              classeId:  DEMO_CLS[si % 3],
-                              matiereId: DEMO_MAT[si % 4],
-                          });
-                          used.add(wId);
-                      }
-                      wId++;
-                  });
-                  // Boards historiques (3 jours d'écart)
-                  const DEMO_HOURS = [9,10,14,15,17,11,16,13];
-                  const DEMO_MINS  = [0,30,0,30,0,0,0,30];
-                  let dId = 1000015;
-                  let dNum = 1;
-                  while(arcAllBoards.length < 80) {
-                      if(!used.has(dId)){
-                          const demoDate = new Date(Date.now() - dNum * 3 * 86400000);
-                          const hIdx = (dNum - 1) % DEMO_HOURS.length;
-                          demoDate.setHours(DEMO_HOURS[hIdx], DEMO_MINS[hIdx], 0, 0);
-                          arcAllBoards.push({
-                              id: dId, label:`Tableau ${dNum}`,
-                              thumbnail: null, canvasPNG: null,
-                              _demo: true,
-                              date: demoDate,
-                              classeId:  DEMO_CLS[(dNum-1) % 3],
-                              matiereId: DEMO_MAT[(dNum-1) % 4],
+                              id:        dId,
+                              label:     `Cours ${dNum + 1}`,
+                              thumbnail: DEMO_IMAGES[dNum % DEMO_IMAGES.length],
+                              canvasPNG: null,
+                              _demo:     true,
+                              date:      demoDate,
+                              classeId:  DEMO_CLS[dNum % 3],
+                              matiereId: DEMO_MAT[dNum % 4],
                           });
                           used.add(dId);
                           dNum++;
                       }
                       dId++;
                   }
-                  // S'assurer que les tableaux chargés depuis DB ont aussi des attributs par défaut
-                  arcAllBoards.forEach((b,idx) => {
-                      if(!b.date)      b.date      = new Date(Date.now() - idx * 86400000 * 4);
-                      if(!b.classeId)  b.classeId  = DEMO_CLS[idx % 3];
-                      if(!b.matiereId) b.matiereId = DEMO_MAT[idx % 4];
+                  // Dates par défaut pour les vrais tableaux venant de la DB
+                  const DEMO_CLS2 = DEMO_CLS; const DEMO_MAT2 = DEMO_MAT;
+                  arcAllBoards.forEach((b, idx) => {
+                      if (!b.date)     b.date     = new Date(Date.now() - (idx + 1) * 86400000 * 2);
+                      if (!b.classeId) b.classeId = DEMO_CLS2[idx % 3];
+                      if (!b.matiereId) b.matiereId = DEMO_MAT2[idx % 4];
                   });
+                  // Appliquer les overrides (renommages / résumés sauvegardés)
+                  try {
+                      const _lOv = JSON.parse(localStorage.getItem('mory_arc_label_overrides') || '{}');
+                      const _rOv = JSON.parse(localStorage.getItem('mory_arc_resumes') || '{}');
+                      arcAllBoards.forEach(b => {
+                          if (_lOv[b.id]) b.label  = _lOv[b.id];
+                          if (_rOv[b.id]) b.resume = _rOv[b.id];
+                      });
+                  } catch(e) {}
                 }
                 arcLoaded = true;
             }
@@ -6982,11 +7031,16 @@ function mettreAJourArrondi() {
             const idx = arcAllBoards.findIndex(b => b.id === board.id);
             const entry = { ...board, canvasPNG: null };
             if (!entry.date) entry.date = new Date();
+            // Appliquer les overrides éventuels
+            try {
+                const _lOv = JSON.parse(localStorage.getItem('mory_arc_label_overrides') || '{}');
+                const _rOv = JSON.parse(localStorage.getItem('mory_arc_resumes') || '{}');
+                if (_lOv[entry.id]) entry.label  = _lOv[entry.id];
+                if (_rOv[entry.id]) entry.resume = _rOv[entry.id];
+            } catch(e) {}
             if (idx >= 0) {
-                // Mettre à jour l'entrée existante (ex: remplace une entrée démo sans vignette)
                 arcAllBoards[idx] = { ...arcAllBoards[idx], ...entry };
             } else {
-                // Nouveau tableau inconnu de l'archive → l'ajouter (compteur augmente)
                 arcAllBoards.push(entry);
             }
             arcApplySort();
