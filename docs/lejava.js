@@ -6354,6 +6354,7 @@ function mettreAJourArrondi() {
         function closeArchive() {
             overlay.classList.remove('ouvert');
             overlay.setAttribute('aria-hidden', 'true');
+            window._arcCloseSearch?.(); // reset la barre de recherche
         }
 
         // Logo (canvas) → affiche l'écran d'accueil
@@ -7724,32 +7725,25 @@ function mettreAJourArrondi() {
         }
     })();
 
-    // ── Barre de recherche archive (bouton loupe dans le header) ─────────
+    // ── Barre de recherche archive (bouton loupe dans arc-header-bar) ───────
     (function initSearchBar() {
-        const btnSearch     = document.getElementById('btn-search');
-        const searchBar     = document.getElementById('arc-search-bar');
-        const searchInput   = document.getElementById('arc-search-input');
-        const headerWrapper = document.querySelector('.header-wrapper');
-        if (!btnSearch || !searchBar || !searchInput || !headerWrapper) return;
+        const btnSearch    = document.getElementById('btn-search');
+        const searchBar    = document.getElementById('arc-search-bar');
+        const searchInput  = document.getElementById('arc-search-input');
+        const arcHeaderBar = document.querySelector('.arc-header-bar');
+        if (!btnSearch || !searchBar || !searchInput || !arcHeaderBar) return;
 
         function openSearch() {
-            headerWrapper.classList.add('search-active');
+            arcHeaderBar.classList.add('search-active');
             searchBar.classList.add('active');
             const iconSearch = btnSearch.querySelector('.search-icon-search');
             const iconClose  = btnSearch.querySelector('.search-icon-close');
             if (iconSearch) iconSearch.style.display = 'none';
             if (iconClose)  iconClose.style.display  = '';
-            // Ouvrir l'archive si pas encore ouverte
-            const ov = document.getElementById('archive-overlay');
-            if (ov && !ov.classList.contains('ouvert')) {
-                ov.classList.add('ouvert');
-                ov.setAttribute('aria-hidden', 'false');
-                if (typeof window._arcLoadAndRender === 'function') window._arcLoadAndRender();
-            }
             setTimeout(() => { searchInput.focus(); searchInput.select(); }, 50);
         }
         function closeSearch() {
-            headerWrapper.classList.remove('search-active');
+            arcHeaderBar.classList.remove('search-active');
             searchBar.classList.remove('active');
             const iconSearch = btnSearch.querySelector('.search-icon-search');
             const iconClose  = btnSearch.querySelector('.search-icon-close');
@@ -7758,9 +7752,11 @@ function mettreAJourArrondi() {
             window._arcSetSearch?.('');
             searchInput.value = '';
         }
+        // Exposer pour reset lors de la fermeture de l'archive
+        window._arcCloseSearch = closeSearch;
 
         btnSearch.addEventListener('click', () => {
-            if (headerWrapper.classList.contains('search-active')) closeSearch();
+            if (arcHeaderBar.classList.contains('search-active')) closeSearch();
             else openSearch();
         });
 
@@ -7769,7 +7765,11 @@ function mettreAJourArrondi() {
         });
 
         searchInput.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { e.preventDefault(); closeSearch(); }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation(); // empêche la fermeture de l'overlay
+                closeSearch();
+            }
         });
     })();
 

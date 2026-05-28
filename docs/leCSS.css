@@ -204,7 +204,7 @@ body {
 /* Bouton logo mobile — caché par défaut (visible uniquement sur mobile via media query) */
 #mobile-logo-socket { display: none; }
 
-/* ── Barre de recherche archive (header) ── */
+/* ── Barre de recherche archive (dans arc-header-bar) ── */
 .arc-search-bar {
     display: none;
     flex: 1; height: 46px; min-width: 0;
@@ -225,11 +225,10 @@ body {
     color: var(--text-dark); min-width: 0;
 }
 #arc-search-input::placeholder { color: var(--text-mid); opacity: 0.55; }
-.header-wrapper.search-active .top-bar { display: none; }
-.header-wrapper.search-active .socket-bouton:not(#btn-search-socket) { display: none; }
-.header-wrapper.search-active { width: calc(100vw - 40px); }
-#btn-search-socket button { display: flex; align-items: center; justify-content: center; }
-#btn-search-socket button svg { width: 18px; height: 18px; }
+.arc-header-bar.search-active { width: calc(100vw - 24px); }
+.arc-header-bar.search-active .arc-close-btn { display: none; }
+.arc-search-socket button { display: flex; align-items: center; justify-content: center; }
+.arc-search-socket button svg { width: 18px; height: 18px; }
 
 /* Boutons ronds top-bar — néomorphiques surélevés */
 .socket-bouton {
@@ -1472,25 +1471,30 @@ body.mode-sombre .arc-info-pill {
 .arc-sort-panel::-webkit-scrollbar { display: none; }
 .arc-panel-handle { display: none; }
 
-/* ── Toggle tri par date ── */
+/* ── Toggle tri par date (stylisé comme une pastille) ── */
 .arc-sort-date {
-    display: flex; align-items: center; gap: 5px;
-    cursor: pointer; color: var(--text-mid); opacity: 0.55;
-    transition: opacity 0.18s, color 0.18s;
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 20px;
+    background: rgba(0,0,0,0.08);
+    cursor: pointer; color: var(--text-mid);
+    opacity: 0.6; user-select: none;
+    font-family: 'DM Sans', sans-serif;
+    transition: background 0.18s, color 0.18s, transform 0.15s, opacity 0.18s;
+    margin-bottom: 4px; /* un peu au-dessus des colonnes */
 }
-.arc-sort-date:hover { opacity: 1; color: var(--text-dark); }
-.arc-sort-clock { width: 13px; height: 13px; flex-shrink: 0; }
+.arc-sort-date:hover { opacity: 1; transform: scale(1.06); }
+.arc-sort-clock { width: 16px; height: 16px; flex-shrink: 0; }
 .arc-sort-arrow {
-    font-size: 15px; line-height: 1; display: inline-block;
-    font-weight: 400; transition: transform 0.22s;
+    font-size: 16px; line-height: 1; display: inline-block;
+    font-weight: 600; transition: transform 0.22s;
 }
 
-/* ── Deux colonnes matières / classes ── */
+/* ── Deux colonnes classes / matières ── */
 .arc-sort-cols {
     display: flex; flex-direction: row; gap: 8px; align-items: flex-start;
 }
 .arc-pills-col {
-    display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+    display: flex; flex-direction: column; gap: 5px; align-items: flex-start;
 }
 
 /* ── Pastilles de filtre ── */
@@ -1500,10 +1504,10 @@ body.mode-sombre .arc-info-pill {
     margin: 2px 0;
 }
 .arc-pill {
-    padding: 3px 9px; border-radius: 20px;
+    padding: 5px 12px; border-radius: 20px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 9px; font-weight: 700;
-    letter-spacing: 0.04em; text-transform: uppercase;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.03em; text-transform: uppercase;
     cursor: pointer; user-select: none;
     background: rgba(0,0,0,0.08);
     color: var(--text-mid);
