@@ -6000,6 +6000,31 @@ function mettreAJourArrondi() {
                 meta.className = 'tableau-meta';
                 const nom = document.createElement('span');
                 nom.className = 'tableau-nom'; nom.textContent = board.label;
+                nom.title = 'Cliquer pour renommer';
+                nom.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const inp = document.createElement('input');
+                    inp.type = 'text';
+                    inp.value = board.label;
+                    inp.className = 'tableau-nom-input';
+                    nom.replaceWith(inp);
+                    inp.focus(); inp.select();
+                    let saved = false;
+                    function saveNom() {
+                        if (saved) return; saved = true;
+                        const v = inp.value.trim() || board.label;
+                        board.label = v;
+                        saveBoardList();
+                        render();
+                    }
+                    inp.addEventListener('blur', saveNom);
+                    inp.addEventListener('keydown', ev => {
+                        if (ev.key === 'Enter')  { ev.preventDefault(); inp.blur(); }
+                        if (ev.key === 'Escape') { inp.value = board.label; inp.blur(); }
+                        ev.stopPropagation();
+                    });
+                    inp.addEventListener('click', ev => ev.stopPropagation());
+                });
                 meta.appendChild(nom);
 
                 if (board.id === activeBoardId) {
@@ -6175,6 +6200,8 @@ function mettreAJourArrondi() {
                             nomCours: oldest.nomCours || '',
                             thumbnail: oldest.thumbnail || null,
                             date: new Date(),
+                            classeId:  window._sessionContext?.niveauId  || null,
+                            matiereId: window._sessionContext?.matiereId || null,
                         });
                     }
                     // Tableau vide → suppression silencieuse (pas d'archive)
@@ -6234,6 +6261,8 @@ function mettreAJourArrondi() {
                             nomCours: oldest.nomCours || '',
                             thumbnail: oldest.thumbnail || null,
                             date: new Date(),
+                            classeId:  window._sessionContext?.niveauId  || null,
+                            matiereId: window._sessionContext?.matiereId || null,
                         });
                     }
                     boards.shift();
@@ -6471,7 +6500,14 @@ function mettreAJourArrondi() {
                         const tag = document.createElement('div');
                         tag.className = 'arc-detail-tag';
                         tag.style.background = mat.color || 'var(--flamme)';
+                        tag.style.cursor = 'pointer';
+                        tag.title = `Filtrer par ${mat.label}`;
                         tag.textContent = mat.label;
+                        tag.addEventListener('click', () => {
+                            arcFilterMat = arcFilterMat === board.matiereId ? null : board.matiereId;
+                            arcApplySort();
+                            arcSyncSubRows();
+                        });
                         tagsEl.appendChild(tag);
                     }
                 }
@@ -6481,7 +6517,14 @@ function mettreAJourArrondi() {
                         const tag = document.createElement('div');
                         tag.className = 'arc-detail-tag';
                         tag.style.background = cls.color || '#94a3b8';
+                        tag.style.cursor = 'pointer';
+                        tag.title = `Filtrer par ${cls.label}`;
                         tag.textContent = cls.label;
+                        tag.addEventListener('click', () => {
+                            arcFilterClasse = arcFilterClasse === board.classeId ? null : board.classeId;
+                            arcApplySort();
+                            arcSyncSubRows();
+                        });
                         tagsEl.appendChild(tag);
                     }
                 }
@@ -6640,13 +6683,20 @@ function mettreAJourArrondi() {
                 { id:'terminale', label:'Terminale', color:'#a8c5da' },
                 { id:'premiere',  label:'Première',  color:'#c5a8da' },
                 { id:'seconde',   label:'Seconde',   color:'#dac5a8' },
+                { id:'commun',    label:'Commun',    color:'#a8dab5' },
             ];
-            arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || [
-                { id:'atc',  label:'Art techniques et civilisations',                    color:'#e8a87c' },
-                { id:'daa',  label:'Design et arts appliqués',                           color:'#87c5a8' },
-                { id:'amd',  label:'Analyse et méthodes en design',                      color:'#a8a8e8' },
-                { id:'ccda', label:'Conception et création en design et arts appliqués', color:'#e8c87c' },
-            ];
+            arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || (() => {
+                const seen = new Set(); const result = [];
+                ARCHIVE_NIVEAUX.forEach(niveau => {
+                    niveau.matieres.forEach(mat => {
+                        if (!seen.has(mat.id)) {
+                            seen.add(mat.id);
+                            result.push({ id: mat.id, label: mat.nom, color: mat.color });
+                        }
+                    });
+                });
+                return result;
+            })();
         }
         function arcSaveGroups() {
             localStorage.setItem('mory_arc_classes',  JSON.stringify(arcClasses));
