@@ -4736,9 +4736,17 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         document.addEventListener('mousemove', onDocMouseMove);
 
-        // QR HTML element injecté dans roueConteneur (plus fiable que SVG <image>)
+        // QR HTML element injecté dans le bouton central (roue-centre)
         let _qrHtmlEl = null;
-        function _removeQR() { if (_qrHtmlEl) { _qrHtmlEl.remove(); _qrHtmlEl = null; } }
+        let _qrCentreBackup = null;
+        function _removeQR() {
+            if (_qrHtmlEl) { _qrHtmlEl.remove(); _qrHtmlEl = null; }
+            if (_qrCentreBackup !== null) {
+                const c = document.getElementById('roue-centre');
+                if (c) c.innerHTML = _qrCentreBackup;
+                _qrCentreBackup = null;
+            }
+        }
 
         const doClose = () => {
             clearTimeout(leaveTimer);
@@ -4862,9 +4870,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const auth = window.etatCollaboration.autorisations;
 
             const AUTH_TOOLS = [
-                { num: 6, label: 'Dessin' },
-                { num: 5, label: 'Formes' },
-                { num: 7, label: 'Texte'  },
+                { num: 7, label: 'Écrire'   },
+                { num: 6, label: 'Dessiner' },
+                { num: 4, label: 'Tableau'  },
             ];
             const authStep = (2 * Math.PI) / 3;
 
@@ -4883,33 +4891,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 dialSvg.appendChild(seg);
 
-                // Icône dans le secteur
+                // Icône outil dans le secteur — formes SVG reproduisant les icônes de la roue
                 const [tx, ty] = P(center, Rm);
                 const iconG = mk('g', { transform: `translate(${tx},${ty})`, 'pointer-events': 'none' });
+                const sw = '0.018'; // stroke-width standard
+                const sw2 = '0.014';
 
-                if (tool.num === 6) {
-                    // Dessin — trait de crayon diagonal
-                    iconG.appendChild(mk('line', {
-                        x1: '-0.055', y1: '0.055', x2: '0.055', y2: '-0.055',
-                        stroke: fg, 'stroke-width': '0.026', 'stroke-linecap': 'round',
-                    }));
-                } else if (tool.num === 5) {
-                    // Formes — carré légèrement incliné
-                    iconG.appendChild(mk('rect', {
-                        x: '-0.048', y: '-0.048', width: '0.096', height: '0.096',
-                        fill: 'none', stroke: fg, 'stroke-width': '0.022',
-                        rx: '0.010', transform: 'rotate(12)',
-                    }));
-                } else {
-                    // Texte — lettre T
-                    const t = mk('text', {
-                        x: 0, y: '0.010',
-                        'text-anchor': 'middle', 'dominant-baseline': 'central',
-                        'font-family': "'DM Sans',sans-serif", 'font-size': '0.148',
-                        fill: fg, 'font-weight': '700',
-                    });
-                    t.textContent = 'T';
-                    iconG.appendChild(t);
+                if (tool.num === 7) {
+                    // Écrire — T avec sérifs + 'a' (fidèle à l'icône outil Texte)
+                    iconG.appendChild(mk('line', { x1:'-0.050', y1:'-0.052', x2:'0.014', y2:'-0.052', stroke:fg, 'stroke-width':sw, 'stroke-linecap':'round' }));
+                    iconG.appendChild(mk('line', { x1:'-0.018', y1:'-0.052', x2:'-0.018', y2:'0.058', stroke:fg, 'stroke-width':sw, 'stroke-linecap':'round' }));
+                    iconG.appendChild(mk('line', { x1:'-0.040', y1:'0.058', x2:'0.004', y2:'0.058', stroke:fg, 'stroke-width':sw2, 'stroke-linecap':'round' }));
+                    // 'a' à droite
+                    const a = mk('text', { x:'0.030', y:'0.025', 'text-anchor':'middle', 'dominant-baseline':'central',
+                        'font-family':"'DM Sans',sans-serif", 'font-size':'0.090', fill:fg, 'font-weight':'700' });
+                    a.textContent = 'a';
+                    iconG.appendChild(a);
+                } else if (tool.num === 6) {
+                    // Dessiner — crayon : corps diagonal + capuchon + pointe
+                    const gPencil = mk('g', { transform: 'rotate(-45)' });
+                    gPencil.appendChild(mk('rect', { x:'-0.058', y:'-0.016', width:'0.095', height:'0.032', fill:'none', stroke:fg, 'stroke-width':sw, 'stroke-linejoin':'round' }));
+                    gPencil.appendChild(mk('rect', { x:'0.037', y:'-0.016', width:'0.022', height:'0.032', fill:fg, 'stroke-width':'0' }));
+                    gPencil.appendChild(mk('polygon', { points:'-0.058,-0.016 -0.080,0 -0.058,0.016', fill:fg }));
+                    iconG.appendChild(gPencil);
+                } else if (tool.num === 4) {
+                    // Tableau — grille : rect + ligne header + 2 colonnes
+                    iconG.appendChild(mk('rect', { x:'-0.060', y:'-0.055', width:'0.120', height:'0.110', fill:'none', stroke:fg, 'stroke-width':sw, 'stroke-linejoin':'round' }));
+                    iconG.appendChild(mk('line', { x1:'-0.060', y1:'-0.015', x2:'0.060', y2:'-0.015', stroke:fg, 'stroke-width':sw2 }));
+                    iconG.appendChild(mk('line', { x1:'-0.020', y1:'-0.015', x2:'-0.020', y2:'0.055', stroke:fg, 'stroke-width':sw2 }));
+                    iconG.appendChild(mk('line', { x1:'0.020', y1:'-0.015', x2:'0.020', y2:'0.055', stroke:fg, 'stroke-width':sw2 }));
                 }
                 dialSvg.appendChild(iconG);
 
@@ -4930,92 +4940,105 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // Disque central blanc — fond + zone de retour (pourtour du QR)
-            const backDisc = mk('circle', {
-                cx: 0, cy: 0, r: '0.33',
-                fill: 'white', cursor: 'pointer',
-                stroke: 'var(--shadow-dark)', 'stroke-width': '0.010',
-            });
-            dialSvg.appendChild(backDisc);
-
-            // "↩ retour" en bas du disque (visible autour du QR)
-            const backTxt = mk('text', {
-                x: 0, y: '0.265',
-                'text-anchor': 'middle', 'dominant-baseline': 'central',
-                'font-family': "'DM Sans',sans-serif", 'font-size': '0.052',
-                fill: 'var(--bleu-mid)', 'pointer-events': 'none',
-            });
-            backTxt.textContent = '↩ retour';
-            dialSvg.appendChild(backTxt);
-
-            backDisc.addEventListener('click', e => { e.stopPropagation(); buildPicker(); });
-
-            // ── QR code HTML (fiable, pas de SVG <image>) ────────────────────
+            // ── QR code dans le bouton central (roue-centre) ─────────────────
             _removeQR();
             const MOBILE_URL = 'https://s4h6cmy9n4-wq.github.io/comory/mobile.html';
             const QR_SRC = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(MOBILE_URL)}&bgcolor=ffffff&color=262623&margin=2`;
 
-            const qrEl = document.createElement('img');
-            qrEl.src = QR_SRC;
-            qrEl.alt = 'QR — comory élève';
-            // Taille : diamètre ≈ disque SVG r=0.33 → 0.33 × roue-size (légèrement réduit)
-            qrEl.style.cssText = [
-                'position:absolute',
-                'top:50%', 'left:50%',
-                'transform:translate(-50%,-50%) translateY(-7%)',
-                'width:calc(var(--roue-size) * 0.47)',
-                'height:calc(var(--roue-size) * 0.47)',
-                'border-radius:50%',
-                'object-fit:contain',
-                'background:white',
-                'cursor:pointer',
-                'z-index:6',
-                'pointer-events:auto',
-            ].join(';');
+            const centre = document.getElementById('roue-centre');
+            if (centre) {
+                _qrCentreBackup = centre.innerHTML;
+                centre.innerHTML = '';
+                const qrEl = document.createElement('img');
+                qrEl.src = QR_SRC;
+                qrEl.alt = 'QR — comory élève';
+                qrEl.style.cssText = 'width:70%;height:70%;object-fit:contain;background:white;cursor:pointer;display:block;pointer-events:auto;border-radius:3px;';
 
-            qrEl.addEventListener('click', e => {
-                e.stopPropagation();
-                const overlay = document.createElement('div');
-                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+                qrEl.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
 
-                const card = document.createElement('div');
-                card.style.cssText = 'background:white;border-radius:18px;padding:28px 28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;cursor:default;box-shadow:0 24px 60px rgba(0,0,0,0.5);';
-                card.addEventListener('click', e2 => e2.stopPropagation());
+                    const card = document.createElement('div');
+                    card.style.cssText = 'background:white;border-radius:18px;padding:28px 28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;cursor:default;box-shadow:0 24px 60px rgba(0,0,0,0.5);';
+                    card.addEventListener('click', e2 => e2.stopPropagation());
 
-                const ttl = document.createElement('p');
-                ttl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:16px;font-weight:700;color:#374151;text-align:center;margin:0;';
-                ttl.textContent = 'Scanner pour rejoindre comory';
-                card.appendChild(ttl);
+                    const ttl = document.createElement('p');
+                    ttl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:16px;font-weight:700;color:#374151;text-align:center;margin:0;';
+                    ttl.textContent = 'Scanner pour rejoindre comory';
+                    card.appendChild(ttl);
 
-                const qrBig = document.createElement('img');
-                qrBig.style.cssText = 'width:260px;height:260px;display:block;border-radius:10px;border:3px solid #f0f0f0;';
-                qrBig.src = `https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=${encodeURIComponent(MOBILE_URL)}&bgcolor=ffffff&color=1a1a2e&margin=2`;
-                qrBig.alt = 'QR Code comory élève';
-                card.appendChild(qrBig);
+                    const qrBig = document.createElement('img');
+                    qrBig.style.cssText = 'width:260px;height:260px;display:block;border-radius:10px;border:3px solid #f0f0f0;';
+                    qrBig.src = `https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=${encodeURIComponent(MOBILE_URL)}&bgcolor=ffffff&color=1a1a2e&margin=2`;
+                    qrBig.alt = 'QR Code comory élève';
+                    card.appendChild(qrBig);
 
-                const urlEl = document.createElement('p');
-                urlEl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:10px;color:#94a3b8;text-align:center;word-break:break-all;max-width:240px;margin:0;';
-                urlEl.textContent = MOBILE_URL;
-                card.appendChild(urlEl);
+                    const urlEl = document.createElement('p');
+                    urlEl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:10px;color:#94a3b8;text-align:center;word-break:break-all;max-width:240px;margin:0;';
+                    urlEl.textContent = MOBILE_URL;
+                    card.appendChild(urlEl);
 
-                const hint = document.createElement('p');
-                hint.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:11px;color:#cbd5e1;text-align:center;margin:0;';
-                hint.textContent = 'Cliquer en dehors pour fermer';
-                card.appendChild(hint);
+                    const hint = document.createElement('p');
+                    hint.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:11px;color:#cbd5e1;text-align:center;margin:0;';
+                    hint.textContent = 'Cliquer en dehors pour fermer';
+                    card.appendChild(hint);
 
-                overlay.appendChild(card);
-                overlay.addEventListener('click', () => overlay.remove());
-                document.body.appendChild(overlay);
-            });
+                    overlay.appendChild(card);
+                    overlay.addEventListener('click', () => overlay.remove());
+                    document.body.appendChild(overlay);
+                });
 
-            roueConteneur.appendChild(qrEl);
-            _qrHtmlEl = qrEl;
+                centre.appendChild(qrEl);
+                _qrHtmlEl = qrEl;
+            }
         }
 
         // ── Construction des secteurs ─────────────────────────────────────────
         function buildPicker() {
             dialSvg.innerHTML = '';
             _removeQR();
+            const MOBILE_URL_P = 'https://s4h6cmy9n4-wq.github.io/comory/mobile.html';
+            const QR_SRC_P = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(MOBILE_URL_P)}&bgcolor=ffffff&color=262623&margin=2`;
+            const centreP = document.getElementById('roue-centre');
+            if (centreP) {
+                _qrCentreBackup = centreP.innerHTML;
+                centreP.innerHTML = '';
+                const qrElP = document.createElement('img');
+                qrElP.src = QR_SRC_P;
+                qrElP.alt = 'QR — comory élève';
+                qrElP.style.cssText = 'width:70%;height:70%;object-fit:contain;background:white;cursor:pointer;display:block;pointer-events:auto;border-radius:3px;';
+                qrElP.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+                    const card = document.createElement('div');
+                    card.style.cssText = 'background:white;border-radius:18px;padding:28px 28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;cursor:default;box-shadow:0 24px 60px rgba(0,0,0,0.5);';
+                    card.addEventListener('click', e2 => e2.stopPropagation());
+                    const ttl = document.createElement('p');
+                    ttl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:16px;font-weight:700;color:#374151;text-align:center;margin:0;';
+                    ttl.textContent = 'Scanner pour rejoindre comory';
+                    card.appendChild(ttl);
+                    const qrBig = document.createElement('img');
+                    qrBig.style.cssText = 'width:260px;height:260px;display:block;border-radius:10px;border:3px solid #f0f0f0;';
+                    qrBig.src = `https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=${encodeURIComponent(MOBILE_URL_P)}&bgcolor=ffffff&color=1a1a2e&margin=2`;
+                    qrBig.alt = 'QR Code comory élève';
+                    card.appendChild(qrBig);
+                    const urlEl = document.createElement('p');
+                    urlEl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:10px;color:#94a3b8;text-align:center;word-break:break-all;max-width:240px;margin:0;';
+                    urlEl.textContent = MOBILE_URL_P;
+                    card.appendChild(urlEl);
+                    const hint = document.createElement('p');
+                    hint.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:11px;color:#cbd5e1;text-align:center;margin:0;';
+                    hint.textContent = 'Cliquer en dehors pour fermer';
+                    card.appendChild(hint);
+                    overlay.appendChild(card);
+                    overlay.addEventListener('click', () => overlay.remove());
+                    document.body.appendChild(overlay);
+                });
+                centreP.appendChild(qrElP);
+                _qrHtmlEl = qrElP;
+            }
             OPTIONS.forEach((opt, i) => {
                 const center  = -Math.PI / 2 + i * aStep;
                 const a0      = center - aStep / 2;
@@ -5094,6 +5117,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.removeEventListener('mousemove', onDocMouseMove);
             dialSvg.innerHTML = '';
             roueConteneur.classList.remove('mode-collaboration');
+            _removeQR();
         };
     }
 
@@ -7217,6 +7241,8 @@ function mettreAJourArrondi() {
             }
             // Pinch (2 doigts) → annuler le holdTimer, ne pas déclencher la roue
             if (e.touches.length >= 2) { clearTimeout(holdTimer); holdTimer = null; return; }
+            // Bouton UI → laisser le clic se déclencher normalement sans afficher la roue
+            if (e.target && e.target.closest && e.target.closest('button, [role="button"], a, input, select, textarea')) return;
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
             holdTimer = setTimeout(() => {
