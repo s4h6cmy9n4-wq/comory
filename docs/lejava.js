@@ -3226,11 +3226,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Clic hors de la roue et du panel → désactiver l'outil actif (desktop)
+    // Exception : le plan-de-travail (canevas) — l'utilisateur dessine dessus avec l'outil actif
     document.addEventListener('mousedown', (e) => {
         if (!outilActifNum) return;
         const rouePanel = document.getElementById('roue-panel');
         if (roueConteneur.contains(e.target)) return;
         if (rouePanel && rouePanel.contains(e.target)) return;
+        const planDeTravail = document.getElementById('plan-de-travail');
+        if (planDeTravail && planDeTravail.contains(e.target)) return;
         window.desactiverOutil();
     });
 
@@ -6511,7 +6514,7 @@ function mettreAJourArrondi() {
                         tagsEl.appendChild(tag);
                     }
                 }
-                if (board.classeId && arcClasses) {
+                if (board.classeId && board.classeId !== 'commun' && arcClasses) {
                     const cls = arcClasses.find(c => c.id === board.classeId);
                     if (cls) {
                         const tag = document.createElement('div');
@@ -6679,12 +6682,15 @@ function mettreAJourArrondi() {
         }
 
         function arcLoadGroups() {
-            // Migration : vider arcMatieres si elle contient des IDs obsolètes (atc/amd/ccda)
+            // Les matières sont construites depuis MATIERES_STD2A (arts appliqués uniquement)
+            // → migration : vider tout arcMatieres sauvegardé s'il contient des IDs non arts
             try {
+                const _validArtsMat = new Set(
+                    Object.values(MATIERES_STD2A).flat().map(m => m.id)
+                );
                 const _saved = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null');
-                if (_saved) {
-                    const _valid = new Set(ARCHIVE_NIVEAUX.flatMap(n => n.matieres.map(m => m.id)));
-                    if (_saved.some(m => !_valid.has(m.id))) localStorage.removeItem('mory_arc_matieres');
+                if (_saved && _saved.some(m => !_validArtsMat.has(m.id))) {
+                    localStorage.removeItem('mory_arc_matieres');
                 }
             } catch(e) {}
             arcClasses  = JSON.parse(localStorage.getItem('mory_arc_classes')  || 'null') || [
@@ -6694,12 +6700,13 @@ function mettreAJourArrondi() {
                 { id:'commun',    label:'Commun',    color:'#a8dab5' },
             ];
             arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || (() => {
+                // Matières uniques de MATIERES_STD2A (déjà toutes arts appliqués)
                 const seen = new Set(); const result = [];
-                ARCHIVE_NIVEAUX.forEach(niveau => {
-                    niveau.matieres.forEach(mat => {
-                        if (!seen.has(mat.id)) {
-                            seen.add(mat.id);
-                            result.push({ id: mat.id, label: mat.nom, color: mat.color });
+                Object.values(MATIERES_STD2A).forEach(mats => {
+                    mats.forEach(m => {
+                        if (!seen.has(m.id)) {
+                            seen.add(m.id);
+                            result.push({ id: m.id, label: m.nom, color: m.color });
                         }
                     });
                 });
@@ -6744,8 +6751,9 @@ function mettreAJourArrondi() {
             arcChromoTarget = null;
         }
 
-        // ── Helper : met à jour visuellement les sous-lignes actives ──────
+        // ── Helper : met à jour visuellement les pastilles + sous-lignes ──
         function arcSyncSubRows() {
+            // Sous-lignes texte (compatibilité)
             document.querySelectorAll('.arc-sub-row[data-arc-id]').forEach(row => {
                 const grp = row.closest('.arc-ssub')?.id?.replace('arc-ssub-','');
                 const id  = row.dataset.arcId;
@@ -6753,6 +6761,8 @@ function mettreAJourArrondi() {
                               || (grp === 'matiere' && arcFilterMat     === id);
                 row.classList.toggle('active', isActive);
             });
+            // Synchroniser les pastilles si elles existent déjà
+            window._arcSyncPills?.();
         }
 
         // ── Construction des sous-listes ──────────────────────────────────
@@ -6843,57 +6853,77 @@ function mettreAJourArrondi() {
         function arcInitSortPanel() {
             arcLoadGroups();
 
-            // Boutons de direction de tri (date)
+            // ── Boutons tri par date ──────────────────────────────────────
             document.querySelectorAll('.arc-sitem[data-arc-sort]').forEach(el => {
                 el.addEventListener('click', () => {
                     document.querySelectorAll('.arc-sitem[data-arc-sort]').forEach(x=>x.classList.remove('active'));
                     el.classList.add('active');
                     arcSortDir = el.dataset.arcSort === 'oldest' ? 'oldest' : 'recent';
-                    // "Tout" : réinitialise les filtres et groupements
                     if (el.dataset.arcSort === 'all') {
-                        arcGroupBy = null;
-                        arcFilterClasse = null;
-                        arcFilterMat = null;
-                        ['classe','matiere'].forEach(g => {
-                            document.getElementById(`arc-ssub-${g}`)?.classList.remove('open');
-                            document.querySelector(`[data-arc-expand="${g}"]`)?.classList.remove('open');
-                        });
-                        arcSyncSubRows();
+                        arcGroupBy = null; arcFilterClasse = null; arcFilterMat = null;
+                        arcSyncPills();
                     }
                     arcApplySort();
                 });
             });
 
-            // Têtes de groupe classe / matière (mutuellement exclusives)
-            ['classe','matiere'].forEach(grp => {
-                const hdrLabel = document.querySelector(`[data-arc-expand="${grp}"]`);
-                const sub      = document.getElementById(`arc-ssub-${grp}`);
-                const other    = grp === 'classe' ? 'matiere' : 'classe';
-                const otherHdr = document.querySelector(`[data-arc-expand="${other}"]`);
-                const otherSub = document.getElementById(`arc-ssub-${other}`);
+            // ── Construire les pastilles classes + matières ───────────────
+            function arcBuildPills() {
+                const rowCls = document.getElementById('arc-pills-classe');
+                const rowMat = document.getElementById('arc-pills-matiere');
+                if (!rowCls || !rowMat) return;
 
-                if (hdrLabel && sub) {
-                    hdrLabel.addEventListener('click', () => {
-                        const wasActive = arcGroupBy === grp;
-                        // Toggle group : si on ré-active le même → désactiver
-                        arcGroupBy = wasActive ? null : grp;
-                        // Si on active ce groupe → fermer et réinitialiser l'autre
-                        if (!wasActive) {
-                            arcFilterClasse = null; arcFilterMat = null;
-                            if (otherSub)  { otherSub.classList.remove('open'); }
-                            if (otherHdr)  { otherHdr.classList.remove('open'); }
-                            sub.classList.add('open');
-                            hdrLabel.classList.add('open');
-                        } else {
-                            sub.classList.remove('open');
-                            hdrLabel.classList.remove('open');
-                        }
-                        arcSyncSubRows();
+                rowCls.innerHTML = '';
+                arcClasses.filter(c => c.id !== 'commun').forEach(cls => {
+                    const pill = document.createElement('div');
+                    pill.className = 'arc-pill';
+                    pill.dataset.pillCls = cls.id;
+                    pill.textContent = cls.label;
+                    pill.style.setProperty('--pill-color', cls.color || '#94a3b8');
+                    if (arcFilterClasse === cls.id) { pill.classList.add('active'); pill.style.background = cls.color; }
+                    pill.addEventListener('click', () => {
+                        arcFilterClasse = arcFilterClasse === cls.id ? null : cls.id;
                         arcApplySort();
+                        arcSyncPills();
                     });
-                }
-                arcBuildSubList(grp);
-            });
+                    rowCls.appendChild(pill);
+                });
+
+                rowMat.innerHTML = '';
+                arcMatieres.forEach(mat => {
+                    const pill = document.createElement('div');
+                    pill.className = 'arc-pill';
+                    pill.dataset.pillMat = mat.id;
+                    pill.textContent = mat.label;
+                    pill.style.setProperty('--pill-color', mat.color || 'var(--flamme)');
+                    if (arcFilterMat === mat.id) { pill.classList.add('active'); pill.style.background = mat.color; }
+                    pill.addEventListener('click', () => {
+                        arcFilterMat = arcFilterMat === mat.id ? null : mat.id;
+                        arcApplySort();
+                        arcSyncPills();
+                    });
+                    rowMat.appendChild(pill);
+                });
+            }
+            arcBuildPills();
+
+            // Synchroniser l'état visuel des pastilles
+            function arcSyncPills() {
+                document.querySelectorAll('.arc-pill[data-pill-cls]').forEach(p => {
+                    const active = arcFilterClasse === p.dataset.pillCls;
+                    p.classList.toggle('active', active);
+                    const cls = arcClasses.find(c => c.id === p.dataset.pillCls);
+                    p.style.background = active ? (cls?.color || '#94a3b8') : '';
+                });
+                document.querySelectorAll('.arc-pill[data-pill-mat]').forEach(p => {
+                    const active = arcFilterMat === p.dataset.pillMat;
+                    p.classList.toggle('active', active);
+                    const mat = arcMatieres.find(m => m.id === p.dataset.pillMat);
+                    p.style.background = active ? (mat?.color || 'var(--flamme)') : '';
+                });
+            }
+            // Rendre arcSyncPills accessible pour arcSyncSubRows et les tags du détail
+            window._arcSyncPills = arcSyncPills;
 
             // Roue chromatique : clic extérieur = ferme
             document.addEventListener('click', e => {
@@ -6963,8 +6993,8 @@ function mettreAJourArrondi() {
                 // quand ils sont poussés via _arcNotifyBoardArchived (compteur ↑).
 
                 // Démo : 20 tableaux de base, tous dans le passé, avec aperçus
-                { const DEMO_CLS    = ['terminale','premiere','seconde','commun'];
-                  const DEMO_MAT    = ['daa','hda','ap','pc','maths','si','ang','eps','st','fr'];
+                { const DEMO_CLS    = ['terminale','premiere','seconde'];
+                  const DEMO_MAT    = ['daa','hda','ap','atc','rep','proj','crea','atl'];
                   const DEMO_IMAGES = [
                       'apercu/03-Poles-AA_jpo-site_PAV.png',
                       'apercu/04-Poles-AA_jpo-site_ATC.png',
@@ -7038,8 +7068,8 @@ function mettreAJourArrondi() {
                       dId++;
                   }
                   // Dates + IDs de matière/classe par défaut (migration si IDs obsolètes)
-                  const _validMat = new Set(ARCHIVE_NIVEAUX.flatMap(n => n.matieres.map(m => m.id)));
-                  const _validCls = new Set(ARCHIVE_NIVEAUX.map(n => n.id));
+                  const _validMat = new Set(Object.values(MATIERES_STD2A).flat().map(m => m.id));
+                  const _validCls = new Set(['terminale','premiere','seconde','commun']);
                   arcAllBoards.forEach((b, idx) => {
                       if (!b.date)     b.date     = new Date(Date.now() - (idx + 1) * 86400000 * 2);
                       if (!b.classeId  || !_validCls.has(b.classeId))  b.classeId  = DEMO_CLS[idx % DEMO_CLS.length];
@@ -7601,8 +7631,9 @@ function mettreAJourArrondi() {
 
         if (sessionRecente) {
             btnReprise.classList.remove('accueil-hidden');
+            const _ncLabel = ctx.nomCours ? `${ctx.nomCours} · ` : '';
             btnReprise.textContent =
-                `↩ Reprendre — ${ctx.identifiant} · ${ctx.classLabel} · ${ctx.matiereLabel}`;
+                `↩ Reprendre · ${_ncLabel}${ctx.classLabel} · ${ctx.matiereLabel}`;
         }
 
         // ── Pré-remplir les champs si contexte existant ───────────

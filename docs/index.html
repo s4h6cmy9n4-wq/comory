@@ -188,20 +188,14 @@
     <!-- Panneau de tri — ferré bas-droit -->
     <div class="arc-sort-panel" id="arc-sort-panel">
         <div class="arc-sitem active" data-arc-sort="all">Tout</div>
-        <div class="arc-sitem" data-arc-sort="recent">Du plus récent</div>
-        <div class="arc-sitem" data-arc-sort="oldest">Du moins récent</div>
+        <div class="arc-sitem" data-arc-sort="recent">Plus récent</div>
+        <div class="arc-sitem" data-arc-sort="oldest">Plus ancien</div>
         <div class="arc-sep"></div>
-        <!-- Section classes — remplie dynamiquement par JS -->
-        <div class="arc-section-hdr" id="arc-hdr-classe">
-            <span class="arc-section-hdr-label" data-arc-expand="classe">Par classe</span>
-        </div>
-        <div class="arc-ssub" id="arc-ssub-classe"></div>
+        <!-- Pastilles classes — remplies dynamiquement par JS -->
+        <div class="arc-pills-row" id="arc-pills-classe"></div>
         <div class="arc-sep"></div>
-        <!-- Section matières — remplie dynamiquement par JS -->
-        <div class="arc-section-hdr" id="arc-hdr-matiere">
-            <span class="arc-section-hdr-label" data-arc-expand="matiere">Par matière</span>
-        </div>
-        <div class="arc-ssub" id="arc-ssub-matiere"></div>
+        <!-- Pastilles matières — remplies dynamiquement par JS -->
+        <div class="arc-pills-row" id="arc-pills-matiere"></div>
     </div>
 
     <!-- Layout principal : drum + détail -->

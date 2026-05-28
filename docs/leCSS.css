@@ -1462,13 +1462,35 @@ body.mode-sombre .arc-info-pill {
 .arc-sep {
     height: 1px; background: var(--shadow-dark); opacity: 0.15; margin: 4px 0;
 }
-.arc-ssub {
-    display: none; flex-direction: column;
-    margin: 1px 0 3px;
-    align-items: flex-end;
+.arc-ssub { display: none; } /* conservé pour compatibilité, non utilisé */
+
+/* ── Pastilles de filtre ── */
+.arc-pills-row {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    justify-content: flex-end;
+    margin: 2px 0;
 }
-.arc-ssub.open { display: flex; }
-.arc-ssub .arc-sitem { font-size: 10px; padding: 2px 0; white-space: normal; line-height: 1.5; }
+.arc-pill {
+    padding: 3px 9px; border-radius: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    cursor: pointer; user-select: none;
+    background: rgba(0,0,0,0.08);
+    color: var(--text-mid);
+    transition: background 0.18s, color 0.18s, transform 0.15s, opacity 0.18s;
+    opacity: 0.6;
+    white-space: nowrap;
+}
+.arc-pill:hover {
+    opacity: 1;
+    transform: scale(1.06);
+}
+.arc-pill.active {
+    color: #fff;
+    opacity: 1;
+    transform: scale(1.0);
+}
 
 /* ── Section "5 derniers" en tête de colonne drum ── */
 .arc-recents {
