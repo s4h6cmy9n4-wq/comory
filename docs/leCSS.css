@@ -1626,7 +1626,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 }
 .arc-detail-preview img {
     width: 100%; height: 100%;
-    object-fit: contain; display: block;
+    object-fit: cover; display: block;
 }
 .arc-detail-preview.arc-detail-placeholder::after {
     content: '—';
@@ -1656,14 +1656,14 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 }
 .arc-detail-label {
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px; color: var(--text-mid);
+    font-size: 15px; font-weight: 700; color: var(--text-mid);
     margin-top: 10px; line-height: 1.5;
     cursor: text;
 }
 .arc-detail-label:hover { text-decoration: underline dotted var(--text-mid); }
 .arc-detail-label-input {
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px; color: var(--text-mid);
+    font-size: 15px; font-weight: 700; color: var(--text-mid);
     margin-top: 10px; line-height: 1.5;
     border: none; border-bottom: 1px solid var(--flamme);
     background: transparent; outline: none;

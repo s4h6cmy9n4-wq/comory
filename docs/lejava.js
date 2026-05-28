@@ -5883,23 +5883,23 @@ function mettreAJourArrondi() {
             const state = window.getBoardState();
             if (!state?.imageData) return;
 
-            // 1. Cache mémoire : instantané, fidelité parfaite (ImageData brut)
-            boardCache[activeBoardId] = { imageData: state.imageData, objs: state.objs };
+            const hasObjs = state.objs && state.objs.length > 0;
 
-            // 2. Thumbnail pour le carrousel
+            // Si le tableau est vide : effacer cache et thumbnail éventuellement obsolètes
+            if (isBlankImageData(state.imageData) && !hasObjs) {
+                delete boardCache[activeBoardId];
+                const bEmpty = boards.find(b => b.id === activeBoardId);
+                if (bEmpty) bEmpty.thumbnail = null;
+                return;
+            }
+
+            // Tableau non vide : cache + thumbnail + IndexedDB
+            boardCache[activeBoardId] = { imageData: state.imageData, objs: state.objs };
             const thumbnail = window.generateThumbnail();
             const b = boards.find(b => b.id === activeBoardId);
             if (b) b.thumbnail = thumbnail;
-
-            // 3. IndexedDB en arrière-plan (PNG, non-bloquant)
-            //    Ne pas sauvegarder un canvas entièrement blanc/transparent
-            //    (artefact d'une ancienne sync JPEG) pour éviter de propager le bug.
-            const hasObjs = state.objs && state.objs.length > 0;
-            if (isBlankImageData(state.imageData) && !hasObjs) return;
-
             const canvasPNG = imageDataToPNG(state.imageData);
-            dbPut({ id: activeBoardId, thumbnail, canvasPNG, objs: state.objs })
-                .catch(() => {});
+            dbPut({ id: activeBoardId, thumbnail, canvasPNG, objs: state.objs }).catch(() => {});
         }
 
         // ── Charger un tableau → canvas ───────────────────────────────────────
@@ -6856,11 +6856,21 @@ function mettreAJourArrondi() {
             }
 
             // ── Navigation molette + clavier ─────────────────────────────
+            let _wheelAccum = 0;
+            let _wheelTimer = null;
             overlay.addEventListener('wheel', e => {
                 if (!overlay.classList.contains('ouvert')) return;
                 e.preventDefault();
-                arcDrumIdx = Math.max(0, Math.min(arcDisplay.length - 1, arcDrumIdx + (e.deltaY > 0 ? 1 : -1)));
-                arcRenderDrum();
+                _wheelAccum += e.deltaY;
+                if (_wheelTimer) return;
+                _wheelTimer = setTimeout(() => {
+                    _wheelTimer = null;
+                    if (Math.abs(_wheelAccum) < 20) { _wheelAccum = 0; return; }
+                    const dir = _wheelAccum > 0 ? 1 : -1;
+                    _wheelAccum = 0;
+                    arcDrumIdx = Math.max(0, Math.min(arcDisplay.length - 1, arcDrumIdx + dir));
+                    arcRenderDrum();
+                }, 120);
             }, { passive: false });
 
             document.addEventListener('keydown', e => {
@@ -6904,13 +6914,42 @@ function mettreAJourArrondi() {
                       'apercu/1-2-fiche-catherine-de-robert-1200x.jpg',
                       'apercu/5bde2b8fbded676d207f632164d513d3.jpg',
                       'apercu/84eb8284c9f5ea0de730e3c1c5eabead.jpg',
-                      "apercu/Capture d'écran 2026-05-27 à 13.20.06.png",
-                      'apercu/bacstd2a.svg',
+                      'apercu/bacstd2a.svg',          // index 6 : remplace fichier avec caractères spéciaux
                       'apercu/histoire_numerique.png',
                       'apercu/images (1).png',
                       'apercu/images.png',
                       'apercu/std2a_05-672x672.jpg',
                       'apercu/unnamed.jpg',
+                      'apercu/03-Poles-AA_jpo-site_PAV.png',  // 12 : cycle
+                      'apercu/04-Poles-AA_jpo-site_ATC.png',
+                      'apercu/histoire_numerique.png',
+                      'apercu/84eb8284c9f5ea0de730e3c1c5eabead.jpg',
+                      'apercu/images.png',
+                      'apercu/std2a_05-672x672.jpg',
+                      'apercu/06-Poles-AA_jpo-site_OLN.png',
+                      'apercu/unnamed.jpg',
+                  ];
+                  const DEMO_RESUMES = [
+`Introduction aux fondements du Bauhaus. Étude des principes directeurs de l'école fondée par Gropius en 1919 : unité des arts et de l'artisanat, forme au service de la fonction. Analyse de productions emblématiques. Les étudiants ont identifié les grandes figures du mouvement et leurs influences sur le design contemporain.`,
+`Atelier couleur inspiré des théories de Josef Albers. Interaction des couleurs, contraste simultané et vibration chromatique. Exercices de carrés concentriques et d'harmonies complémentaires. Discussion sur la perception subjective de la couleur et ses applications en design graphique et industriel.`,
+`Cours consacré à la typographie fonctionnelle. Du Bauhaus au Swiss Style : lisibilité, hiérarchie et grille. Étude comparative de polices emblématiques (Helvetica, Futura, Universal). Exercice de composition d'un texte sur module. Retour sur la notion de blanc typographique comme espace actif.`,
+`Introduction au design industriel et à la forme-outil. Étude de l'œuvre de Marcel Breuer et de ses meubles tubulaires. Analyse fonctionnelle et esthétique. Les étudiants ont réalisé des esquisses de mobilier en partant d'une contrainte matérielle unique. Bonne compréhension du rapport matière-structure.`,
+`Séance dédiée à la photographie expérimentale. Photogrammes, solarisation et double exposition. Influences de László Moholy-Nagy sur la photographie moderne. Les étudiants ont produit leurs propres photogrammes. Discussion sur la lumière comme matériau plastique à part entière.`,
+`Analyse des affiches constructivistes. El Lissitzky, Rodchenko, Malevitch. Étude des formes géométriques pures et de leur pouvoir expressif. Exercice de composition d'une affiche politique fictive avec contrainte de trois couleurs maximum. Liens établis avec le design graphique contemporain.`,
+`Cours sur l'ornement et la modernité. De la condamnation de l'ornement par Adolf Loos à sa réhabilitation postmoderne. Étude de cas : céramique, textile, papier peint. Les étudiants ont conçu un motif de surface en partant d'une forme géométrique de base répétée selon différents principes de symétrie.`,
+`Atelier de maquettage architectural. Passage du plan à la maquette à partir d'un projet de pavillon d'exposition. Matériaux : carton, balsa, plexi. Notions d'échelle, de proportion et de lumière naturelle. Discussion sur les liens entre architecture et design. Les premières maquettes révèlent des lacunes en lecture de plan.`,
+`Séance d'initiation au design textile. Weaving, impression sérigraphique, broderie numérique. Étude des ateliers de tissage du Bauhaus dirigés par Gunta Stölzl. Exercice de création d'un échantillon à structure répétée. Fort engouement des étudiants pour les techniques manuelles.`,
+`Cours sur le rapport entre design et écologie. Du mouvement Arts and Crafts à l'écodesign contemporain. Étude de cycles de vie, choix de matériaux biosourcés et réduction des déchets. Les étudiants ont redesigné un objet du quotidien en appliquant les principes du cradle-to-cradle. Réflexions riches sur la responsabilité du designer.`,
+`Introduction à la sémiologie du design. Signifiant, signifié, référent appliqués aux objets industriels. Analyse de produits iconiques (Citroën DS, Braun T3, Casio F-91W). Discussion sur les codes culturels et leur évolution. Les étudiants ont déconstruit le design d'un smartphone selon une grille sémiotique.`,
+`Atelier d'illustration vectorielle. Techniques de tracé à la plume numérique, courbes de Bézier, palette réduite. Exercice de portrait stylisé d'un designer du XXe siècle. Les productions montrent une grande diversité stylistique. Points de vigilance : gestion des nœuds et cohérence de l'épaisseur de trait.`,
+`Cours de design d'interaction. Affordance, feedback, mapping et modèle mental. Analyse ergonomique d'interfaces existantes selon les heuristiques de Nielsen. Exercice de refonte d'une interface de thermostat intelligent. Discussion sur les enjeux de l'UX dans un monde hyper-connecté.`,
+`Séance consacrée à la lumière artificielle en design d'espace. Sources, températures de couleur, rendement et ambiance. Étude de projets d'Ingo Maurer et Konstantin Grcic. Les étudiants ont conçu le plan de lumière d'une boutique fictive. Bonne prise en compte des contrastes et des zones d'accentuation.`,
+`Cours sur la pensée design (design thinking). Empathie, définition, idéation, prototypage, test. Étude de cas : refonte d'un service public. Les étudiants ont travaillé en équipes pour cartographier l'expérience utilisateur d'un parcours de santé. Présentation des user journeys devant le groupe.`,
+`Atelier calligraphie et lettering contemporain. Du geste à la forme, de la forme au sens. Outils : brush pen, plume parallèle, stylet numérique. Exercice de création d'un alphabet expressif à partir d'un mot-thème. Les productions révèlent une sensibilité typographique naissante et un rapport renouvelé à l'outil.`,
+`Cours d'histoire du design de transport. De l'aérodynamisme des années 1930 à la voiture autonome. Étude de designers emblématiques : Pininfarina, Chris Bangle, Giugiaro. Discussion sur les contraintes d'ingénierie, de marketing et d'identité de marque. Les étudiants ont esquissé un concept-car pour 2040.`,
+`Introduction au design de système. Cohérence, scalabilité, gouvernance d'un système visuel. Étude du Material Design de Google et du Human Interface Guidelines d'Apple. Les étudiants ont créé les bases d'un système de design pour une application fictive : couleurs, typographies, composants de base.`,
+`Atelier de packaging. Contraintes structurelles, séduction visuelle et information réglementaire. Étude du packaging de Dieter Rams pour Braun. Exercice de création d'un coffret cadeau pour un produit artisanal local. Points forts : originalité des matériaux. Points à retravailler : hiérarchie de l'information en face de vente.`,
+`Séance de bilan et perspectives. Présentation des portfolios de l'année. Chaque étudiant a sélectionné trois projets emblématiques de sa progression et les a défendus à l'oral. Retours croisés entre pairs. Bilan général très encourageant : la capacité à problématiser et à justifier les choix de design a nettement progressé.`,
                   ];
                   const DEMO_HOURS  = [9,10,14,15,8,11,16,13,17,9,10,14];
                   const DEMO_MINS   = [0,30,0,30,0,0,0,30,0,0,15,45];
@@ -6933,6 +6972,7 @@ function mettreAJourArrondi() {
                               date:      demoDate,
                               classeId:  DEMO_CLS[dNum % 3],
                               matiereId: DEMO_MAT[dNum % 4],
+                              resume:    DEMO_RESUMES[dNum] || '',
                           });
                           used.add(dId);
                           dNum++;
