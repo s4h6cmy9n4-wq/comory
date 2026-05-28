@@ -5978,19 +5978,7 @@ function mettreAJourArrondi() {
             liste.innerHTML = '';
             const centerIdx = boards.findIndex(b => b.id === visualBoardId);
 
-            // Calcul dynamique des labels : oldest = 1, newest = N
-            const _ncSess = window._sessionContext?.nomCours || '';
-            const _ncCounter = {};
-            const _boardLabels = {};
-            boards.forEach(b => {
-                const nc = _ncSess || b.nomCours || '';
-                if (nc) {
-                    _ncCounter[nc] = (_ncCounter[nc] || 0) + 1;
-                    _boardLabels[b.id] = `${nc} ${_ncCounter[nc]}`;
-                } else {
-                    _boardLabels[b.id] = b.label;
-                }
-            });
+            // Labels directement depuis board.label (gérés par initNomCoursSeq + btnNew)
 
             boards.forEach((board, i) => {
                 const d    = i - centerIdx;
@@ -6011,7 +5999,7 @@ function mettreAJourArrondi() {
                 const meta = document.createElement('div');
                 meta.className = 'tableau-meta';
                 const nom = document.createElement('span');
-                nom.className = 'tableau-nom'; nom.textContent = _boardLabels[board.id] || board.label;
+                nom.className = 'tableau-nom'; nom.textContent = board.label;
                 meta.appendChild(nom);
 
                 if (board.id === activeBoardId) {
@@ -6175,6 +6163,16 @@ function mettreAJourArrondi() {
                         const canvasPNG = imageDataToPNG(cached.imageData);
                         dbPut({ id: oldest.id, thumbnail: oldest.thumbnail, canvasPNG, objs: cached.objs }).catch(() => {});
                     }
+                    // Notifier l'archive pour mise à jour du compteur et de la vignette
+                    if (oldest) {
+                        window._arcNotifyBoardArchived?.({
+                            id: oldest.id,
+                            label: oldest.label,
+                            nomCours: oldest.nomCours || '',
+                            thumbnail: oldest.thumbnail || null,
+                            date: new Date(),
+                        });
+                    }
                     boards.shift(); // retirer du carrousel rapide (reste dans l'archive complète)
                 }
                 boards.push(newBoard); // toujours présent en IndexedDB (archive)
@@ -6223,6 +6221,15 @@ function mettreAJourArrondi() {
                         const cached = boardCache[oldest.id];
                         const canvasPNG = imageDataToPNG(cached.imageData);
                         dbPut({ id: oldest.id, thumbnail: oldest.thumbnail, canvasPNG, objs: cached.objs }).catch(() => {});
+                    }
+                    if (oldest) {
+                        window._arcNotifyBoardArchived?.({
+                            id: oldest.id,
+                            label: oldest.label,
+                            nomCours: oldest.nomCours || '',
+                            thumbnail: oldest.thumbnail || null,
+                            date: new Date(),
+                        });
                     }
                     boards.shift();
                 }
@@ -6274,6 +6281,7 @@ function mettreAJourArrondi() {
             render();
         }
         window._initNomCoursSeq = initNomCoursSeq;
+        window._getBoardsForRecents = () => boards; // pour la bande récents de l'archive
 
         // ── Init — charger les vignettes puis rendre ───────────────────────────
         window._activeBoardIdForResume = activeBoardId;
@@ -6899,67 +6907,53 @@ function mettreAJourArrondi() {
             // (hint de scroll supprimé — grille fixe)
         }
 
-        // ── Bande 5 derniers tableaux ─────────────────────────────────────
+        // ── Bande 5 derniers tableaux (depuis le carrousel rapide) ───────────
         function arcRenderRecents() {
             const strip = document.getElementById('arc-recents-strip');
             if (!strip) return;
             strip.innerHTML = '';
 
-            // Les 5 plus récents (tri par date décroissante)
-            const toTs = d => {
-                if (!d) return 0;
-                if (d instanceof Date) return d.getTime();
-                if (typeof d === 'number') return d;
-                const t = new Date(d).getTime();
-                return isNaN(t) ? 0 : t;
-            };
-            const sorted = [...arcAllBoards].sort((a, b) => toTs(b.date) - toTs(a.date));
-            const recents = sorted.slice(0, 5);
-
-            // Nom de cours : priorité à la session en cours, fallback sur le board
-            const sessionCours = window._sessionContext?.nomCours || '';
-            const nomCoursCounter = {};
+            // Utiliser les tableaux réels du carrousel rapide (les 5 plus récents de l'utilisateur)
+            // window._getBoardsForRecents() renvoie boards[] du carrousel (oldest→newest)
+            // On les affiche newest→oldest dans la bande
+            const carrouselBoards = window._getBoardsForRecents?.() || [];
+            const recents = [...carrouselBoards].reverse(); // newest first
 
             recents.forEach(board => {
                 const card = document.createElement('div');
                 card.className = 'arc-recent-card';
+                card.title = board.label;
 
-                // Étiquette : "[nomCours] N" si un nom de cours est actif (session ou board)
-                const cours = sessionCours || board.nomCours || '';
-                let cardLabel = board.label;
-                if (cours) {
-                    if (!nomCoursCounter[cours]) nomCoursCounter[cours] = 0;
-                    nomCoursCounter[cours]++;
-                    cardLabel = `${cours} ${nomCoursCounter[cours]}`;
-                }
-                card.title = cardLabel;
-
-                const src = board.canvasPNG || board.thumbnail;
+                // Prévisualisation : vignette du carrousel
+                const src = board.thumbnail || board.canvasPNG || null;
                 if (src) {
                     const img = document.createElement('img');
                     img.src = typeof src === 'string' ? src : URL.createObjectURL(src);
                     img.alt = '';
+                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
                     card.appendChild(img);
                 } else {
                     const ph = document.createElement('div');
                     ph.className = 'arc-recent-card-ph';
-                    const col = arcMatieres?.find(m => m.id === board.matiereId)?.color;
-                    if (col) ph.style.background = col;
                     card.appendChild(ph);
                 }
 
                 const lbl = document.createElement('div');
                 lbl.className = 'arc-recent-card-label';
-                lbl.textContent = cardLabel;
+                lbl.textContent = board.label;
                 card.appendChild(lbl);
 
-                // Clic → ouvrir dans le carrousel rapide et fermer l'archive
+                // Clic → ouvrir ce tableau dans le carrousel et fermer l'archive
+                const _bid = board.id;
+                const _blabel = board.label;
+                const _bnc = board.nomCours || '';
+                const _bthumb = board.thumbnail || null;
                 card.addEventListener('click', () => {
                     if (window._openBoardAndActivate) {
-                        window._openBoardAndActivate(board.id, {
-                            label:    board.label,
-                            nomCours: board.nomCours,
-                            thumbnail: board.thumbnail || board.canvasPNG || null,
+                        window._openBoardAndActivate(_bid, {
+                            label:     _blabel,
+                            nomCours:  _bnc,
+                            thumbnail: _bthumb,
                         });
                     }
                     // Fermer l'overlay archive
@@ -6973,6 +6967,23 @@ function mettreAJourArrondi() {
 
         // ── Exposition pour le carrousel ──────────────────────────────────
         window._arcLoadAndRender = arcLoadAndRender;
+
+        // Appelé par le carrousel quand il archive un tableau (maj compteur + vignette)
+        window._arcNotifyBoardArchived = function(board) {
+            if (!arcLoaded) return; // archive pas encore ouverte → sera chargé à la prochaine ouverture
+            const idx = arcAllBoards.findIndex(b => b.id === board.id);
+            const entry = { ...board, canvasPNG: null };
+            if (!entry.date) entry.date = new Date();
+            if (idx >= 0) {
+                // Mettre à jour l'entrée existante (ex: remplace une entrée démo sans vignette)
+                arcAllBoards[idx] = { ...arcAllBoards[idx], ...entry };
+            } else {
+                // Nouveau tableau inconnu de l'archive → l'ajouter (compteur augmente)
+                arcAllBoards.push(entry);
+            }
+            arcApplySort();
+            arcRenderRecents();
+        };
 
 
         // ── (RECAPS supprimés — vue calendrier retirée) ──────────────────
