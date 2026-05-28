@@ -5978,11 +5978,11 @@ function mettreAJourArrondi() {
             liste.innerHTML = '';
             const centerIdx = boards.findIndex(b => b.id === visualBoardId);
 
-            // Calcul dynamique des labels (même logique que l'archive) : newest = 1
+            // Calcul dynamique des labels : oldest = 1, newest = N
             const _ncSess = window._sessionContext?.nomCours || '';
             const _ncCounter = {};
             const _boardLabels = {};
-            [...boards].reverse().forEach(b => {
+            boards.forEach(b => {
                 const nc = _ncSess || b.nomCours || '';
                 if (nc) {
                     _ncCounter[nc] = (_ncCounter[nc] || 0) + 1;
@@ -6155,9 +6155,18 @@ function mettreAJourArrondi() {
                 fermer();
                 await captureActive();              // sauvegarder le tableau actuel
 
-                const newId    = nextBoardId++;
-                const _nc      = window._sessionContext?.nomCours || '';
-                const newBoard = { id: newId, label: `Tableau ${newId}`, nomCours: _nc, thumbnail: null };
+                const newId = nextBoardId++;
+                const _nc   = window._sessionContext?.nomCours || '';
+                let _newLabel;
+                if (_nc) {
+                    const _seqKey  = 'mory_nc_seq_' + _nc;
+                    const _nextNum = parseInt(localStorage.getItem(_seqKey) || '0') + 1;
+                    localStorage.setItem(_seqKey, String(_nextNum));
+                    _newLabel = `${_nc} ${_nextNum}`;
+                } else {
+                    _newLabel = `Tableau ${newId}`;
+                }
+                const newBoard = { id: newId, label: _newLabel, nomCours: _nc, thumbnail: null };
                 if (boards.length >= 5) {
                     // Persister le plus ancien dans IndexedDB avant de le retirer du carrousel
                     const oldest = boards[0];
@@ -6248,11 +6257,29 @@ function mettreAJourArrondi() {
             render(); // rafraîchit la badge "en cours" dans le carrousel
         };
 
+        // ── Init séquence par nomCours (appelé au login) ──────────────────────
+        function initNomCoursSeq(nc) {
+            if (!nc) { render(); return; }
+            const seqKey = 'mory_nc_seq_' + nc;
+            // Re-labelliser tous les tableaux oldest→newest avec le nomCours actuel
+            boards.forEach((b, i) => {
+                b.nomCours = nc;
+                b.label    = `${nc} ${i + 1}`;
+            });
+            saveBoardList();
+            // Initialiser le compteur seulement s'il n'existe pas encore
+            if (!localStorage.getItem(seqKey)) {
+                localStorage.setItem(seqKey, String(boards.length));
+            }
+            render();
+        }
+        window._initNomCoursSeq = initNomCoursSeq;
+
         // ── Init — charger les vignettes puis rendre ───────────────────────────
         window._activeBoardIdForResume = activeBoardId;
         window._carrouselRender = render; // exposé pour mise à jour post-login
         loadThumbnails().then(() => {
-            render();
+            initNomCoursSeq(window._sessionContext?.nomCours || '');
         });
         setTimeout(() => captureActive(), 800); // sauvegarder l'état initial
     }
@@ -7429,8 +7456,8 @@ function mettreAJourArrondi() {
         function ouvrir() {
             clearInterval(_clockTimer);
             overlay.classList.add('accueil-hidden');
-            // Re-rendre le carrousel avec le nomCours de la session
-            setTimeout(() => window._carrouselRender?.(), 0);
+            // Re-labelliser les tableaux avec le nomCours de la session
+            setTimeout(() => window._initNomCoursSeq?.(window._sessionContext?.nomCours || ''), 0);
         }
 
         // ── Soumission du formulaire ──────────────────────────────
