@@ -6493,7 +6493,9 @@ function mettreAJourArrondi() {
                     prevEl.style.background = '';
                     prevEl.classList.remove('arc-detail-placeholder');
                 } else {
-                    const col = arcMatieres?.find(m => m.id === board.matiereId)?.color;
+                    const _km = _arcAllKnownMats?.();
+                    const col = _km?.[board.matiereId]?.color
+                             || arcMatieres?.find(m => m.id === board.matiereId)?.color;
                     prevEl.style.background = col ? col + '33' : 'var(--bg)';
                     prevEl.classList.add('arc-detail-placeholder');
                 }
@@ -6503,13 +6505,15 @@ function mettreAJourArrondi() {
                 arcLoadGroups?.();
                 const tagsEl = document.createElement('div');
                 tagsEl.className = 'arc-detail-tags';
-                if (board.matiereId && arcMatieres) {
-                    const mat = arcMatieres.find(m => m.id === board.matiereId);
+                if (board.matiereId) {
+                    const _km = _arcAllKnownMats?.() || {};
+                    const mat = _km[board.matiereId]
+                             || arcMatieres?.find(m => m.id === board.matiereId);
                     if (mat) {
                         const tag = document.createElement('div');
                         tag.className = 'arc-detail-tag';
                         tag.style.background = mat.color || 'var(--flamme)';
-                        tag.textContent = mat.label;
+                        tag.textContent = mat.title || mat.nom || mat.label;
                         tagsEl.appendChild(tag);
                     }
                 }
@@ -6691,6 +6695,18 @@ function mettreAJourArrondi() {
             localStorage.setItem('mory_arc_matieres', JSON.stringify(arcMatieres));
         }
 
+        // ── Dictionnaire global de toutes les matières connues (MATIERES_STD2A + arcMatieres)
+        function _arcAllKnownMats() {
+            const map = {};
+            Object.values(MATIERES_STD2A).flat().forEach(m => {
+                if (!map[m.id]) map[m.id] = { id: m.id, label: m.abbr || m.nom, title: m.nom, color: m.color };
+            });
+            (arcMatieres || []).forEach(m => {
+                if (!map[m.id]) map[m.id] = { id: m.id, label: m.abbr || m.label, title: m.label, color: m.color };
+            });
+            return map;
+        }
+
         // ── Pastilles filtre classe / matière ─────────────────────────────
         function arcBuildPills() {
             const colClasse = document.getElementById('arc-pills-classe');
@@ -6699,8 +6715,13 @@ function mettreAJourArrondi() {
             colClasse.innerHTML = '';
             colMat.innerHTML    = '';
 
-            // Pastilles classes
-            (arcClasses || []).forEach(cls => {
+            // IDs effectivement présents dans les boards
+            const usedCls = new Set(arcAllBoards.map(b => b.classeId).filter(Boolean));
+            const usedMat = new Set(arcAllBoards.map(b => b.matiereId).filter(Boolean));
+
+            // Pastilles classes — seulement celles qui matchent des boards
+            const _classes = (arcClasses || []).filter(c => usedCls.has(c.id));
+            _classes.forEach(cls => {
                 const pill = document.createElement('button');
                 pill.className         = 'arc-pill';
                 pill.dataset.arcGroup  = 'classe';
@@ -6719,11 +6740,33 @@ function mettreAJourArrondi() {
                 colClasse.appendChild(pill);
             });
 
-            // Pastilles matières — filtrées sur le niveau de la session
-            const _niv  = window._sessionContext?.niveauId;
-            const _mats = (_niv && MATIERES_STD2A[_niv])
-                ? MATIERES_STD2A[_niv].map(m => ({ id: m.id, label: m.abbr || m.nom, title: m.nom, color: m.color }))
-                : (arcMatieres || []).map(m => ({ id: m.id, label: m.label, title: m.label, color: m.color }));
+            // Pastilles matières — dérivées des boards réels, labels/couleurs depuis MATIERES_STD2A
+            const _niv     = window._sessionContext?.niveauId;
+            const _known   = _arcAllKnownMats();
+            let   _mats;
+            if (_niv && MATIERES_STD2A[_niv]) {
+                // Contexte session : ordre de MATIERES_STD2A[niv], filtrées sur ce qui existe
+                _mats = MATIERES_STD2A[_niv]
+                    .filter(m => usedMat.has(m.id))
+                    .map(m => ({ id: m.id, label: m.abbr || m.nom, title: m.nom, color: m.color }));
+            } else {
+                // Pas de contexte : toutes les matières utilisées, dans l'ordre de MATIERES_STD2A
+                const seen = new Set();
+                _mats = [];
+                Object.values(MATIERES_STD2A).flat().forEach(m => {
+                    if (usedMat.has(m.id) && !seen.has(m.id)) {
+                        seen.add(m.id);
+                        _mats.push({ id: m.id, label: m.abbr || m.nom, title: m.nom, color: m.color });
+                    }
+                });
+                // Fallback : matières dans arcMatieres non couvertes par MATIERES_STD2A
+                (arcMatieres || []).forEach(m => {
+                    if (usedMat.has(m.id) && !seen.has(m.id)) {
+                        seen.add(m.id);
+                        _mats.push({ id: m.id, label: m.abbr || m.label, title: m.label, color: m.color });
+                    }
+                });
+            }
 
             _mats.forEach(mat => {
                 const pill = document.createElement('button');
@@ -6744,6 +6787,12 @@ function mettreAJourArrondi() {
                 });
                 colMat.appendChild(pill);
             });
+
+            // Masquer les colonnes vides → panneau propre si rien à filtrer
+            colClasse.style.display = _classes.length > 0 ? '' : 'none';
+            colMat.style.display    = _mats.length   > 0 ? '' : 'none';
+            const sortCols = colClasse.closest('.arc-sort-cols');
+            if (sortCols) sortCols.style.display = (_classes.length + _mats.length) > 0 ? '' : 'none';
         }
 
         function arcSyncPills() {
