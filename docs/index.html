@@ -182,40 +182,18 @@
         </svg>
     </button>
 
-    <!-- Bouton recherche dans l'archive -->
-    <div class="socket-bouton arc-search-socket" id="btn-search-socket">
-        <button id="btn-search" title="Rechercher dans les archives">
-            <svg class="search-icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <svg class="search-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-        </button>
-    </div>
-    <!-- Barre de recherche — étendue (cachée par défaut) -->
-    <div class="arc-search-bar" id="arc-search-bar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;opacity:0.4">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input type="text" id="arc-search-input" placeholder="Rechercher…" autocomplete="off">
-    </div>
 
     </div><!-- fin .arc-header-bar -->
 
     <!-- Panneau de tri — ferré bas-droit -->
     <div class="arc-sort-panel" id="arc-sort-panel">
-        <!-- Tri par date : horloge + flèche toggle -->
         <div class="arc-sort-date" id="arc-sort-date">
-            <svg class="arc-sort-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="arc-sort-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
             </svg>
             <span class="arc-sort-arrow" id="arc-sort-arrow">›</span>
         </div>
-        <!-- Deux colonnes : classes à gauche, matières à droite -->
         <div class="arc-sort-cols">
             <div class="arc-pills-col" id="arc-pills-classe"></div>
             <div class="arc-pills-col" id="arc-pills-matiere"></div>
@@ -240,6 +218,49 @@
             <div class="arc-detail-preview" id="arc-detail-preview"></div>
             <div class="arc-detail-meta" id="arc-detail-meta"></div>
             <div class="arc-detail-resume" id="arc-detail-resume"></div>
+        </div>
+    </div>
+
+    <!-- Boutons collaboration + recherche — en haut de la colonne détail -->
+    <div class="arc-detail-actions" id="arc-detail-actions">
+        <!-- Bouton collaboration -->
+        <div class="socket-bouton arc-act-socket" id="btn-collab-socket">
+            <button class="arc-act-btn" id="btn-arc-collab" title="Collaboration">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200.21 133.59" class="arc-collab-svg">
+                    <path class="arc-cls-2" d="M144.6,127.59c0-56.99-19.92-103.19-44.5-103.19s-44.5,46.2-44.5,103.19h88.99Z"/>
+                    <path class="arc-cls-2" d="M3,130.59v-3c0-26.19,21.31-47.5,47.5-47.5s47.5,21.31,47.5,47.5v3H3Z"/>
+                    <path class="arc-cls-1" d="M50.5,83.09c24.57,0,44.5,19.92,44.5,44.5H6c0-24.57,19.92-44.5,44.5-44.5M50.5,77.09C22.65,77.09,0,99.74,0,127.59v6h100.99v-6c0-27.84-22.65-50.5-50.5-50.5h0Z"/>
+                    <path class="arc-cls-2" d="M100.1,71.69c-18.94,0-34.35-15.41-34.35-34.35S81.17,3,100.1,3s34.35,15.41,34.35,34.35-15.41,34.35-34.35,34.35Z"/>
+                    <path class="arc-cls-1" d="M100.1,6c17.31,0,31.35,14.03,31.35,31.35s-14.03,31.35-31.35,31.35-31.35-14.03-31.35-31.35,14.03-31.35,31.35-31.35M100.1,0c-20.59,0-37.35,16.75-37.35,37.35s16.75,37.35,37.35,37.35,37.35-16.75,37.35-37.35S120.7,0,100.1,0h0Z"/>
+                    <path class="arc-cls-2" d="M50.5,96.46c-18.94,0-34.35-15.41-34.35-34.35S31.56,27.77,50.5,27.77s34.35,15.41,34.35,34.35-15.41,34.35-34.35,34.35Z"/>
+                    <path class="arc-cls-1" d="M50.5,30.77c17.31,0,31.35,14.03,31.35,31.35s-14.03,31.35-31.35,31.35-31.35-14.03-31.35-31.35,14.03-31.35,31.35-31.35M50.5,24.77c-20.59,0-37.35,16.75-37.35,37.35s16.75,37.35,37.35,37.35,37.35-16.75,37.35-37.35-16.75-37.35-37.35-37.35h0Z"/>
+                    <path class="arc-cls-2" d="M102.22,130.59v-3c0-26.19,21.31-47.5,47.5-47.5s47.5,21.31,47.5,47.5v3h-94.99Z"/>
+                    <path class="arc-cls-1" d="M149.71,83.09c24.57,0,44.5,19.92,44.5,44.5h-88.99c0-24.57,19.92-44.5,44.5-44.5M149.71,77.09c-27.84,0-50.5,22.65-50.5,50.5v6h100.99v-6c0-27.84-22.65-50.5-50.5-50.5h0Z"/>
+                    <path class="arc-cls-2" d="M149.71,96.46c-18.94,0-34.35-15.41-34.35-34.35s15.41-34.35,34.35-34.35,34.35,15.41,34.35,34.35-15.41,34.35-34.35,34.35Z"/>
+                    <path class="arc-cls-1" d="M149.71,30.77c17.31,0,31.35,14.03,31.35,31.35s-14.03,31.35-31.35,31.35-31.35-14.03-31.35-31.35,14.03-31.35,31.35-31.35M149.71,24.77c-20.59,0-37.35,16.75-37.35,37.35s16.75,37.35,37.35,37.35,37.35-16.75,37.35-37.35-16.75-37.35-37.35-37.35h0Z"/>
+                </svg>
+            </button>
+        </div>
+        <!-- Bouton + barre de recherche -->
+        <div class="arc-search-wrapper">
+            <div class="socket-bouton arc-act-socket" id="btn-search-socket">
+                <button class="arc-act-btn" id="btn-search" title="Rechercher">
+                    <svg class="search-icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <svg class="search-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="arc-search-bar" id="arc-search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;opacity:0.45">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="arc-search-input" placeholder="Rechercher…" autocomplete="off" spellcheck="false">
+            </div>
         </div>
     </div>
 

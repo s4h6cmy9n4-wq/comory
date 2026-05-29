@@ -204,32 +204,6 @@ body {
 /* Bouton logo mobile — caché par défaut (visible uniquement sur mobile via media query) */
 #mobile-logo-socket { display: none; }
 
-/* ── Barre de recherche archive (dans arc-header-bar) ── */
-.arc-search-bar {
-    display: none;
-    flex: 1; height: 46px; min-width: 0;
-    background: var(--bg);
-    border-radius: 23px;
-    box-shadow:
-        8px 8px 20px var(--shadow-outer-dark),
-        -3px -3px 10px var(--shadow-outer-light),
-        inset 2px 2px 5px var(--shadow-light),
-        inset -2px -2px 5px var(--shadow-dark);
-    align-items: center;
-    padding: 0 16px; gap: 8px;
-}
-.arc-search-bar.active { display: flex; }
-#arc-search-input {
-    flex: 1; border: none; background: transparent; outline: none;
-    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
-    color: var(--text-dark); min-width: 0;
-}
-#arc-search-input::placeholder { color: var(--text-mid); opacity: 0.55; }
-.arc-header-bar.search-active { width: calc(100vw - 24px); }
-.arc-header-bar.search-active .arc-close-btn { display: none; }
-.arc-search-socket button { display: flex; align-items: center; justify-content: center; }
-.arc-search-socket button svg { width: 18px; height: 18px; }
-
 /* Boutons ronds top-bar — néomorphiques surélevés */
 .socket-bouton {
     width: 46px; height: 46px; border-radius: 50%;
@@ -1205,22 +1179,6 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    cursor: text;
-    pointer-events: auto;
-}
-.tableau-nom-input {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    color: var(--text-dark);
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--flamme);
-    outline: none;
-    width: 100%;
-    padding: 0;
 }
 .tableau-date {
     font-family: 'DM Sans', sans-serif;
@@ -1451,79 +1409,59 @@ body.mode-sombre .arc-info-pill {
     opacity: 0.55; font-family: 'DM Sans', sans-serif;
 }
 
-/* ── Panneau de tri (déplaçable) ── */
+/* ── Panneau de tri — pastilles ── */
 .arc-sort-panel {
     position: absolute;
     bottom: 12px; right: 14px;
     z-index: 820;
     width: auto;
-    background: transparent;
-    border-radius: 0;
-    padding: 0;
-    box-shadow: none;
     display: flex; flex-direction: column; align-items: flex-end; gap: 7px;
     font-family: 'DM Sans', sans-serif;
     user-select: none;
-    max-height: calc(100vh - 80px);
-    overflow-y: auto;
-    scrollbar-width: none;
 }
-.arc-sort-panel::-webkit-scrollbar { display: none; }
-.arc-panel-handle { display: none; }
-
-/* ── Toggle tri par date (stylisé comme une pastille) ── */
+/* Pastille date / tri */
 .arc-sort-date {
-    display: flex; align-items: center; gap: 6px;
-    padding: 5px 12px; border-radius: 20px;
-    background: rgba(0,0,0,0.08);
-    cursor: pointer; color: var(--text-mid);
-    opacity: 0.6; user-select: none;
-    font-family: 'DM Sans', sans-serif;
-    transition: background 0.18s, color 0.18s, transform 0.15s, opacity 0.18s;
-    margin-bottom: 4px; /* un peu au-dessus des colonnes */
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 22px;
+    background: var(--bg);
+    box-shadow: 4px 4px 12px var(--shadow-outer-dark), -2px -2px 6px var(--shadow-outer-light);
+    cursor: pointer; color: var(--text-mid); opacity: 0.65;
+    transition: opacity 0.18s, box-shadow 0.18s;
+    margin-bottom: 4px;
 }
-.arc-sort-date:hover { opacity: 1; transform: scale(1.06); }
-.arc-sort-clock { width: 16px; height: 16px; flex-shrink: 0; }
+.arc-sort-date:hover { opacity: 1; }
+.arc-sort-clock { width: 18px; height: 18px; flex-shrink: 0; }
 .arc-sort-arrow {
-    font-size: 16px; line-height: 1; display: inline-block;
-    font-weight: 600; transition: transform 0.22s;
+    font-size: 18px; font-weight: 700; display: inline-block;
+    line-height: 1;
+    transition: transform 0.22s ease;
 }
-
-/* ── Deux colonnes classes / matières ── */
+/* Deux colonnes classes | matières */
 .arc-sort-cols {
     display: flex; flex-direction: row; gap: 8px; align-items: flex-start;
 }
 .arc-pills-col {
-    display: flex; flex-direction: column; gap: 5px; align-items: flex-start;
+    display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
 }
-
-/* ── Pastilles de filtre ── */
-.arc-pills-row {
-    display: flex; flex-wrap: wrap; gap: 5px;
-    justify-content: flex-end;
-    margin: 2px 0;
-}
+/* Pastille individuelle */
 .arc-pill {
-    padding: 5px 12px; border-radius: 20px;
+    padding: 6px 14px; border-radius: 22px;
+    font-size: 11px; font-weight: 700;
     font-family: 'DM Sans', sans-serif;
-    font-size: 10.5px; font-weight: 700;
-    letter-spacing: 0.03em; text-transform: uppercase;
-    cursor: pointer; user-select: none;
-    background: rgba(0,0,0,0.08);
-    color: var(--text-mid);
-    transition: background 0.18s, color 0.18s, transform 0.15s, opacity 0.18s;
-    opacity: 0.6;
-    white-space: nowrap;
+    cursor: pointer; opacity: 0.6; border: none;
+    background: var(--bg);
+    box-shadow: 3px 3px 8px var(--shadow-outer-dark), -1px -1px 4px var(--shadow-outer-light);
+    color: var(--text-mid); white-space: nowrap;
+    transition: opacity 0.18s, transform 0.18s, box-shadow 0.14s;
 }
-.arc-pill:hover {
-    opacity: 1;
-    transform: scale(1.06);
-}
-.arc-pill.active {
-    color: #fff;
-    opacity: 1;
-    transform: scale(1.0);
-}
+.arc-pill:hover  { opacity: 0.9; transform: scale(1.05); }
+.arc-pill:active { transform: scale(0.97); }
+.arc-pill.active { color: #fff !important; opacity: 1; }
+/* Compat anciens sélecteurs */
+.arc-panel-handle { display: none; }
+.arc-sep { display: none; }
+.arc-sitem { display: none; }
+.arc-ssub  { display: none; }
 
 /* ── Section "5 derniers" en tête de colonne drum ── */
 .arc-recents {
@@ -1665,6 +1603,71 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     pointer-events: none; user-select: none;
 }
 
+/* Boutons collaboration + recherche — en haut de la col. détail */
+.arc-detail-actions {
+    position: absolute;
+    top: 12px;
+    left: calc(380px + 14px); /* drum-col + espace */
+    z-index: 821;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+/* Socket des boutons d'action archive — même style que socket-bouton */
+.arc-act-socket {
+    flex-shrink: 0;
+}
+/* Bouton intérieur — transparent pour pas de carré blanc */
+.arc-act-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--bg);
+    border: none;
+    box-shadow: var(--neu-flat);
+    cursor: pointer;
+    color: var(--text-mid);
+    display: flex; align-items: center; justify-content: center;
+    transition: box-shadow 0.12s ease, color 0.12s;
+    padding: 0;
+    -webkit-appearance: none; appearance: none;
+    overflow: hidden;
+}
+.arc-act-btn:hover  { box-shadow: var(--neu-pressed); color: var(--bleu-mid, #4f8ef7); }
+.arc-act-btn svg    { width: 18px; height: 18px; display: block; }
+/* SVG collaboration dans l'archive */
+.arc-collab-svg .arc-cls-1 { fill: none; stroke: var(--bg); stroke-width: 8px; }
+.arc-collab-svg .arc-cls-2 { fill: currentColor; stroke: none; }
+/* Icônes recherche */
+.search-icon-search,
+.search-icon-close   { display: block; }
+/* Barre de recherche — animation slide vers la droite */
+.arc-search-wrapper {
+    display: flex; align-items: center; gap: 0;
+}
+.arc-search-bar {
+    height: 46px;
+    max-width: 0; width: 280px;
+    overflow: hidden;
+    opacity: 0;
+    background: var(--bg);
+    border-radius: 0 23px 23px 0;
+    box-shadow: 4px 4px 14px var(--shadow-outer-dark), -2px -2px 6px var(--shadow-outer-light),
+                inset 2px 2px 5px var(--shadow-light), inset -2px -2px 5px var(--shadow-dark);
+    display: flex; align-items: center;
+    padding: 0 16px 0 14px; gap: 8px;
+    transition: max-width 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
+}
+.arc-search-bar.active {
+    max-width: 300px;
+    opacity: 1;
+}
+#arc-search-input {
+    flex: 1; border: none; background: transparent; outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; color: var(--text-dark);
+    min-width: 0;
+}
+#arc-search-input::placeholder { color: var(--text-mid); opacity: 0.55; }
+
 /* Colonne droite : détail session */
 .arc-detail-col {
     flex: 1;
@@ -1727,11 +1730,6 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     font-family: 'DM Sans', sans-serif;
     font-size: 11px; font-weight: 700;
     color: #fff; letter-spacing: 0.04em; user-select: none;
-    transition: filter 0.15s, transform 0.15s;
-}
-.arc-detail-tag:hover {
-    filter: brightness(1.15);
-    transform: scale(1.05);
 }
 .arc-detail-label {
     font-family: 'DM Sans', sans-serif;
@@ -1793,6 +1791,8 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     .arc-drum-card { width: 180px; height: 120px; }
     .arc-detail-col { padding: 20px 24px 32px; }
     .arc-detail-date { font-size: 22px; }
+    .arc-detail-actions { top: calc(62px + 260px + 10px); left: 14px; }
+    .arc-search-bar.active { max-width: calc(100vw - 160px); }
 }
 
 
@@ -1814,7 +1814,15 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 }
 
 /* Bouton "+" ajout inline en bas de la sous-liste */
-.arc-add-inline { display: none; } /* masqué en mode texte minimal */
+.arc-add-inline {
+    align-self: center; margin-top: 5px;
+    width: 22px; height: 22px; border-radius: 50%; border: none;
+    background: var(--bg); box-shadow: var(--neu-flat);
+    cursor: pointer; font-size: 15px; line-height: 1;
+    color: var(--text-mid); display: flex; align-items: center; justify-content: center;
+    transition: box-shadow 0.12s, color 0.12s; flex-shrink: 0;
+}
+.arc-add-inline:hover { box-shadow: var(--neu-pressed); color: var(--flamme); }
 
 
 
@@ -1837,41 +1845,45 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 
 /* ── Swatches et sous-items arc ── */
 .arc-section-hdr {
-    display: flex; align-items: center; justify-content: flex-end;
-    font-size: 10.5px; padding: 3px 0; color: var(--text-mid);
-    user-select: none; opacity: 0.55;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11.5px; padding: 5px 0; color: var(--text-mid);
+    user-select: none;
 }
-.arc-section-hdr-label { cursor: pointer; transition: color 0.18s, opacity 0.18s; }
-.arc-section-hdr-label:hover { color: var(--text-dark); opacity: 1; }
-.arc-section-hdr-label.open { color: var(--flamme); font-weight: 600; opacity: 1; }
-.arc-add-btn { display: none; } /* masqué en mode texte minimal */
+.arc-section-hdr-label { cursor: pointer; transition: color 0.18s; }
+.arc-section-hdr-label:hover { color: var(--text-dark); }
+.arc-section-hdr-label.open { color: var(--flamme); font-weight: 600; }
+.arc-add-btn {
+    width: 18px; height: 18px; border-radius: 50%; border: none;
+    background: var(--bg); box-shadow: var(--neu-flat);
+    color: var(--text-mid); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; line-height: 1; transition: box-shadow 0.12s, color 0.12s;
+    flex-shrink: 0;
+}
+.arc-add-btn:hover { box-shadow: var(--neu-pressed); color: var(--flamme); }
 .arc-sub-row {
-    display: flex; align-items: center; gap: 6px;
-    padding: 2px 0; cursor: pointer;
-    justify-content: flex-end;
+    display: flex; align-items: center; gap: 7px;
+    padding: 3px 0; cursor: pointer;
 }
-.arc-sub-row:hover .arc-sub-lbl { color: var(--text-dark); opacity: 1; }
-.arc-sub-row.active .arc-sub-lbl { color: var(--flamme); font-weight: 600; opacity: 1; }
+.arc-sub-row:hover .arc-sub-lbl { color: var(--text-dark); }
+.arc-sub-row.active .arc-sub-lbl { color: var(--flamme); font-weight: 600; }
 .arc-swatch {
-    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-    cursor: pointer; border: none;
+    width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0;
+    cursor: pointer; border: 1.5px solid rgba(0,0,0,0.12);
     transition: transform 0.15s;
-    order: 2; /* dot à droite du label */
 }
-.arc-swatch:hover { transform: scale(1.4); }
+.arc-swatch:hover { transform: scale(1.25); }
 .arc-sub-lbl {
-    font-size: 10px; color: var(--text-mid); opacity: 0.55;
-    white-space: normal; line-height: 1.5;
+    font-size: 10.5px; color: var(--text-mid);
+    white-space: normal; line-height: 1.5; flex: 1;
     outline: none;
     font-family: 'DM Sans', sans-serif;
-    text-align: right;
-    transition: color 0.18s, opacity 0.18s;
 }
 .arc-sub-lbl[contenteditable="true"] {
     background: var(--bg); border-radius: 3px;
-    padding: 1px 4px; margin-right: -4px;
+    padding: 1px 4px; margin-left: -4px;
     box-shadow: inset 1px 1px 4px var(--shadow-dark);
-    color: var(--text-dark); opacity: 1;
+    color: var(--text-dark);
 }
 
 /* ── Palette 10 couleurs (popup swatch, remplace mini-roue) ── */

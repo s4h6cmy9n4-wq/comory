@@ -3226,14 +3226,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Clic hors de la roue et du panel → désactiver l'outil actif (desktop)
-    // Exception : le plan-de-travail (canevas) — l'utilisateur dessine dessus avec l'outil actif
     document.addEventListener('mousedown', (e) => {
         if (!outilActifNum) return;
         const rouePanel = document.getElementById('roue-panel');
         if (roueConteneur.contains(e.target)) return;
         if (rouePanel && rouePanel.contains(e.target)) return;
-        const planDeTravail = document.getElementById('plan-de-travail');
-        if (planDeTravail && planDeTravail.contains(e.target)) return;
         window.desactiverOutil();
     });
 
@@ -5542,26 +5539,26 @@ function mettreAJourArrondi() {
             { id:'daa',  nom:'Design & Arts Appliqués', color:'#FF2D55', pct:46 },
             { id:'proj', nom:'Projet en Design',        color:'#FF9F0A', pct:26 },
             { id:'atc',  nom:'Arts, Tech. & Civ.',      color:'#BF5AF2', pct:12 },
-            { id:'rep',  nom:'Représentation',          color:'#007AFF', pct:10 },
             { id:'hda',  nom:'Histoire des Arts',       color:'#30D158', pct:6  },
+            { id:'autre',nom:'Autre',                   color:'#94a3b8', pct:10 },
         ],
         premiere: [
             { id:'daa',  nom:'Design & Arts Appliqués', color:'#FF2D55', pct:44 },
             { id:'crea', nom:'Création en design',      color:'#FF9F0A', pct:28 },
             { id:'atc',  nom:'Arts, Tech. & Civ.',      color:'#BF5AF2', pct:12 },
-            { id:'rep',  nom:'Représentation',          color:'#007AFF', pct:10 },
             { id:'hda',  nom:'Histoire des Arts',       color:'#30D158', pct:6  },
+            { id:'autre',nom:'Autre',                   color:'#94a3b8', pct:10 },
         ],
         seconde: [
-            { id:'ap',   nom:'Arts Plastiques',         color:'#FF2D55', pct:40 },
-            { id:'daa',  nom:'Initiation au Design',    color:'#FF9F0A', pct:30 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      color:'#BF5AF2', pct:15 },
-            { id:'atl',  nom:'Atelier créatif',         color:'#007AFF', pct:15 },
+            { id:'daa',  nom:'Initiation au Design',    color:'#FF9F0A', pct:35 },
+            { id:'atc',  nom:'Arts, Tech. & Civ.',      color:'#BF5AF2', pct:22 },
+            { id:'atl',  nom:'Atelier',                 color:'#007AFF', pct:22 },
+            { id:'autre',nom:'Autre',                   color:'#94a3b8', pct:21 },
         ],
         commun: [
-            { id:'ap',   nom:'Arts Plastiques',         color:'#FF2D55', pct:55 },
-            { id:'hda',  nom:'Histoire des Arts',       color:'#30D158', pct:25 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      color:'#BF5AF2', pct:20 },
+            { id:'hda',  nom:'Histoire des Arts',       color:'#30D158', pct:40 },
+            { id:'atc',  nom:'Arts, Tech. & Civ.',      color:'#BF5AF2', pct:35 },
+            { id:'autre',nom:'Autre',                   color:'#94a3b8', pct:25 },
         ],
     };
 
@@ -6003,31 +6000,6 @@ function mettreAJourArrondi() {
                 meta.className = 'tableau-meta';
                 const nom = document.createElement('span');
                 nom.className = 'tableau-nom'; nom.textContent = board.label;
-                nom.title = 'Cliquer pour renommer';
-                nom.addEventListener('click', e => {
-                    e.stopPropagation();
-                    const inp = document.createElement('input');
-                    inp.type = 'text';
-                    inp.value = board.label;
-                    inp.className = 'tableau-nom-input';
-                    nom.replaceWith(inp);
-                    inp.focus(); inp.select();
-                    let saved = false;
-                    function saveNom() {
-                        if (saved) return; saved = true;
-                        const v = inp.value.trim() || board.label;
-                        board.label = v;
-                        saveBoardList();
-                        render();
-                    }
-                    inp.addEventListener('blur', saveNom);
-                    inp.addEventListener('keydown', ev => {
-                        if (ev.key === 'Enter')  { ev.preventDefault(); inp.blur(); }
-                        if (ev.key === 'Escape') { inp.value = board.label; inp.blur(); }
-                        ev.stopPropagation();
-                    });
-                    inp.addEventListener('click', ev => ev.stopPropagation());
-                });
                 meta.appendChild(nom);
 
                 if (board.id === activeBoardId) {
@@ -6203,10 +6175,6 @@ function mettreAJourArrondi() {
                             nomCours: oldest.nomCours || '',
                             thumbnail: oldest.thumbnail || null,
                             date: new Date(),
-                            classeId:    window._sessionContext?.niveauId     || null,
-                            matiereId:   window._sessionContext?.matiereId    || null,
-                            matiereLabel: window._sessionContext?.matiereLabel || null,
-                            classeLabel:  window._sessionContext?.classLabel   || null,
                         });
                     }
                     // Tableau vide → suppression silencieuse (pas d'archive)
@@ -6266,10 +6234,6 @@ function mettreAJourArrondi() {
                             nomCours: oldest.nomCours || '',
                             thumbnail: oldest.thumbnail || null,
                             date: new Date(),
-                            classeId:    window._sessionContext?.niveauId     || null,
-                            matiereId:   window._sessionContext?.matiereId    || null,
-                            matiereLabel: window._sessionContext?.matiereLabel || null,
-                            classeLabel:  window._sessionContext?.classLabel   || null,
                         });
                     }
                     boards.shift();
@@ -6354,7 +6318,7 @@ function mettreAJourArrondi() {
         function closeArchive() {
             overlay.classList.remove('ouvert');
             overlay.setAttribute('aria-hidden', 'true');
-            window._arcCloseSearch?.(); // reset la barre de recherche
+            window._arcCloseSearch?.();
         }
 
         // Logo (canvas) → affiche l'écran d'accueil
@@ -6508,32 +6472,17 @@ function mettreAJourArrondi() {
                         const tag = document.createElement('div');
                         tag.className = 'arc-detail-tag';
                         tag.style.background = mat.color || 'var(--flamme)';
-                        tag.style.cursor = 'pointer';
-                        const _matLabel = board.matiereLabel || mat.label;
-                        tag.title = `Filtrer par ${_matLabel}`;
-                        tag.textContent = _matLabel;
-                        tag.addEventListener('click', () => {
-                            arcFilterMat = arcFilterMat === board.matiereId ? null : board.matiereId;
-                            arcApplySort();
-                            arcSyncSubRows();
-                        });
+                        tag.textContent = mat.label;
                         tagsEl.appendChild(tag);
                     }
                 }
-                if (board.classeId && board.classeId !== 'commun' && arcClasses) {
+                if (board.classeId && arcClasses) {
                     const cls = arcClasses.find(c => c.id === board.classeId);
                     if (cls) {
                         const tag = document.createElement('div');
                         tag.className = 'arc-detail-tag';
                         tag.style.background = cls.color || '#94a3b8';
-                        tag.style.cursor = 'pointer';
-                        tag.title = `Filtrer par ${cls.label}`;
                         tag.textContent = cls.label;
-                        tag.addEventListener('click', () => {
-                            arcFilterClasse = arcFilterClasse === board.classeId ? null : board.classeId;
-                            arcApplySort();
-                            arcSyncSubRows();
-                        });
                         tagsEl.appendChild(tag);
                     }
                 }
@@ -6688,41 +6637,99 @@ function mettreAJourArrondi() {
         }
 
         function arcLoadGroups() {
-            // Les matières sont construites depuis MATIERES_STD2A (arts appliqués uniquement)
-            // → migration : vider tout arcMatieres sauvegardé s'il contient des IDs non arts
-            try {
-                const _validArtsMat = new Set(
-                    Object.values(MATIERES_STD2A).flat().map(m => m.id)
-                );
-                const _saved = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null');
-                if (_saved && _saved.some(m => !_validArtsMat.has(m.id))) {
-                    localStorage.removeItem('mory_arc_matieres');
-                }
-            } catch(e) {}
             arcClasses  = JSON.parse(localStorage.getItem('mory_arc_classes')  || 'null') || [
                 { id:'terminale', label:'Terminale', color:'#a8c5da' },
                 { id:'premiere',  label:'Première',  color:'#c5a8da' },
                 { id:'seconde',   label:'Seconde',   color:'#dac5a8' },
-                { id:'commun',    label:'Commun',    color:'#a8dab5' },
             ];
-            arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || (() => {
-                // Matières uniques de MATIERES_STD2A (déjà toutes arts appliqués)
-                const seen = new Set(); const result = [];
-                Object.values(MATIERES_STD2A).forEach(mats => {
-                    mats.forEach(m => {
-                        if (!seen.has(m.id)) {
-                            seen.add(m.id);
-                            result.push({ id: m.id, label: m.nom, color: m.color });
-                        }
-                    });
-                });
-                return result;
-            })();
+            arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || [
+                { id:'atc',  label:'Art techniques et civilisations',                    color:'#e8a87c' },
+                { id:'daa',  label:'Design et arts appliqués',                           color:'#87c5a8' },
+                { id:'amd',  label:'Analyse et méthodes en design',                      color:'#a8a8e8' },
+                { id:'ccda', label:'Conception et création en design et arts appliqués', color:'#e8c87c' },
+            ];
         }
         function arcSaveGroups() {
             localStorage.setItem('mory_arc_classes',  JSON.stringify(arcClasses));
             localStorage.setItem('mory_arc_matieres', JSON.stringify(arcMatieres));
         }
+
+        // ── Pastilles filtre classe / matière ─────────────────────────────
+        function arcBuildPills() {
+            const colClasse = document.getElementById('arc-pills-classe');
+            const colMat    = document.getElementById('arc-pills-matiere');
+            if (!colClasse || !colMat) return;
+            colClasse.innerHTML = '';
+            colMat.innerHTML    = '';
+
+            // Pastilles classes
+            (arcClasses || []).forEach(cls => {
+                const pill = document.createElement('button');
+                pill.className         = 'arc-pill';
+                pill.dataset.arcGroup  = 'classe';
+                pill.dataset.arcId     = cls.id;
+                pill.textContent       = cls.label;
+                const col = cls.color || '#94a3b8';
+                if (arcFilterClasse === cls.id) {
+                    pill.classList.add('active');
+                    pill.style.background = col;
+                }
+                pill.addEventListener('click', () => {
+                    arcFilterClasse = arcFilterClasse === cls.id ? null : cls.id;
+                    arcBuildPills();
+                    arcApplySort();
+                });
+                colClasse.appendChild(pill);
+            });
+
+            // Pastilles matières — filtrées sur le niveau de la session
+            const _niv  = window._sessionContext?.niveauId;
+            const _mats = (_niv && MATIERES_STD2A[_niv])
+                ? MATIERES_STD2A[_niv].map(m => ({ id: m.id, label: m.nom, color: m.color }))
+                : (arcMatieres || []).map(m => ({ id: m.id, label: m.label, color: m.color }));
+
+            _mats.forEach(mat => {
+                const pill = document.createElement('button');
+                pill.className         = 'arc-pill';
+                pill.dataset.arcGroup  = 'matiere';
+                pill.dataset.arcId     = mat.id;
+                pill.textContent       = mat.label;
+                const col = mat.color || '#94a3b8';
+                if (arcFilterMat === mat.id) {
+                    pill.classList.add('active');
+                    pill.style.background = col;
+                }
+                pill.addEventListener('click', () => {
+                    arcFilterMat = arcFilterMat === mat.id ? null : mat.id;
+                    arcBuildPills();
+                    arcApplySort();
+                });
+                colMat.appendChild(pill);
+            });
+        }
+
+        function arcSyncPills() {
+            document.querySelectorAll('.arc-pill').forEach(pill => {
+                const grp = pill.dataset.arcGroup;
+                const id  = pill.dataset.arcId;
+                let col = '#94a3b8';
+                if (grp === 'classe') {
+                    col = arcClasses?.find(c => c.id === id)?.color || col;
+                } else {
+                    const _niv = window._sessionContext?.niveauId;
+                    const mats = (_niv && MATIERES_STD2A[_niv]) ? MATIERES_STD2A[_niv] : [];
+                    col = mats.find(m => m.id === id)?.color
+                       || (arcMatieres || []).find(m => m.id === id)?.color
+                       || col;
+                }
+                const isActive = (grp === 'classe'  && arcFilterClasse === id)
+                              || (grp === 'matiere' && arcFilterMat    === id);
+                pill.classList.toggle('active', isActive);
+                pill.style.background = isActive ? col : '';
+            });
+        }
+        window._arcSyncPills = arcSyncPills;
+        window._arcSetSearch = function(q) { arcSearchQ = q || ''; arcApplySort(); };
 
         // ── Palette 10 couleurs (popup swatch de classe/matière) ─────────────
         let arcChromoTarget = null; // { group, id, swatchEl }
@@ -6757,9 +6764,8 @@ function mettreAJourArrondi() {
             arcChromoTarget = null;
         }
 
-        // ── Helper : met à jour visuellement les pastilles + sous-lignes ──
+        // ── Helper : met à jour visuellement les sous-lignes actives ──────
         function arcSyncSubRows() {
-            // Sous-lignes texte (compatibilité)
             document.querySelectorAll('.arc-sub-row[data-arc-id]').forEach(row => {
                 const grp = row.closest('.arc-ssub')?.id?.replace('arc-ssub-','');
                 const id  = row.dataset.arcId;
@@ -6767,8 +6773,6 @@ function mettreAJourArrondi() {
                               || (grp === 'matiere' && arcFilterMat     === id);
                 row.classList.toggle('active', isActive);
             });
-            // Synchroniser les pastilles si elles existent déjà
-            window._arcSyncPills?.();
         }
 
         // ── Construction des sous-listes ──────────────────────────────────
@@ -6855,11 +6859,12 @@ function mettreAJourArrondi() {
             container.appendChild(addInline);
         }
 
-        // ── Panneau de tri ─────────────────────────────────────────────────
+        // ── Panneau de tri (pastilles) ────────────────────────────────────
         function arcInitSortPanel() {
             arcLoadGroups();
+            arcBuildPills();
 
-            // ── Toggle tri par date (horloge + flèche) ───────────────────
+            // ── Tri par date ──────────────────────────────────────────────
             const sortDateEl = document.getElementById('arc-sort-date');
             const sortArrow  = document.getElementById('arc-sort-arrow');
             function syncSortArrow() {
@@ -6874,78 +6879,11 @@ function mettreAJourArrondi() {
             }
             syncSortArrow();
 
-            // ── Construire les pastilles classes + matières ───────────────
-            function arcBuildPills() {
-                const rowCls = document.getElementById('arc-pills-classe');
-                const rowMat = document.getElementById('arc-pills-matiere');
-                if (!rowCls || !rowMat) return;
-
-                rowCls.innerHTML = '';
-                arcClasses.filter(c => c.id !== 'commun').forEach(cls => {
-                    const pill = document.createElement('div');
-                    pill.className = 'arc-pill';
-                    pill.dataset.pillCls = cls.id;
-                    pill.textContent = cls.label;
-                    pill.style.setProperty('--pill-color', cls.color || '#94a3b8');
-                    if (arcFilterClasse === cls.id) { pill.classList.add('active'); pill.style.background = cls.color; }
-                    pill.addEventListener('click', () => {
-                        arcFilterClasse = arcFilterClasse === cls.id ? null : cls.id;
-                        arcApplySort();
-                        arcSyncPills();
-                    });
-                    rowCls.appendChild(pill);
-                });
-
-                rowMat.innerHTML = '';
-                // Filtrer les matières au niveau de la session courante (même liste que la page de connexion)
-                const _sessionNiveau = window._sessionContext?.niveauId;
-                const _pillMats = (_sessionNiveau && MATIERES_STD2A[_sessionNiveau])
-                    ? MATIERES_STD2A[_sessionNiveau].map(m => ({ id: m.id, label: m.nom, color: m.color }))
-                    : arcMatieres;
-                _pillMats.forEach(mat => {
-                    const pill = document.createElement('div');
-                    pill.className = 'arc-pill';
-                    pill.dataset.pillMat = mat.id;
-                    pill.textContent = mat.label;
-                    pill.style.setProperty('--pill-color', mat.color || 'var(--flamme)');
-                    if (arcFilterMat === mat.id) { pill.classList.add('active'); pill.style.background = mat.color; }
-                    pill.addEventListener('click', () => {
-                        arcFilterMat = arcFilterMat === mat.id ? null : mat.id;
-                        arcApplySort();
-                        arcSyncPills();
-                    });
-                    rowMat.appendChild(pill);
-                });
-            }
-            arcBuildPills();
-
-            // Synchroniser l'état visuel des pastilles
-            function arcSyncPills() {
-                document.querySelectorAll('.arc-pill[data-pill-cls]').forEach(p => {
-                    const active = arcFilterClasse === p.dataset.pillCls;
-                    p.classList.toggle('active', active);
-                    const cls = arcClasses.find(c => c.id === p.dataset.pillCls);
-                    p.style.background = active ? (cls?.color || '#94a3b8') : '';
-                });
-                document.querySelectorAll('.arc-pill[data-pill-mat]').forEach(p => {
-                    const active = arcFilterMat === p.dataset.pillMat;
-                    p.classList.toggle('active', active);
-                    const mat = arcMatieres.find(m => m.id === p.dataset.pillMat);
-                    p.style.background = active ? (mat?.color || 'var(--flamme)') : '';
-                });
-            }
-            // Rendre arcSyncPills et arcSetSearch accessibles
-            window._arcSyncPills = arcSyncPills;
-            window._arcSetSearch = function(q) { arcSearchQ = q || ''; arcApplySort(); };
-
-            // Roue chromatique : clic extérieur = ferme
+            // ── Roue chromatique : clic extérieur = ferme ─────────────────
             document.addEventListener('click', e => {
                 const popup = document.getElementById('arc-chromo-popup');
                 if (popup && popup.classList.contains('open') && !popup.contains(e.target)) arcChromoClose();
             });
-
-            // ── Panel draggable ────────────────────────────────────────────
-            // Panel de tri : positionné par CSS (position:absolute bottom:0 right:0), pas de drag.
 
             // ── Redimensionnement → recalcule le drum ────────────────────
             const drumEl = document.getElementById('arc-drum');
@@ -6986,39 +6924,67 @@ function mettreAJourArrondi() {
                     arcRenderDrum();
                 }
             });
+
+            // ── Barre de recherche ─────────────────────────────────────────
+            (function initSearchBar() {
+                const btnSearch   = document.getElementById('btn-search');
+                const searchBar   = document.getElementById('arc-search-bar');
+                const searchInput = document.getElementById('arc-search-input');
+                if (!btnSearch || !searchBar || !searchInput) return;
+
+                function openSearch() {
+                    searchBar.classList.add('active');
+                    const iconSearch = btnSearch.querySelector('.search-icon-search');
+                    const iconClose  = btnSearch.querySelector('.search-icon-close');
+                    if (iconSearch) iconSearch.style.display = 'none';
+                    if (iconClose)  iconClose.style.display  = '';
+                    setTimeout(() => { searchInput.focus(); searchInput.select(); }, 50);
+                }
+                function closeSearch() {
+                    searchBar.classList.remove('active');
+                    const iconSearch = btnSearch.querySelector('.search-icon-search');
+                    const iconClose  = btnSearch.querySelector('.search-icon-close');
+                    if (iconSearch) iconSearch.style.display = '';
+                    if (iconClose)  iconClose.style.display  = 'none';
+                    arcSearchQ = '';
+                    searchInput.value = '';
+                    arcApplySort();
+                }
+                window._arcCloseSearch = closeSearch;
+                btnSearch.addEventListener('click', () => {
+                    if (searchBar.classList.contains('active')) closeSearch();
+                    else openSearch();
+                });
+                searchInput.addEventListener('input', () => {
+                    arcSearchQ = searchInput.value;
+                    arcApplySort();
+                });
+                searchInput.addEventListener('keydown', e => {
+                    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeSearch(); }
+                });
+            })();
         }
 
         // ── Chargement + rendu ────────────────────────────────────────────
         async function arcLoadAndRender() {
             if (!arcLoaded) {
                 const labels   = arcLabelMap();
-                // Métadonnées persistées lors de l'archivage (date, classeId, matiereId…)
-                const arcMeta  = (() => { try { return JSON.parse(localStorage.getItem('mory_arc_metadata') || '{}'); } catch(e) { return {}; } })();
-                // IDs des tableaux ACTIFS dans le carrousel (à exclure de l'archive)
-                const carrouselIds = new Set(Object.keys(labels).map(Number));
                 const dbBoards = await arcLoadFromDB();
-                arcAllBoards   = dbBoards
-                    .filter(b => !carrouselIds.has(b.id)) // exclure les tableaux du carrousel actif
-                    .map(b => {
-                        const meta = arcMeta[String(b.id)];
-                        return {
-                            ...b,
-                            label:        meta?.label        || b.label    || `Tableau ${b.id}`,
-                            nomCours:     meta?.nomCours     || b.nomCours || '',
-                            date:         meta?.date ? new Date(meta.date) : (b.date ? new Date(b.date) : null),
-                            classeId:     meta?.classeId     !== undefined ? meta.classeId     : (b.classeId     || null),
-                            matiereId:    meta?.matiereId    !== undefined ? meta.matiereId    : (b.matiereId    || null),
-                            matiereLabel: meta?.matiereLabel !== undefined ? meta.matiereLabel : (b.matiereLabel || null),
-                            classeLabel:  meta?.classeLabel  !== undefined ? meta.classeLabel  : (b.classeLabel  || null),
-                        };
-                    });
+                arcAllBoards   = dbBoards.map(b => {
+                    const entry = labels[b.id];
+                    return {
+                        ...b,
+                        label:    (entry?.label)    || b.label    || `Tableau ${b.id}`,
+                        nomCours: (entry?.nomCours) || b.nomCours || '',
+                    };
+                });
                 // Note : on ne charge PAS le localStorage ici — les tableaux du carrousel
                 // apparaissent dans la bande "récents". Ils s'ajoutent à l'archive uniquement
                 // quand ils sont poussés via _arcNotifyBoardArchived (compteur ↑).
 
                 // Démo : 20 tableaux de base, tous dans le passé, avec aperçus
                 { const DEMO_CLS    = ['terminale','premiere','seconde'];
-                  const DEMO_MAT    = ['daa','hda','ap','atc','rep','proj','crea','atl'];
+                  const DEMO_MAT    = ['atc','daa','amd','ccda'];
                   const DEMO_IMAGES = [
                       'apercu/03-Poles-AA_jpo-site_PAV.png',
                       'apercu/04-Poles-AA_jpo-site_ATC.png',
@@ -7091,13 +7057,12 @@ function mettreAJourArrondi() {
                       }
                       dId++;
                   }
-                  // Dates + IDs de matière/classe par défaut (migration si IDs obsolètes)
-                  const _validMat = new Set(Object.values(MATIERES_STD2A).flat().map(m => m.id));
-                  const _validCls = new Set(['terminale','premiere','seconde','commun']);
+                  // Dates par défaut pour les vrais tableaux venant de la DB
+                  const DEMO_CLS2 = DEMO_CLS; const DEMO_MAT2 = DEMO_MAT;
                   arcAllBoards.forEach((b, idx) => {
                       if (!b.date)     b.date     = new Date(Date.now() - (idx + 1) * 86400000 * 2);
-                      if (!b.classeId  || !_validCls.has(b.classeId))  b.classeId  = DEMO_CLS[idx % DEMO_CLS.length];
-                      if (!b.matiereId || !_validMat.has(b.matiereId)) b.matiereId = DEMO_MAT[idx % DEMO_MAT.length];
+                      if (!b.classeId) b.classeId = DEMO_CLS2[idx % 3];
+                      if (!b.matiereId) b.matiereId = DEMO_MAT2[idx % 4];
                   });
                   // Appliquer les overrides (renommages / résumés sauvegardés)
                   try {
@@ -7180,21 +7145,6 @@ function mettreAJourArrondi() {
 
         // Appelé par le carrousel quand il archive un tableau (maj compteur + vignette)
         window._arcNotifyBoardArchived = function(board) {
-            // Persister les métadonnées dans localStorage AVANT tout (même si l'archive n'est pas ouverte)
-            try {
-                const _meta = JSON.parse(localStorage.getItem('mory_arc_metadata') || '{}');
-                _meta[String(board.id)] = {
-                    label:        board.label        || `Tableau ${board.id}`,
-                    nomCours:     board.nomCours     || '',
-                    date:         board.date ? new Date(board.date).toISOString() : new Date().toISOString(),
-                    classeId:     board.classeId     || null,
-                    matiereId:    board.matiereId    || null,
-                    matiereLabel: board.matiereLabel || null,
-                    classeLabel:  board.classeLabel  || null,
-                };
-                localStorage.setItem('mory_arc_metadata', JSON.stringify(_meta));
-            } catch(e) {}
-
             if (!arcLoaded) return; // archive pas encore ouverte → sera chargé à la prochaine ouverture
             const idx = arcAllBoards.findIndex(b => b.id === board.id);
             const entry = { ...board, canvasPNG: null };
@@ -7670,9 +7620,8 @@ function mettreAJourArrondi() {
 
         if (sessionRecente) {
             btnReprise.classList.remove('accueil-hidden');
-            const _ncLabel = ctx.nomCours ? `${ctx.nomCours} · ` : '';
             btnReprise.textContent =
-                `↩ Reprendre · ${_ncLabel}${ctx.classLabel} · ${ctx.matiereLabel}`;
+                `↩ Reprendre — ${ctx.identifiant} · ${ctx.classLabel} · ${ctx.matiereLabel}`;
         }
 
         // ── Pré-remplir les champs si contexte existant ───────────
@@ -7749,54 +7698,6 @@ function mettreAJourArrondi() {
             if (ctx) window._sessionContext = ctx;
             ouvrir();
         }
-    })();
-
-    // ── Barre de recherche archive (bouton loupe dans arc-header-bar) ───────
-    (function initSearchBar() {
-        const btnSearch    = document.getElementById('btn-search');
-        const searchBar    = document.getElementById('arc-search-bar');
-        const searchInput  = document.getElementById('arc-search-input');
-        const arcHeaderBar = document.querySelector('.arc-header-bar');
-        if (!btnSearch || !searchBar || !searchInput || !arcHeaderBar) return;
-
-        function openSearch() {
-            arcHeaderBar.classList.add('search-active');
-            searchBar.classList.add('active');
-            const iconSearch = btnSearch.querySelector('.search-icon-search');
-            const iconClose  = btnSearch.querySelector('.search-icon-close');
-            if (iconSearch) iconSearch.style.display = 'none';
-            if (iconClose)  iconClose.style.display  = '';
-            setTimeout(() => { searchInput.focus(); searchInput.select(); }, 50);
-        }
-        function closeSearch() {
-            arcHeaderBar.classList.remove('search-active');
-            searchBar.classList.remove('active');
-            const iconSearch = btnSearch.querySelector('.search-icon-search');
-            const iconClose  = btnSearch.querySelector('.search-icon-close');
-            if (iconSearch) iconSearch.style.display = '';
-            if (iconClose)  iconClose.style.display  = 'none';
-            window._arcSetSearch?.('');
-            searchInput.value = '';
-        }
-        // Exposer pour reset lors de la fermeture de l'archive
-        window._arcCloseSearch = closeSearch;
-
-        btnSearch.addEventListener('click', () => {
-            if (arcHeaderBar.classList.contains('search-active')) closeSearch();
-            else openSearch();
-        });
-
-        searchInput.addEventListener('input', () => {
-            window._arcSetSearch?.(searchInput.value);
-        });
-
-        searchInput.addEventListener('keydown', e => {
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                e.stopPropagation(); // empêche la fermeture de l'overlay
-                closeSearch();
-            }
-        });
     })();
 
 }); // Fin du DOMContentLoaded
