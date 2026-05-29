@@ -3623,6 +3623,49 @@ document.addEventListener('DOMContentLoaded', () => {
             () => paintState.color
         );
 
+        // ── Overlay valeur (épaisseur / opacité) ─────────────────────────────
+        const centreElD = document.getElementById('roue-centre');
+        const valDivD   = document.createElement('div');
+        valDivD.style.cssText = [
+            'position:absolute', 'top:50%', 'left:50%',
+            'transform:translate(-50%,-50%)',
+            'display:flex', 'flex-direction:column', 'align-items:center',
+            'pointer-events:none', 'z-index:25',
+            'opacity:0', 'transition:opacity 0.10s',
+            'gap:1px',
+            'width:calc(var(--roue-size)*0.27)',
+            'text-align:center',
+        ].join(';');
+        const valLblD = document.createElement('div');
+        valLblD.style.cssText = [
+            'font-family:\'DM Sans\',sans-serif',
+            'font-size:calc(var(--roue-size)*0.042)',
+            'font-weight:700', 'letter-spacing:0.03em',
+            'text-transform:uppercase', 'color:var(--bleu-marine)',
+            'white-space:nowrap', 'overflow:hidden',
+        ].join(';');
+        const valNumD = document.createElement('div');
+        valNumD.style.cssText = [
+            'font-family:\'DM Sans\',sans-serif',
+            'font-size:calc(var(--roue-size)*0.115)',
+            'font-weight:900', 'letter-spacing:-0.04em',
+            'color:var(--bleu-marine)', 'line-height:1',
+        ].join(';');
+        valDivD.appendChild(valLblD);
+        valDivD.appendChild(valNumD);
+        if (centreElD) centreElD.appendChild(valDivD);
+        if (chromo) chromo.style.transition = 'opacity 0.10s';
+        const showVal = (v, lbl) => {
+            valLblD.textContent = lbl || '';
+            valNumD.textContent = Math.round(v);
+            valDivD.style.opacity = '1';
+            if (chromo) { chromo.style.opacity = '0'; chromo.style.pointerEvents = 'none'; }
+        };
+        const hideVal = () => {
+            valDivD.style.opacity = '0';
+            if (chromo) { chromo.style.opacity = '1'; chromo.style.pointerEvents = ''; }
+        };
+
         // ── Nettoyage (chaîné) ────────────────────────────────────────────────
         const prevCleanup = panelCleanup;
         panelCleanup = () => {
@@ -3636,6 +3679,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.removeEventListener('touchend',  onUp);
             dialSvg.innerHTML = '';
             roueConteneur.classList.remove('mode-dessin');
+            if (valDivD.parentNode) valDivD.parentNode.removeChild(valDivD);
+            if (chromo) { chromo.style.opacity = ''; chromo.style.transition = ''; chromo.style.pointerEvents = ''; }
         };
     }
 

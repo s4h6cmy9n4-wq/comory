@@ -797,7 +797,7 @@ body {
 .roue-centre-chromo {
     width: 82%; height: 82%; border-radius: 50%; flex-shrink: 0;
     background:
-        radial-gradient(circle, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0) 64%),
+        radial-gradient(circle, rgba(0,0,0,0.90) 0%, rgba(0,0,0,0) 64%),
         conic-gradient(
             hsl(0,100%,50%) 0deg,    hsl(30,100%,50%) 30deg,
             hsl(60,100%,50%) 60deg,  hsl(90,100%,50%) 90deg,
