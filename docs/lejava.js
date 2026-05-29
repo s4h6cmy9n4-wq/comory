@@ -5014,11 +5014,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     urlEl.textContent = MOBILE_URL;
                     card.appendChild(urlEl);
 
-                    const hint = document.createElement('p');
-                    hint.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:11px;color:#cbd5e1;text-align:center;margin:0;';
-                    hint.textContent = 'Cliquer en dehors pour fermer';
-                    card.appendChild(hint);
-
                     overlay.appendChild(card);
                     overlay.addEventListener('click', () => overlay.remove());
                     document.body.appendChild(overlay);
@@ -5063,10 +5058,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     urlEl.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:10px;color:#94a3b8;text-align:center;word-break:break-all;max-width:240px;margin:0;';
                     urlEl.textContent = MOBILE_URL_P;
                     card.appendChild(urlEl);
-                    const hint = document.createElement('p');
-                    hint.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:11px;color:#cbd5e1;text-align:center;margin:0;';
-                    hint.textContent = 'Cliquer en dehors pour fermer';
-                    card.appendChild(hint);
                     overlay.appendChild(card);
                     overlay.addEventListener('click', () => overlay.remove());
                     document.body.appendChild(overlay);
