@@ -4408,6 +4408,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { family: 'Space Mono',        label: 'Mono'      },
             { family: 'Cormorant Garamond',label: 'Cormorant' },
             { family: 'Raleway',           label: 'Raleway'   },
+            { family: 'Space Grotesk',     label: 'Grotesk'   },
         ];
         const N     = FONTS.length;
         const aStep = 2 * Math.PI / N;
