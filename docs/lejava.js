@@ -7660,8 +7660,8 @@ function mettreAJourArrondi() {
             btnReprise.classList.remove('accueil-hidden');
             const _coursLabel = ctx.nomCours || '';
             btnReprise.textContent = _coursLabel
-                ? `↩ Reprendre — ${_coursLabel} · ${ctx.classLabel} · ${ctx.matiereLabel}`
-                : `↩ Reprendre — ${ctx.classLabel} · ${ctx.matiereLabel}`;
+                ? `↩ Reprendre · ${_coursLabel} · ${ctx.classLabel} · ${ctx.matiereLabel}`
+                : `↩ Reprendre · ${ctx.classLabel} · ${ctx.matiereLabel}`;
         }
 
         // ── Pré-remplir les champs si contexte existant ───────────
