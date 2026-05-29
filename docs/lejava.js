@@ -6773,14 +6773,9 @@ function mettreAJourArrondi() {
             const _niv     = window._sessionContext?.niveauId;
             const _known   = _arcAllKnownMats();
             let   _mats;
-            if (_niv && MATIERES_STD2A[_niv]) {
-                // Contexte session : ordre de MATIERES_STD2A[niv], filtrées sur ce qui existe
-                _mats = MATIERES_STD2A[_niv]
-                    .filter(m => usedMat.has(m.id))
-                    .map(m => ({ id: m.id, label: m.abbr || m.nom, title: m.nom, color: m.color }));
-            } else {
-                // Pas de contexte : arcMatieres s'affichent TOUJOURS (matières configurées),
-                // + matières de MATIERES_STD2A utilisées par des boards mais non listées dans arcMatieres
+            {
+                // arcMatieres s'affichent TOUJOURS (matières configurées par l'enseignant),
+                // + matières de MATIERES_STD2A utilisées par des boards mais absentes de arcMatieres
                 const seen = new Set();
                 _mats = [];
                 // 1. Toujours afficher les matières configurées (arcMatieres)
@@ -6790,8 +6785,10 @@ function mettreAJourArrondi() {
                         _mats.push({ id: m.id, label: m.abbr || m.label, title: m.label, color: m.color });
                     }
                 });
-                // 2. Ajouter les matières de MATIERES_STD2A présentes dans des boards mais absentes de arcMatieres
-                Object.values(MATIERES_STD2A).flat().forEach(m => {
+                // 2. Ajouter les matières de MATIERES_STD2A utilisées par des boards mais absentes de arcMatieres
+                const stdSrc = (_niv && MATIERES_STD2A[_niv]) ? MATIERES_STD2A[_niv]
+                             : Object.values(MATIERES_STD2A).flat();
+                stdSrc.forEach(m => {
                     if (usedMat.has(m.id) && !seen.has(m.id)) {
                         seen.add(m.id);
                         _mats.push({ id: m.id, label: m.abbr || m.nom, title: m.nom, color: m.color });
