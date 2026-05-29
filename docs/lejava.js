@@ -3801,7 +3801,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ].join(';');
         const valLbl2 = document.createElement('div');
         valLbl2.style.cssText = [
-            'font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif',
+            'font-family:\'DM Sans\',sans-serif',
             'font-size:calc(var(--roue-size)*0.042)',
             'font-weight:700', 'color:var(--bleu-marine)',
             'letter-spacing:0.03em', 'text-transform:uppercase',
@@ -3810,7 +3810,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ].join(';');
         const valNum2 = document.createElement('div');
         valNum2.style.cssText = [
-            'font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif',
+            'font-family:\'DM Sans\',sans-serif',
             'font-size:calc(var(--roue-size)*0.115)',
             'font-weight:900', 'color:var(--bleu-marine)',
             'letter-spacing:-0.04em', 'line-height:1',
@@ -4152,7 +4152,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Texte en arc sur la ligne médiane du demi-donut
             const textEl = mk('text', {
-                'font-family': "'DM Sans',Helvetica,Arial,sans-serif",
+                'font-family': "'DM Sans',sans-serif",
                 'font-size': '0.118',
                 'font-weight': '700',
                 fill: textColor,
@@ -4263,7 +4263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Affichage central "N×M"
         const centreEl=document.getElementById('roue-centre');
         const valDiv=document.createElement('div');
-        valDiv.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:calc(var(--roue-size)*0.09);font-weight:900;color:var(--flamme);pointer-events:none;z-index:25;line-height:1;text-align:center;white-space:nowrap;';
+        valDiv.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:\'DM Sans\',sans-serif;font-size:calc(var(--roue-size)*0.09);font-weight:900;color:var(--flamme);pointer-events:none;z-index:25;line-height:1;text-align:center;white-space:nowrap;';
         const updVal=()=>{valDiv.textContent=`${window.etatTableau.cols}×${window.etatTableau.rows}`;};
         updVal();
         if(centreEl)centreEl.appendChild(valDiv);
