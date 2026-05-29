@@ -1432,7 +1432,7 @@ body.mode-sombre .arc-info-pill {
 }
 /* Deux colonnes classes | matières */
 .arc-sort-cols {
-    display: flex; flex-direction: row; gap: 8px; align-items: flex-start;
+    display: flex; flex-direction: row; gap: 8px; align-items: flex-end;
 }
 .arc-pills-col {
     display: flex; flex-direction: column; gap: 5px;
@@ -1596,10 +1596,13 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 
 /* Compteur 1/N */
 .arc-drum-count {
+    position: absolute; bottom: 12px;
+    left: 50%; transform: translateX(-50%);
     font-family: 'DM Sans', sans-serif;
     font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
     color: var(--text-mid); opacity: 0.5;
     pointer-events: none; user-select: none;
+    white-space: nowrap;
 }
 
 /* Boutons collaboration + recherche — en haut de la col. détail */
@@ -1686,6 +1689,9 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 .arc-detail-header {
     width: 100%; max-width: 680px;
     flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
 }
 
 /* Aperçu 16:9 */
@@ -1721,7 +1727,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 }
 .arc-detail-time {
     font-family: 'DM Sans', sans-serif;
-    font-size: 14px; color: var(--text-mid); margin-top: 4px;
+    font-size: 14px; color: var(--text-mid);
 }
 .arc-detail-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .arc-detail-tag {
@@ -1754,7 +1760,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 .arc-detail-resume-text {
     font-family: 'DM Sans', sans-serif;
     font-size: 14px; color: var(--text-mid);
-    line-height: 1.7; margin: 0;
+    line-height: 1.38; margin: 0;
     padding: 16px 0 0;
     border-top: 1px solid var(--shadow-dark);
     cursor: text;
@@ -1773,7 +1779,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 .arc-detail-resume-textarea {
     font-family: 'DM Sans', sans-serif;
     font-size: 14px; color: var(--text-mid);
-    line-height: 1.7;
+    line-height: 1.38;
     width: 100%; min-height: 100px;
     border: none; border-top: 1px solid var(--flamme);
     background: transparent; outline: none;
