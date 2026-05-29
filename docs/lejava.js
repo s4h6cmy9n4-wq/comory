@@ -5575,26 +5575,26 @@ function mettreAJourArrondi() {
         terminale: [
             { id:'daa',  nom:'Design & Arts Appliqués', abbr:'Design AA',  color:'#FF2D55', pct:46 },
             { id:'proj', nom:'Projet en Design',        abbr:'Projet',      color:'#FF9F0A', pct:26 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'Arts T.&C.',  color:'#BF5AF2', pct:12 },
+            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:12 },
             { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#30D158', pct:6  },
             { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:10 },
         ],
         premiere: [
             { id:'daa',  nom:'Design & Arts Appliqués', abbr:'Design AA',  color:'#FF2D55', pct:44 },
             { id:'crea', nom:'Création en design',      abbr:'Création',    color:'#FF9F0A', pct:28 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'Arts T.&C.',  color:'#BF5AF2', pct:12 },
+            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:12 },
             { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#30D158', pct:6  },
             { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:10 },
         ],
         seconde: [
             { id:'daa',  nom:'Initiation au Design',    abbr:'Initiation',  color:'#FF9F0A', pct:35 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'Arts T.&C.',  color:'#BF5AF2', pct:22 },
-            { id:'atl',  nom:'Atelier',                 abbr:'Atelier',     color:'#007AFF', pct:22 },
+            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:22 },
+            { id:'atl',  nom:'Atelier',                 abbr:'ATELIER',     color:'#007AFF', pct:22 },
             { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:21 },
         ],
         commun: [
             { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#30D158', pct:40 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'Arts T.&C.',  color:'#BF5AF2', pct:35 },
+            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:35 },
             { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:25 },
         ],
     };
@@ -7088,7 +7088,7 @@ function mettreAJourArrondi() {
 
                 // Démo : 20 tableaux de base, tous dans le passé, avec aperçus
                 { const DEMO_CLS    = ['terminale','premiere','seconde'];
-                  const DEMO_MAT    = ['atc','daa','amd','ccda'];
+                  const DEMO_MAT    = ['atc','oln','amd','ccda','atl'];
                   const DEMO_IMAGES = [
                       'apercu/03-Poles-AA_jpo-site_PAV.png',
                       'apercu/04-Poles-AA_jpo-site_ATC.png',
@@ -7153,7 +7153,7 @@ function mettreAJourArrondi() {
                               _demo:     true,
                               date:      demoDate,
                               classeId:  DEMO_CLS[dNum % 3],
-                              matiereId: DEMO_MAT[dNum % 4],
+                              matiereId: DEMO_MAT[dNum % DEMO_MAT.length],
                               resume:    DEMO_RESUMES[dNum] || '',
                           });
                           used.add(dId);
@@ -7166,7 +7166,7 @@ function mettreAJourArrondi() {
                   arcAllBoards.forEach((b, idx) => {
                       if (!b.date)     b.date     = new Date(Date.now() - (idx + 1) * 86400000 * 2);
                       if (!b.classeId) b.classeId = DEMO_CLS2[idx % 3];
-                      if (!b.matiereId) b.matiereId = DEMO_MAT2[idx % 4];
+                      if (!b.matiereId) b.matiereId = DEMO_MAT2[idx % DEMO_MAT2.length];
                   });
                   // Appliquer les overrides (renommages / résumés sauvegardés)
                   try {
