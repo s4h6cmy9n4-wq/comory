@@ -3253,7 +3253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (num === 5) {
             window.activeToolMode = 'shape';
             if (window.setCanvasCursor) window.setCanvasCursor('crosshair');
-            construirePanelFormes();               // panel latéral : couleur + options
+            try { construirePanelFormes(); } catch(e) { console.warn('construirePanelFormes', e); }
             roueConteneur.classList.add('mode-formes');
             construireDialFormes();                // dial roue : formes + sliders
             return;
@@ -7162,6 +7162,7 @@ function mettreAJourArrondi() {
                   } catch(e) {}
                 }
                 arcLoaded = true;
+                arcBuildPills(); // reconstruit les pastilles maintenant que arcAllBoards est peuplé
             }
             arcApplySort();
             arcRenderRecents();
