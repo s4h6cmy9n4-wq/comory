@@ -6779,20 +6779,22 @@ function mettreAJourArrondi() {
                     .filter(m => usedMat.has(m.id))
                     .map(m => ({ id: m.id, label: m.abbr || m.nom, title: m.nom, color: m.color }));
             } else {
-                // Pas de contexte : toutes les matières utilisées, dans l'ordre de MATIERES_STD2A
+                // Pas de contexte : arcMatieres s'affichent TOUJOURS (matières configurées),
+                // + matières de MATIERES_STD2A utilisées par des boards mais non listées dans arcMatieres
                 const seen = new Set();
                 _mats = [];
+                // 1. Toujours afficher les matières configurées (arcMatieres)
+                (arcMatieres || []).forEach(m => {
+                    if (!seen.has(m.id)) {
+                        seen.add(m.id);
+                        _mats.push({ id: m.id, label: m.abbr || m.label, title: m.label, color: m.color });
+                    }
+                });
+                // 2. Ajouter les matières de MATIERES_STD2A présentes dans des boards mais absentes de arcMatieres
                 Object.values(MATIERES_STD2A).flat().forEach(m => {
                     if (usedMat.has(m.id) && !seen.has(m.id)) {
                         seen.add(m.id);
                         _mats.push({ id: m.id, label: m.abbr || m.nom, title: m.nom, color: m.color });
-                    }
-                });
-                // Fallback : matières dans arcMatieres non couvertes par MATIERES_STD2A
-                (arcMatieres || []).forEach(m => {
-                    if (usedMat.has(m.id) && !seen.has(m.id)) {
-                        seen.add(m.id);
-                        _mats.push({ id: m.id, label: m.abbr || m.label, title: m.label, color: m.color });
                     }
                 });
             }
