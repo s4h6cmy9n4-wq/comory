@@ -1413,23 +1413,6 @@ body.mode-sombre .arc-info-pill {
     font-family: 'DM Sans', sans-serif;
     user-select: none;
 }
-/* Pastille date / tri */
-.arc-sort-date {
-    display: flex; align-items: center; gap: 7px;
-    padding: 8px 16px; border-radius: 22px;
-    background: var(--bg);
-    box-shadow: 4px 4px 12px var(--shadow-outer-dark), -2px -2px 6px var(--shadow-outer-light);
-    cursor: pointer; color: var(--text-mid); opacity: 0.65;
-    transition: opacity 0.18s, box-shadow 0.18s;
-    margin-bottom: 4px;
-}
-.arc-sort-date:hover { opacity: 1; }
-.arc-sort-clock { width: 18px; height: 18px; flex-shrink: 0; }
-.arc-sort-arrow {
-    font-size: 18px; font-weight: 700; display: inline-block;
-    line-height: 1;
-    transition: transform 0.22s ease;
-}
 /* Deux colonnes classes | matières */
 .arc-sort-cols {
     display: flex; flex-direction: row; gap: 8px; align-items: flex-end;
@@ -1641,36 +1624,34 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 /* Icônes recherche */
 .search-icon-search,
 .search-icon-close   { display: block; }
-/* Barre de recherche — pleine largeur, glisse depuis le haut */
+/* Barre de recherche — s'étire vers le bord droit depuis le bouton */
 .arc-search-wrapper {
     display: flex; align-items: center; gap: 0;
 }
 .arc-search-bar {
-    /* Position fixe dans l'overlay (transform sur .archive-overlay crée le bloc contenant) */
-    position: fixed;
-    top: -80px; left: 0; right: 0;
-    width: 100%; max-width: 100%;
-    height: 70px;
+    height: 46px;
+    max-width: 0;
+    width: calc(100vw - 500px); /* largeur cible = bord droit moins la position du bouton */
     overflow: hidden;
     opacity: 0;
     background: var(--bg);
-    border-radius: 0;
-    box-shadow: 0 3px 20px var(--shadow-outer-dark);
-    z-index: 825;
+    border-radius: 23px;
+    box-shadow: 4px 4px 14px var(--shadow-outer-dark), -2px -2px 6px var(--shadow-outer-light),
+                inset 2px 2px 5px var(--shadow-light), inset -2px -2px 5px var(--shadow-dark);
     display: flex; align-items: center;
-    padding: 0 80px 0 32px; gap: 12px;
-    transition: top 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.20s ease;
+    padding: 0 16px 0 14px; gap: 8px;
+    transition: max-width 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
     pointer-events: none;
 }
 .arc-search-bar.active {
-    top: 0;
+    max-width: calc(100vw - 500px);
     opacity: 1;
     pointer-events: auto;
 }
 #arc-search-input {
     flex: 1; border: none; background: transparent; outline: none;
     font-family: 'DM Sans', sans-serif;
-    font-size: 15px; color: var(--text-dark);
+    font-size: 13px; color: var(--text-dark);
     min-width: 0;
 }
 #arc-search-input::placeholder { color: var(--text-mid); opacity: 0.55; }

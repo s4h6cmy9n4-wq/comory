@@ -6514,6 +6514,14 @@ function mettreAJourArrondi() {
                         tag.className = 'arc-detail-tag';
                         tag.style.background = mat.color || 'var(--flamme)';
                         tag.textContent = mat.title || mat.nom || mat.label;
+                        tag.style.cursor = 'pointer';
+                        tag.title = 'Filtrer par cette matière';
+                        tag.addEventListener('click', e => {
+                            e.stopPropagation();
+                            arcFilterMat = arcFilterMat === mat.id ? null : mat.id;
+                            arcBuildPills();
+                            arcApplySort();
+                        });
                         tagsEl.appendChild(tag);
                     }
                 }
@@ -6524,6 +6532,14 @@ function mettreAJourArrondi() {
                         tag.className = 'arc-detail-tag';
                         tag.style.background = cls.color || '#94a3b8';
                         tag.textContent = cls.label;
+                        tag.style.cursor = 'pointer';
+                        tag.title = 'Filtrer par cette classe';
+                        tag.addEventListener('click', e => {
+                            e.stopPropagation();
+                            arcFilterClasse = arcFilterClasse === cls.id ? null : cls.id;
+                            arcBuildPills();
+                            arcApplySort();
+                        });
                         tagsEl.appendChild(tag);
                     }
                 }
@@ -6684,10 +6700,10 @@ function mettreAJourArrondi() {
                 { id:'seconde',   label:'Seconde',   color:'#dac5a8' },
             ];
             arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || [
-                { id:'atc',  label:'Art techniques et civilisations',                    color:'#e8a87c' },
-                { id:'daa',  label:'Design et arts appliqués',                           color:'#87c5a8' },
-                { id:'amd',  label:'Analyse et méthodes en design',                      color:'#a8a8e8' },
-                { id:'ccda', label:'Conception et création en design et arts appliqués', color:'#e8c87c' },
+                { id:'atc',  label:'Art techniques et civilisations',                    abbr:'Arts T.&C.', color:'#e8a87c' },
+                { id:'daa',  label:'Design et arts appliqués',                           abbr:'Design AA',  color:'#87c5a8' },
+                { id:'amd',  label:'Analyse et méthodes en design',                      abbr:'Anal. méth.',color:'#a8a8e8' },
+                { id:'ccda', label:'Conception et création en design et arts appliqués', abbr:'Conc. créa.',color:'#e8c87c' },
             ];
         }
         function arcSaveGroups() {
@@ -6951,20 +6967,8 @@ function mettreAJourArrondi() {
             arcLoadGroups();
             arcBuildPills();
 
-            // ── Tri par date ──────────────────────────────────────────────
-            const sortDateEl = document.getElementById('arc-sort-date');
-            const sortArrow  = document.getElementById('arc-sort-arrow');
-            function syncSortArrow() {
-                if (sortArrow) sortArrow.style.transform = arcSortDir === 'oldest' ? 'scaleX(-1)' : '';
-            }
-            if (sortDateEl) {
-                sortDateEl.addEventListener('click', () => {
-                    arcSortDir = arcSortDir === 'recent' ? 'oldest' : 'recent';
-                    syncSortArrow();
-                    arcApplySort();
-                });
-            }
-            syncSortArrow();
+            // Tri fixe : toujours du plus récent au moins récent
+            arcSortDir = 'recent';
 
             // ── Roue chromatique : clic extérieur = ferme ─────────────────
             document.addEventListener('click', e => {
