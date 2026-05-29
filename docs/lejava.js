@@ -6694,17 +6694,30 @@ function mettreAJourArrondi() {
         }
 
         function arcLoadGroups() {
-            arcClasses  = JSON.parse(localStorage.getItem('mory_arc_classes')  || 'null') || [
+            const DEFAULT_CLASSES = [
                 { id:'terminale', label:'Terminale', color:'#a8c5da' },
                 { id:'premiere',  label:'Première',  color:'#c5a8da' },
                 { id:'seconde',   label:'Seconde',   color:'#dac5a8' },
             ];
-            arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || [
-                { id:'atc',  label:'Art techniques et civilisations',                    abbr:'Arts T.&C.', color:'#e8a87c' },
-                { id:'daa',  label:'Design et arts appliqués',                           abbr:'Design AA',  color:'#87c5a8' },
-                { id:'amd',  label:'Analyse et méthodes en design',                      abbr:'Anal. méth.',color:'#a8a8e8' },
-                { id:'ccda', label:'Conception et création en design et arts appliqués', abbr:'Conc. créa.',color:'#e8c87c' },
+            const DEFAULT_MATIERES = [
+                { id:'atc',  label:'Arts, Techniques & Civilisations',                      abbr:'ATC',     color:'#e8a87c' },
+                { id:'oln',  label:'Outils et Langages Numériques',                         abbr:'OLN',     color:'#87c5a8' },
+                { id:'amd',  label:'Analyse et Méthodes en Design',                         abbr:'AMD',     color:'#a8a8e8' },
+                { id:'ccda', label:'Conception et Création en Design et Métiers des Arts',  abbr:'CCDMA',   color:'#e8c87c' },
+                { id:'atl',  label:'Atelier',                                               abbr:'ATELIER', color:'#007AFF' },
             ];
+            arcClasses  = JSON.parse(localStorage.getItem('mory_arc_classes')  || 'null') || DEFAULT_CLASSES;
+            arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || DEFAULT_MATIERES;
+
+            // Merge : ajoute les entrées par défaut manquantes et complète les abbr absentes
+            DEFAULT_CLASSES.forEach(def => {
+                if (!arcClasses.find(c => c.id === def.id)) arcClasses.push(def);
+            });
+            DEFAULT_MATIERES.forEach(def => {
+                const existing = arcMatieres.find(m => m.id === def.id);
+                if (!existing) { arcMatieres.push(def); }
+                else if (!existing.abbr) { existing.abbr = def.abbr; }
+            });
         }
         function arcSaveGroups() {
             localStorage.setItem('mory_arc_classes',  JSON.stringify(arcClasses));

@@ -1406,7 +1406,7 @@ body.mode-sombre .arc-info-pill {
 /* ── Panneau de tri — pastilles ── */
 .arc-sort-panel {
     position: absolute;
-    bottom: 12px; right: 14px;
+    bottom: 12px; right: 12px;
     z-index: 820;
     width: auto;
     display: flex; flex-direction: column; align-items: flex-end; gap: 7px;
@@ -1631,7 +1631,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
 .arc-search-bar {
     height: 46px;
     max-width: 0;
-    width: calc(100vw - 500px); /* largeur cible = bord droit moins la position du bouton */
+    width: calc(100vw - 506px); /* largeur cible = bord droit moins la position du bouton */
     overflow: hidden;
     opacity: 0;
     background: var(--bg);
@@ -1644,7 +1644,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     pointer-events: none;
 }
 .arc-search-bar.active {
-    max-width: calc(100vw - 500px);
+    max-width: calc(100vw - 506px);
     opacity: 1;
     pointer-events: auto;
 }
