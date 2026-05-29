@@ -5582,29 +5582,29 @@ function mettreAJourArrondi() {
     // Proportions basées sur les heures du programme STD2A (sur 100h artistiques)
     const MATIERES_STD2A = {
         terminale: [
-            { id:'daa',  nom:'Design & Arts Appliqués', color:'#FF2D55', pct:46 },
-            { id:'proj', nom:'Projet en Design',        color:'#FF9F0A', pct:26 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      color:'#BF5AF2', pct:12 },
-            { id:'hda',  nom:'Histoire des Arts',       color:'#30D158', pct:6  },
-            { id:'autre',nom:'Autre',                   color:'#94a3b8', pct:10 },
+            { id:'daa',  nom:'Design & Arts Appliqués', abbr:'Design AA',  color:'#FF2D55', pct:46 },
+            { id:'proj', nom:'Projet en Design',        abbr:'Projet',      color:'#FF9F0A', pct:26 },
+            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'Arts T.&C.',  color:'#BF5AF2', pct:12 },
+            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#30D158', pct:6  },
+            { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:10 },
         ],
         premiere: [
-            { id:'daa',  nom:'Design & Arts Appliqués', color:'#FF2D55', pct:44 },
-            { id:'crea', nom:'Création en design',      color:'#FF9F0A', pct:28 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      color:'#BF5AF2', pct:12 },
-            { id:'hda',  nom:'Histoire des Arts',       color:'#30D158', pct:6  },
-            { id:'autre',nom:'Autre',                   color:'#94a3b8', pct:10 },
+            { id:'daa',  nom:'Design & Arts Appliqués', abbr:'Design AA',  color:'#FF2D55', pct:44 },
+            { id:'crea', nom:'Création en design',      abbr:'Création',    color:'#FF9F0A', pct:28 },
+            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'Arts T.&C.',  color:'#BF5AF2', pct:12 },
+            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#30D158', pct:6  },
+            { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:10 },
         ],
         seconde: [
-            { id:'daa',  nom:'Initiation au Design',    color:'#FF9F0A', pct:35 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      color:'#BF5AF2', pct:22 },
-            { id:'atl',  nom:'Atelier',                 color:'#007AFF', pct:22 },
-            { id:'autre',nom:'Autre',                   color:'#94a3b8', pct:21 },
+            { id:'daa',  nom:'Initiation au Design',    abbr:'Initiation',  color:'#FF9F0A', pct:35 },
+            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'Arts T.&C.',  color:'#BF5AF2', pct:22 },
+            { id:'atl',  nom:'Atelier',                 abbr:'Atelier',     color:'#007AFF', pct:22 },
+            { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:21 },
         ],
         commun: [
-            { id:'hda',  nom:'Histoire des Arts',       color:'#30D158', pct:40 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      color:'#BF5AF2', pct:35 },
-            { id:'autre',nom:'Autre',                   color:'#94a3b8', pct:25 },
+            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#30D158', pct:40 },
+            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'Arts T.&C.',  color:'#BF5AF2', pct:35 },
+            { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:25 },
         ],
     };
 
@@ -6731,8 +6731,8 @@ function mettreAJourArrondi() {
             // Pastilles matières — filtrées sur le niveau de la session
             const _niv  = window._sessionContext?.niveauId;
             const _mats = (_niv && MATIERES_STD2A[_niv])
-                ? MATIERES_STD2A[_niv].map(m => ({ id: m.id, label: m.nom, color: m.color }))
-                : (arcMatieres || []).map(m => ({ id: m.id, label: m.label, color: m.color }));
+                ? MATIERES_STD2A[_niv].map(m => ({ id: m.id, label: m.abbr || m.nom, title: m.nom, color: m.color }))
+                : (arcMatieres || []).map(m => ({ id: m.id, label: m.label, title: m.label, color: m.color }));
 
             _mats.forEach(mat => {
                 const pill = document.createElement('button');
@@ -6740,6 +6740,7 @@ function mettreAJourArrondi() {
                 pill.dataset.arcGroup  = 'matiere';
                 pill.dataset.arcId     = mat.id;
                 pill.textContent       = mat.label;
+                if (mat.title && mat.title !== mat.label) pill.title = mat.title;
                 const col = mat.color || '#94a3b8';
                 if (arcFilterMat === mat.id) {
                     pill.classList.add('active');
