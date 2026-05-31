@@ -5847,7 +5847,7 @@ function mettreAJourArrondi() {
                     }
                 }
             } catch (e) {}
-            return Array.from({ length: 5 }, (_, i) => ({ id: i + 1, label: `Tableau ${i + 1}`, thumbnail: null }));
+            return [{ id: 1, label: 'Tableau 1', thumbnail: null }];
         }
         function saveBoardList() {
             localStorage.setItem(LS_BOARD_LIST, JSON.stringify(boards.map(b => ({
@@ -6646,10 +6646,14 @@ function mettreAJourArrondi() {
         function arcApplySort() {
             let boards = [...arcAllBoards];
 
-            // Recherche texte
+            // Recherche texte (label + résumé)
             if (arcSearchQ) {
                 const q = arcSearchQ.toLowerCase();
-                boards = boards.filter(b => b.label.toLowerCase().includes(q));
+                boards = boards.filter(b =>
+                    b.label.toLowerCase().includes(q) ||
+                    (b.resume   && b.resume.toLowerCase().includes(q))  ||
+                    (b.nomCours && b.nomCours.toLowerCase().includes(q))
+                );
             }
             // Filtre classe spécifique
             if (arcFilterClasse)  boards = boards.filter(b => b.classeId === arcFilterClasse);
@@ -6977,28 +6981,26 @@ function mettreAJourArrondi() {
             container.appendChild(addInline);
         }
 
-        // ── Panneau de partage (bouton collaborer) ───────────────────────
+        // ── Panneau de partage — dropdown compact vers le bas ────────────
         function arcInitCollabPanel() {
             const btn     = document.getElementById('btn-arc-collab');
             const overlay = document.getElementById('archive-overlay');
             if (!btn || !overlay) return;
 
-            // Crée le panneau
-            const panel = document.createElement('div');
+            // Panneau attaché au socket du bouton pour positionnement relatif
+            const socket = btn.parentElement; // #btn-collab-socket
+            const panel  = document.createElement('div');
             panel.id        = 'arc-collab-panel';
             panel.className = 'arc-collab-panel';
             panel.setAttribute('aria-hidden', 'true');
-            overlay.appendChild(panel);
+            socket.appendChild(panel);
 
-            // Toast de confirmation
+            // Toast (reste dans l'overlay, centré en bas)
             const toast = document.createElement('div');
             toast.id        = 'arc-collab-toast';
             toast.className = 'arc-collab-toast';
             overlay.appendChild(toast);
             let toastTimer = null;
-
-            let activeClsIdx = 0;
-            let selectedMat  = null;
 
             function showToast(msg) {
                 toast.textContent = msg;
@@ -7012,87 +7014,88 @@ function mettreAJourArrondi() {
                 panel.innerHTML = '';
                 const cls  = arcClasses  || [];
                 const mats = arcMatieres || [];
-                if (!cls.length) return;
+                if (!cls.length || !mats.length) return;
 
-                // ── Onglets classes ──────────────────────────────────────
-                const tabsEl = document.createElement('div');
-                tabsEl.className = 'arc-collab-tabs';
-                cls.forEach((c, i) => {
-                    const tab = document.createElement('button');
-                    tab.className = 'arc-collab-tab' + (i === activeClsIdx ? ' active' : '');
-                    tab.textContent = c.label;
-                    tab.addEventListener('click', e => {
-                        e.stopPropagation();
-                        activeClsIdx = i; selectedMat = null; buildPanel();
-                    });
-                    tabsEl.appendChild(tab);
-                });
-                panel.appendChild(tabsEl);
+                const abbrevMap = { terminale: 'Tle', premiere: '1ère', seconde: '2nde' };
 
-                // ── Liste des matières ───────────────────────────────────
-                const listEl = document.createElement('div');
-                listEl.className = 'arc-collab-list';
-                mats.forEach(m => {
-                    const row = document.createElement('div');
-                    row.className = 'arc-collab-row' + (selectedMat === m.id ? ' selected' : '');
-
-                    const dot = document.createElement('span');
-                    dot.className = 'arc-collab-dot';
-                    dot.style.background = m.color || '#94a3b8';
+                cls.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'arc-collab-item';
 
                     const lbl = document.createElement('span');
-                    lbl.className = 'arc-collab-lbl';
-                    lbl.textContent = m.abbr || m.label;
+                    lbl.className = 'arc-collab-item-lbl';
+                    lbl.textContent = abbrevMap[c.id] || c.label.slice(0, 4);
+                    item.appendChild(lbl);
 
-                    row.appendChild(dot);
-                    row.appendChild(lbl);
+                    // Sous-menu matières (vers la droite au survol)
+                    const submenu = document.createElement('div');
+                    submenu.className = 'arc-collab-submenu';
 
-                    if (selectedMat === m.id) {
-                        const shareBtn = document.createElement('button');
-                        shareBtn.className = 'arc-collab-share-btn';
-                        shareBtn.title     = 'Transmettre le tableau';
-                        shareBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                        </svg>`;
-                        shareBtn.addEventListener('click', e => {
+                    mats.forEach(m => {
+                        const matBtn = document.createElement('button');
+                        matBtn.className = 'arc-collab-mat-btn';
+                        matBtn.type      = 'button';
+
+                        const dot = document.createElement('span');
+                        dot.className        = 'arc-collab-mat-dot';
+                        dot.style.background = m.color || '#888';
+
+                        const matLbl = document.createElement('span');
+                        matLbl.textContent = m.abbr || m.label;
+
+                        matBtn.appendChild(dot);
+                        matBtn.appendChild(matLbl);
+
+                        matBtn.addEventListener('click', e => {
                             e.stopPropagation();
-                            const c = cls[activeClsIdx];
-                            // Sauvegarder dans mory_shared_boards
                             const board = arcDisplay[arcDrumIdx];
                             if (board) {
                                 const shared = JSON.parse(localStorage.getItem('mory_shared_boards') || '[]');
                                 const entry  = {
-                                    id:        board.id,
-                                    label:     board.label     || `Tableau ${board.id}`,
-                                    thumbnail: board.thumbnail || board.canvasPNG || null,
-                                    classeId:  c.id,
-                                    classeLabel: c.label,
-                                    matiereId: m.id,
+                                    id:           board.id,
+                                    label:        board.label     || `Tableau ${board.id}`,
+                                    thumbnail:    board.thumbnail || board.canvasPNG || null,
+                                    classeId:     c.id,
+                                    classeLabel:  c.label,
+                                    matiereId:    m.id,
                                     matiereLabel: m.abbr || m.label,
                                     matiereColor: m.color || '#888',
-                                    date:      new Date().toISOString(),
+                                    date:         new Date().toISOString(),
                                 };
-                                // Remplacer si déjà partagé (même board + même classe + même matière)
                                 const idx = shared.findIndex(s => s.id === entry.id && s.classeId === entry.classeId && s.matiereId === entry.matiereId);
                                 if (idx >= 0) shared[idx] = entry; else shared.unshift(entry);
                                 localStorage.setItem('mory_shared_boards', JSON.stringify(shared));
                             }
-                            showToast(`Le tableau a été transmis à ${c.label} dans la matière ${m.abbr || m.label}.`);
+                            showToast(`Transmis à ${c.label} · ${m.abbr || m.label}`);
                             closePanel();
                         });
-                        row.appendChild(shareBtn);
-                    }
 
-                    row.addEventListener('click', e => {
-                        e.stopPropagation();
-                        selectedMat = selectedMat === m.id ? null : m.id;
-                        buildPanel();
+                        submenu.appendChild(matBtn);
                     });
-                    listEl.appendChild(row);
+
+                    // Hover JS avec délai pour éviter la coupure dans le gap
+                    let hideTimer = null;
+                    const showSub = () => {
+                        clearTimeout(hideTimer);
+                        submenu.style.visibility    = 'visible';
+                        submenu.style.opacity       = '1';
+                        submenu.style.pointerEvents = 'auto';
+                    };
+                    const hideSub = () => {
+                        hideTimer = setTimeout(() => {
+                            submenu.style.visibility    = '';
+                            submenu.style.opacity       = '';
+                            submenu.style.pointerEvents = '';
+                        }, 150);
+                    };
+                    item.addEventListener('mouseenter', showSub);
+                    item.addEventListener('mouseleave', hideSub);
+                    submenu.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+                    submenu.addEventListener('mouseleave', hideSub);
+
+                    item.appendChild(submenu);
+                    panel.appendChild(item);
                 });
-                panel.appendChild(listEl);
             }
 
             function openPanel() {
@@ -7105,11 +7108,10 @@ function mettreAJourArrondi() {
             function closePanel() {
                 panel.classList.remove('open');
                 btn.classList.remove('active');
-                selectedMat = null;
                 setTimeout(() => {
                     panel.style.display = 'none';
                     panel.setAttribute('aria-hidden', 'true');
-                }, 260);
+                }, 200);
             }
 
             btn.addEventListener('click', e => {
@@ -7117,7 +7119,9 @@ function mettreAJourArrondi() {
                 panel.classList.contains('open') ? closePanel() : openPanel();
             });
             document.addEventListener('click', e => {
-                if (panel.classList.contains('open') && !panel.contains(e.target) && e.target !== btn && !btn.contains(e.target))
+                if (panel.classList.contains('open') &&
+                    !panel.contains(e.target) &&
+                    e.target !== btn && !btn.contains(e.target))
                     closePanel();
             });
         }
@@ -7279,7 +7283,7 @@ function mettreAJourArrondi() {
                   // IDs >= 1000000 : jamais en conflit avec les vrais tableaux
                   let dId  = 1000000;
                   let dNum = 0;
-                  while (arcAllBoards.length < 20) {
+                  while (arcAllBoards.length < 1) {
                       if (!used.has(dId)) {
                           const daysAgo  = (dNum + 1) * 3; // 3 jours d'écart, 100% dans le passé
                           const demoDate = new Date(Date.now() - daysAgo * 86400000);
@@ -7327,17 +7331,22 @@ function mettreAJourArrondi() {
             // (hint de scroll supprimé — grille fixe)
         }
 
-        // ── Bande 5 derniers tableaux (depuis le carrousel rapide) ───────────
+        // ── Bande tableaux récents (depuis le carrousel rapide) ─────────────
         function arcRenderRecents() {
-            const strip = document.getElementById('arc-recents-strip');
+            const strip     = document.getElementById('arc-recents-strip');
+            const recentsEl = document.getElementById('arc-recents');
             if (!strip) return;
             strip.innerHTML = '';
 
-            // Utiliser les tableaux réels du carrousel rapide (les 5 plus récents de l'utilisateur)
-            // window._getBoardsForRecents() renvoie boards[] du carrousel (oldest→newest)
-            // On les affiche newest→oldest dans la bande
             const carrouselBoards = window._getBoardsForRecents?.() || [];
-            const recents = [...carrouselBoards].reverse(); // newest first
+            // Filtrer les boards "vides" (pas de label personnalisé et pas de thumbnail)
+            const recents = [...carrouselBoards]
+                .filter(b => b.thumbnail || b.label !== `Tableau ${b.id}`)
+                .reverse(); // newest first
+
+            // Masquer toute la section si rien à montrer
+            if (recentsEl) recentsEl.style.display = recents.length === 0 ? 'none' : '';
+            if (recents.length === 0) return;
 
             recents.forEach(board => {
                 const card = document.createElement('div');
