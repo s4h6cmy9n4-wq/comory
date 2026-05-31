@@ -6639,9 +6639,20 @@ function mettreAJourArrondi() {
             if (!drum) return;
 
             const n = arcDisplay.length;
-            const emptyEl = document.getElementById('arc-empty');
-            if (n === 0) { if (emptyEl) emptyEl.classList.add('show'); return; }
-            if (emptyEl) emptyEl.classList.remove('show');
+            const emptyEl    = document.getElementById('arc-empty');
+            const detailCol  = document.getElementById('arc-detail-col');
+            const actionsEl  = document.getElementById('arc-detail-actions');
+            if (n === 0) {
+                drum.innerHTML = '';
+                if (cntEl)     cntEl.textContent      = '0 / 0';
+                if (detailCol) detailCol.style.visibility  = 'hidden';
+                if (actionsEl) actionsEl.style.visibility  = 'hidden';
+                if (emptyEl)   emptyEl.classList.add('show');
+                return;
+            }
+            if (detailCol) detailCol.style.visibility  = '';
+            if (actionsEl) actionsEl.style.visibility  = '';
+            if (emptyEl)   emptyEl.classList.remove('show');
 
             arcDrumIdx = Math.max(0, Math.min(n - 1, arcDrumIdx));
 
@@ -6786,7 +6797,16 @@ function mettreAJourArrondi() {
                     const resumeText = board.resume || '';
                     const rEl = document.createElement('p');
                     rEl.className = resumeText ? 'arc-detail-resume-text' : 'arc-detail-resume-empty';
-                    rEl.textContent = resumeText || 'Cliquer pour ajouter un résumé…';
+                    // Surligner les mots de la recherche en gras
+                    if (arcSearchQ && resumeText) {
+                        const esc = arcSearchQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        rEl.innerHTML = resumeText.replace(
+                            new RegExp(`(${esc})`, 'gi'),
+                            '<strong style="font-weight:700;color:var(--text-dark)">$1</strong>'
+                        );
+                    } else {
+                        rEl.textContent = resumeText || 'Cliquer pour ajouter un résumé…';
+                    }
                     rEl.title = 'Cliquer pour modifier le résumé';
                     rEl.addEventListener('click', () => {
                         const ta = document.createElement('textarea');
@@ -6906,9 +6926,9 @@ function mettreAJourArrondi() {
 
         function arcLoadGroups() {
             const DEFAULT_CLASSES = [
-                { id:'terminale', label:'Terminale', color:'#a8c5da' },
-                { id:'premiere',  label:'Première',  color:'#c5a8da' },
-                { id:'seconde',   label:'Seconde',   color:'#dac5a8' },
+                { id:'terminale', label:'Terminale', color:'#FF2D55' },
+                { id:'premiere',  label:'Première',  color:'#5E5CE6' },
+                { id:'seconde',   label:'Seconde',   color:'#30D158' },
             ];
             const DEFAULT_MATIERES = [
                 { id:'atc',  label:'Arts, Techniques & Civilisations',                      abbr:'ATC',     color:'#FF3B30' },
@@ -6920,9 +6940,11 @@ function mettreAJourArrondi() {
             arcClasses  = JSON.parse(localStorage.getItem('mory_arc_classes')  || 'null') || DEFAULT_CLASSES;
             arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || DEFAULT_MATIERES;
 
-            // Merge : ajoute les entrées par défaut manquantes et complète les abbr absentes
+            // Merge : ajoute les entrées manquantes + synchronise toujours les couleurs
             DEFAULT_CLASSES.forEach(def => {
-                if (!arcClasses.find(c => c.id === def.id)) arcClasses.push(def);
+                const existing = arcClasses.find(c => c.id === def.id);
+                if (!existing) arcClasses.push(def);
+                else existing.color = def.color; // toujours synchroniser vers les couleurs vives
             });
             DEFAULT_MATIERES.forEach(def => {
                 const existing = arcMatieres.find(m => m.id === def.id);
@@ -7227,9 +7249,8 @@ function mettreAJourArrondi() {
                 const abbrevMap = { terminale: 'Tle', premiere: '1ère', seconde: '2nde' };
 
                 clsFiltrees.forEach(c => {
-                    // Matières de cette classe issues de ARCHIVE_NIVEAUX (page de chargement)
-                    const niveauData = ARCHIVE_NIVEAUX.find(n => n.id === c.id);
-                    const mats = (niveauData && niveauData.matieres) || [];
+                    // Matières de cette classe issues de MATIERES_STD2A (même source que la page login)
+                    const mats = MATIERES_STD2A[c.id] || [];
                     if (!mats.length) return;
 
                     const item = document.createElement('div');
@@ -7256,7 +7277,7 @@ function mettreAJourArrondi() {
                         dot.style.background = m.color || '#888';
 
                         const matLbl = document.createElement('span');
-                        matLbl.textContent = m.nom; // ARCHIVE_NIVEAUX utilise .nom
+                        matLbl.textContent = m.abbr || m.nom; // MATIERES_STD2A a abbr + nom
 
                         matBtn.appendChild(dot);
                         matBtn.appendChild(matLbl);
@@ -7273,7 +7294,7 @@ function mettreAJourArrondi() {
                                     classeId:     c.id,
                                     classeLabel:  c.label,
                                     matiereId:    m.id,
-                                    matiereLabel: m.nom,
+                                    matiereLabel: m.abbr || m.nom,
                                     matiereColor: m.color || '#888',
                                     date:         new Date().toISOString(),
                                 };
@@ -7281,7 +7302,7 @@ function mettreAJourArrondi() {
                                 if (idx >= 0) shared[idx] = entry; else shared.unshift(entry);
                                 localStorage.setItem('mory_shared_boards', JSON.stringify(shared));
                             }
-                            showToast(`Transmis à ${c.label} · ${m.nom}`);
+                            showToast(`Transmis à ${c.label} · ${m.abbr || m.nom}`);
                             closePanel();
                         });
 
