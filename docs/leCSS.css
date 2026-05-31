@@ -1436,7 +1436,7 @@ body.mode-sombre .arc-info-pill {
     color: var(--text-mid); white-space: nowrap;
     transition: opacity 0.18s, transform 0.18s, box-shadow 0.14s;
 }
-.arc-pill:hover  { opacity: 0.9; transform: scale(1.05); }
+.arc-pill:hover  { background: var(--orange) !important; color: #fff !important; opacity: 1; transform: scale(1.05); }
 .arc-pill:active { transform: scale(0.97); }
 .arc-pill.active { color: #fff !important; opacity: 1; }
 /* Compat anciens sélecteurs */
@@ -1515,7 +1515,7 @@ body.mode-sombre .arc-info-pill {
     transition: color 0.12s, transform 0.12s;
     padding: 0;
 }
-.arc-collab-share-btn:hover { color: var(--bleu-mid, #4f8ef7); transform: scale(1.1); }
+.arc-collab-share-btn:hover { color: var(--orange); transform: scale(1.1); }
 .arc-collab-share-btn svg { width: 14px; height: 14px; display: block; }
 /* Toast confirmation */
 .arc-collab-toast {
@@ -1540,7 +1540,7 @@ body.mode-sombre .arc-info-pill {
     transform: translateX(-50%) translateY(0);
 }
 /* Bouton collaborer actif */
-#btn-arc-collab.active { color: var(--bleu-mid, #4f8ef7) !important; }
+#btn-arc-collab.active { color: var(--orange) !important; }
 
 /* ── Section "5 derniers" en tête de colonne drum ── */
 .arc-recents {
@@ -1713,7 +1713,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     -webkit-appearance: none; appearance: none;
     overflow: hidden;
 }
-.arc-act-btn:hover  { box-shadow: var(--neu-pressed); color: var(--bleu-mid, #4f8ef7); }
+.arc-act-btn:hover  { box-shadow: var(--neu-pressed); color: var(--orange); }
 .arc-act-btn svg    { width: 18px; height: 18px; display: block; }
 /* SVG collaboration dans l'archive */
 .arc-collab-svg .arc-cls-1 { fill: none; stroke: var(--bg); stroke-width: 8px; }
@@ -1745,7 +1745,7 @@ body.mode-sombre .arc-drum-col { border-right-color: rgba(255,255,255,0.07); }
     transition: color 0.12s;
     padding: 0; -webkit-appearance: none; appearance: none;
 }
-#btn-search:hover { color: var(--bleu-mid, #4f8ef7); }
+#btn-search:hover { color: var(--orange); }
 #btn-search svg { width: 18px; height: 18px; display: block; }
 #arc-search-input {
     flex: 1; border: none; background: transparent; outline: none;

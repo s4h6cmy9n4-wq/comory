@@ -6700,11 +6700,11 @@ function mettreAJourArrondi() {
                 { id:'seconde',   label:'Seconde',   color:'#dac5a8' },
             ];
             const DEFAULT_MATIERES = [
-                { id:'atc',  label:'Arts, Techniques & Civilisations',                      abbr:'ATC',     color:'#e8a87c' },
-                { id:'oln',  label:'Outils et Langages Numériques',                         abbr:'OLN',     color:'#87c5a8' },
-                { id:'amd',  label:'Analyse et Méthodes en Design',                         abbr:'AMD',     color:'#a8a8e8' },
-                { id:'ccda', label:'Conception et Création en Design et Métiers des Arts',  abbr:'CCDMA',   color:'#e8c87c' },
-                { id:'atl',  label:'Atelier',                                               abbr:'ATELIER', color:'#007AFF' },
+                { id:'atc',  label:'Arts, Techniques & Civilisations',                      abbr:'ATC',     color:'#FF3B30' },
+                { id:'oln',  label:'Outils et Langages Numériques',                         abbr:'OLN',     color:'#30D158' },
+                { id:'amd',  label:'Analyse et Méthodes en Design',                         abbr:'AMD',     color:'#0A84FF' },
+                { id:'ccda', label:'Conception et Création en Design et Métiers des Arts',  abbr:'CCDMA',   color:'#FFD60A' },
+                { id:'atl',  label:'Atelier',                                               abbr:'ATELIER', color:'#BF5AF2' },
             ];
             arcClasses  = JSON.parse(localStorage.getItem('mory_arc_classes')  || 'null') || DEFAULT_CLASSES;
             arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || DEFAULT_MATIERES;
@@ -6716,7 +6716,10 @@ function mettreAJourArrondi() {
             DEFAULT_MATIERES.forEach(def => {
                 const existing = arcMatieres.find(m => m.id === def.id);
                 if (!existing) { arcMatieres.push(def); }
-                else if (!existing.abbr) { existing.abbr = def.abbr; }
+                else {
+                    if (!existing.abbr) existing.abbr = def.abbr;
+                    existing.color = def.color; // toujours synchroniser vers les couleurs vives
+                }
             });
         }
         function arcSaveGroups() {
@@ -7056,6 +7059,26 @@ function mettreAJourArrondi() {
                         shareBtn.addEventListener('click', e => {
                             e.stopPropagation();
                             const c = cls[activeClsIdx];
+                            // Sauvegarder dans mory_shared_boards
+                            const board = arcDisplay[arcDrumIdx];
+                            if (board) {
+                                const shared = JSON.parse(localStorage.getItem('mory_shared_boards') || '[]');
+                                const entry  = {
+                                    id:        board.id,
+                                    label:     board.label     || `Tableau ${board.id}`,
+                                    thumbnail: board.thumbnail || board.canvasPNG || null,
+                                    classeId:  c.id,
+                                    classeLabel: c.label,
+                                    matiereId: m.id,
+                                    matiereLabel: m.abbr || m.label,
+                                    matiereColor: m.color || '#888',
+                                    date:      new Date().toISOString(),
+                                };
+                                // Remplacer si déjà partagé (même board + même classe + même matière)
+                                const idx = shared.findIndex(s => s.id === entry.id && s.classeId === entry.classeId && s.matiereId === entry.matiereId);
+                                if (idx >= 0) shared[idx] = entry; else shared.unshift(entry);
+                                localStorage.setItem('mory_shared_boards', JSON.stringify(shared));
+                            }
                             showToast(`Le tableau a été transmis à ${c.label} dans la matière ${m.abbr || m.label}.`);
                             closePanel();
                         });
