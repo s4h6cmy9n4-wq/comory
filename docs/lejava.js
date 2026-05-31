@@ -149,7 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Propriétés texte (pour re-rendu sans déformation)
                 if (o._text)  { s._text = o._text; s._fontFamily = o._fontFamily; s._fontSize = o._fontSize; s._fontWeight = o._fontWeight; s._color = o._color; }
                 // Métadonnées tableau (pour l'édition des cellules après switch de board)
-                if (o.type === 'table') { s._cols = o._cols; s._rows = o._rows; s._innerPad = o._innerPad; }
+                if (o.type === 'table') {
+                    s._cols = o._cols; s._rows = o._rows; s._innerPad = o._innerPad;
+                    s._color = o._color; s._thickness = o._thickness;
+                    s._cells = o._cells ? JSON.parse(JSON.stringify(o._cells)) : {};
+                }
                 return s;
             });
         }
@@ -188,7 +192,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.style.cssText = 'position:absolute;z-index:3;pointer-events:none;';
                 const obj = { type: s.type, el, x: s.x, y: s.y, w: s.w, h: s.h, rotation: s.rotation };
                 if (s._text)  { obj._text = s._text; obj._fontFamily = s._fontFamily; obj._fontSize = s._fontSize; obj._fontWeight = s._fontWeight; obj._color = s._color; }
-                if (s.type === 'table') { obj._cols = s._cols; obj._rows = s._rows; obj._innerPad = s._innerPad; }
+                if (s.type === 'table') {
+                    obj._cols = s._cols; obj._rows = s._rows; obj._innerPad = s._innerPad;
+                    obj._color = s._color; obj._thickness = s._thickness;
+                    obj._cells = s._cells ? JSON.parse(JSON.stringify(s._cells)) : {};
+                }
                 mettreAJourElement(obj);
                 planDeTravail.appendChild(el);
                 placedObjects.push(obj);
@@ -247,19 +255,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const obj = { type, el, x: x0, y: y0, w: bw, h: bh, rotation: 0 };
             if (type === 'table') {
                 const et = window.etatTableau || {};
-                obj._cols     = et.cols || 3;
-                obj._rows     = et.rows || 3;
-                obj._innerPad = pad; // 6px — padding utilisé pour le bbox
+                obj._cols      = et.cols      || 3;
+                obj._rows      = et.rows      || 3;
+                obj._color     = et.color     || 'hsl(220,60%,25%)';
+                obj._thickness = et.thickness || 1.5;
+                obj._cells     = {};
+                obj._innerPad  = pad; // 6px — padding utilisé pour le bbox
             }
             mettreAJourElement(obj);
             planDeTravail.appendChild(el);
             placedObjects.push(obj);
-            el.src = dataURL;
+            if (type === 'table') {
+                reRenderTable(obj); // rendu vectoriel → permet re-render après édition/resize
+            } else {
+                el.src = dataURL;
+            }
             saveState();
         }
 
         /** Dessine une grille de tableau sur le contexte canvas donné */
         function drawTableGrid(ctx, x0, y0, w, h, cols, rows) {
+            // Normalise pour supporter le tirage dans n'importe quelle direction
+            if (w < 0) { x0 += w; w = -w; }
+            if (h < 0) { y0 += h; h = -h; }
             ctx.beginPath();
             ctx.rect(x0, y0, w, h);
             for (let c = 1; c < cols; c++) {
@@ -1076,6 +1094,83 @@ document.addEventListener('DOMContentLoaded', () => {
             obj.h = renderH;
         }
 
+        /** Re-rendu vectoriel d'un objet tableau (grille + texte des cellules) */
+        function reRenderTable(obj) {
+            const dpr    = window.devicePixelRatio || 1;
+            const pad    = obj._innerPad  || 6;
+            const cols   = obj._cols      || 3;
+            const rows   = obj._rows      || 3;
+            const color  = obj._color     || 'hsl(220,60%,25%)';
+            const lw     = obj._thickness || 1.5;
+            const cells  = obj._cells     || {};
+            const W = obj.w, H = obj.h;
+
+            const tmp  = document.createElement('canvas');
+            tmp.width  = Math.round(W * dpr);
+            tmp.height = Math.round(H * dpr);
+            const tctx = tmp.getContext('2d');
+            tctx.scale(dpr, dpr);
+
+            // ─ Grille ─
+            tctx.strokeStyle = color;
+            tctx.lineWidth   = lw;
+            tctx.lineCap     = 'square';
+            tctx.lineJoin    = 'miter';
+            drawTableGrid(tctx, pad, pad, W - pad * 2, H - pad * 2, cols, rows);
+
+            // ─ Texte dans les cellules ─
+            const innerX = pad, innerY = pad;
+            const cellW  = (W - pad * 2) / cols;
+            const cellH  = (H - pad * 2) / rows;
+            const cellPad = 5;
+
+            for (const key in cells) {
+                const cell = cells[key];
+                if (!cell || !cell.text || !cell.text.trim()) continue;
+                const parts = key.split(',');
+                const c = parseInt(parts[0], 10), r = parseInt(parts[1], 10);
+                if (isNaN(c) || isNaN(r)) continue;
+                const cx   = innerX + c * cellW;
+                const cy   = innerY + r * cellH;
+                const maxW = cellW - cellPad * 2;
+                const fSize = Math.min(cell.fontSize || 13, Math.max(8, cellH * 0.55 - cellPad));
+                const lineH = fSize * 1.3;
+
+                tctx.save();
+                tctx.beginPath();
+                tctx.rect(cx + 1, cy + 1, cellW - 2, cellH - 2);
+                tctx.clip();
+                tctx.fillStyle    = cell.color      || '#262623';
+                tctx.font         = `${cell.fontWeight || 400} ${fSize}px '${cell.fontFamily || 'DM Sans'}',sans-serif`;
+                tctx.textAlign    = 'left';
+                tctx.textBaseline = 'top';
+
+                const paragraphs = cell.text.split('\n');
+                let lineY = cy + cellPad;
+                outer: for (const para of paragraphs) {
+                    const words = para.split(' ');
+                    let line = '';
+                    for (const word of words) {
+                        const test = line ? line + ' ' + word : word;
+                        if (tctx.measureText(test).width > maxW && line) {
+                            if (lineY + lineH > cy + cellH - cellPad) break outer;
+                            tctx.fillText(line, cx + cellPad, lineY);
+                            lineY += lineH;
+                            line = word;
+                        } else { line = test; }
+                    }
+                    if (line) {
+                        if (lineY + lineH > cy + cellH - cellPad) break;
+                        tctx.fillText(line, cx + cellPad, lineY);
+                        lineY += lineH;
+                    }
+                }
+                tctx.restore();
+            }
+
+            obj.el.src = tmp.toDataURL('image/png');
+        }
+
         /* CONNECTEURS_START — décommenter pour réactiver
         function reRenderConnector(obj) {
             if (!obj || !obj._isConnector) return;
@@ -1662,6 +1757,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 obj.y = pinchOrigY + pinchOrigH / 2 - nh / 2;
                 obj.w = nw; obj.h = nh;
                 if (obj.type === 'text' && obj._text) reRenderText(obj);
+                else if (obj.type === 'table') reRenderTable(obj);
                 appliquerMouvement(obj);
                 return;
             }
@@ -1684,6 +1780,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ny = activeCorner.includes('n') ? imgOrigY + imgOrigH - nh : imgOrigY;
                 obj.x = nx; obj.y = ny; obj.w = nw; obj.h = nh;
                 if (obj.type === 'text' && obj._text) reRenderText(obj);
+                else if (obj.type === 'table') reRenderTable(obj);
                 appliquerMouvement(obj);
             } else if (isDraggingImage && selectedObjects.length > 0) {
                 const ddx = cx - imgDragStartX, ddy = cy - imgDragStartY;
@@ -1780,68 +1877,181 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = Math.max(0, Math.min(rows - 1, Math.floor((cy - innerY) / cellH)));
 
             masquerSelection();
-            _fanOpen();
-            animerVers(angleVersTete(4), () => {
-                selectionnerOutil(7, 4, false);
-                entrerModeEditionTableau(obj, col, row);
-            });
+            entrerModeEditionTableau(obj, col, row);
         });
 
-        // ── Session d'édition de tableau (clic sur n'importe quelle cellule) ──
+        // ── Session d'édition de tableau (double-clic sur une cellule) ──────
         function entrerModeEditionTableau(tableObj, startCol, startRow) {
             window.tableEditMode = true;
-            let textZoneActif = false;
+            tableObj._cells = tableObj._cells || {};
 
-            function ouvrirCellule(c, r) {
-                if (textZoneActif) return;
-                textZoneActif = true;
-                const pad  = tableObj._innerPad || 6;
-                const cols = tableObj._cols || 3;
-                const rows = tableObj._rows || 3;
-                const innerX = tableObj.x + pad, innerY = tableObj.y + pad;
-                const innerW = tableObj.w - pad * 2, innerH = tableObj.h - pad * 2;
-                const cellW  = innerW / cols, cellH = innerH / rows;
-                const cellX  = innerX + c * cellW;
-                const cellY  = innerY + r * cellH;
-                creerZoneTexte(cellX, cellY, cellW, cellH, null, () => {
-                    textZoneActif = false;
+            const pad    = tableObj._innerPad || 6;
+            const cols   = tableObj._cols     || 3;
+            const rows   = tableObj._rows     || 3;
+            const innerX = tableObj.x + pad;
+            const innerY = tableObj.y + pad;
+            const innerW = tableObj.w - pad * 2;
+            const innerH = tableObj.h - pad * 2;
+            const cellW  = innerW / cols;
+            const cellH  = innerH / rows;
+            // Taille de police proportionnelle à la hauteur de cellule
+            const autoFontSize = Math.max(9, Math.min(16, Math.floor(cellH * 0.38)));
+
+            let activeDiv  = null;
+            let activeCell = null; // { c, r }
+
+            // ─ Overlay couvrant toute la surface du tableau ─
+            const sessionOverlay = document.createElement('div');
+            sessionOverlay.style.cssText = [
+                'position:absolute',
+                `left:${tableObj.x}px`, `top:${tableObj.y}px`,
+                `width:${tableObj.w}px`, `height:${tableObj.h}px`,
+                'z-index:9', 'pointer-events:auto', 'cursor:text',
+                'outline:2px solid var(--flamme)', 'border-radius:3px',
+                'box-sizing:border-box',
+            ].join(';');
+            planDeTravail.appendChild(sessionOverlay);
+
+            function cellKey(c, r) { return c + ',' + r; }
+
+            function saveCellText() {
+                if (!activeDiv || !activeCell) return;
+                const text = activeDiv.innerText || '';
+                const html = activeDiv.innerHTML || '';
+                const key  = cellKey(activeCell.c, activeCell.r);
+                if (text.trim()) {
+                    tableObj._cells[key] = {
+                        text, html,
+                        color: '#262623', fontFamily: 'DM Sans',
+                        fontSize: autoFontSize, fontWeight: 400,
+                    };
+                } else {
+                    delete tableObj._cells[key];
+                }
+            }
+
+            function closeActiveDiv() {
+                if (activeDiv) { activeDiv.remove(); activeDiv = null; }
+            }
+
+            function openCell(c, r) {
+                saveCellText();
+                closeActiveDiv();
+                activeCell = { c, r };
+
+                const cx  = innerX + c * cellW;
+                const cy  = innerY + r * cellH;
+                const key = cellKey(c, r);
+                const cellData = tableObj._cells[key] || {};
+
+                const div = document.createElement('div');
+                div.contentEditable = 'true';
+                div.spellcheck      = false;
+                div.style.cssText   = [
+                    'position:absolute',
+                    `left:${cx}px`, `top:${cy}px`,
+                    `width:${cellW}px`, `height:${cellH}px`,
+                    `font-family:'DM Sans',sans-serif`,
+                    `font-size:${autoFontSize}px`,
+                    'font-weight:400', 'color:#262623',
+                    'outline:2.5px solid var(--flamme)',
+                    'border-radius:2px',
+                    'padding:3px 5px',
+                    'word-break:break-word',
+                    'white-space:pre-wrap',
+                    'cursor:text', 'z-index:11',
+                    'line-height:1.35',
+                    'box-sizing:border-box',
+                    'background:rgba(255,255,255,0.88)',
+                    'overflow:hidden',
+                ].join(';');
+
+                if (cellData.html) div.innerHTML = cellData.html;
+                else if (cellData.text) div.innerText = cellData.text;
+
+                planDeTravail.appendChild(div);
+                activeDiv = div;
+                div.focus();
+                const range = document.createRange();
+                range.selectNodeContents(div);
+                range.collapse(false); // curseur à la fin
+                const sel = window.getSelection();
+                if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+
+                div.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') { e.preventDefault(); sortir(); return; }
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        const total = cols * rows;
+                        let idx = r * cols + c;
+                        idx = e.shiftKey ? (idx - 1 + total) % total : (idx + 1) % total;
+                        openCell(idx % cols, Math.floor(idx / cols));
+                        return;
+                    }
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault(); sortir();
+                    }
                 });
             }
 
-            const onCanvasClick = (e) => {
-                if (e.button !== 0 || textZoneActif) return;
-                const [cx, cy] = getPos(e);
-                const pad  = tableObj._innerPad || 6;
-                const cols = tableObj._cols || 3, rows = tableObj._rows || 3;
-                const innerX = tableObj.x + pad, innerY = tableObj.y + pad;
-                const innerW = tableObj.w - pad * 2, innerH = tableObj.h - pad * 2;
-                // Clic hors du tableau → on sort de la session
-                if (cx < innerX || cx > innerX + innerW || cy < innerY || cy > innerY + innerH) {
+            // Clic dans l'overlay → ouvrir la cellule correspondante
+            sessionOverlay.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                e.stopPropagation();
+                const rect  = planDeTravail.getBoundingClientRect();
+                const scale = currentScale || 1;
+                const px = (e.clientX - rect.left) / scale;
+                const py = (e.clientY - rect.top)  / scale;
+                if (px < innerX || px > innerX + innerW || py < innerY || py > innerY + innerH) {
                     sortir(); return;
                 }
-                const col = Math.max(0, Math.min(cols - 1, Math.floor((cx - innerX) / (innerW / cols))));
-                const row = Math.max(0, Math.min(rows - 1, Math.floor((cy - innerY) / (innerH / rows))));
-                ouvrirCellule(col, row);
-            };
+                const cc = Math.max(0, Math.min(cols - 1, Math.floor((px - innerX) / cellW)));
+                const rr = Math.max(0, Math.min(rows - 1, Math.floor((py - innerY) / cellH)));
+                if (!activeCell || activeCell.c !== cc || activeCell.r !== rr) openCell(cc, rr);
+            });
+            sessionOverlay.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect  = planDeTravail.getBoundingClientRect();
+                const scale = currentScale || 1;
+                const px = (touch.clientX - rect.left) / scale;
+                const py = (touch.clientY - rect.top)  / scale;
+                if (px < innerX || px > innerX + innerW || py < innerY || py > innerY + innerH) {
+                    sortir(); return;
+                }
+                const cc = Math.max(0, Math.min(cols - 1, Math.floor((px - innerX) / cellW)));
+                const rr = Math.max(0, Math.min(rows - 1, Math.floor((py - innerY) / cellH)));
+                if (!activeCell || activeCell.c !== cc || activeCell.r !== rr) openCell(cc, rr);
+            }, { passive: false });
 
-            const onEsc = (e) => {
-                if (e.key === 'Escape' && !textZoneActif) sortir();
+            // Clic hors du tableau → sortir
+            const onDocDown = (ev) => {
+                const t = ev.target;
+                if (sessionOverlay.contains(t)) return;
+                if (activeDiv && activeDiv.contains(t)) return;
+                sortir();
             };
-
-            // Écouter les clics sur le canvas (pas sur imgOverlay, qui est masqué)
-            draftCanvas.addEventListener('mousedown', onCanvasClick);
+            const onEsc = (ev) => { if (ev.key === 'Escape') sortir(); };
+            document.addEventListener('mousedown',  onDocDown, true);
+            document.addEventListener('touchstart', onDocDown, { capture: true, passive: true });
             document.addEventListener('keydown', onEsc);
 
             function sortir() {
-                window.tableEditMode = false;
-                draftCanvas.removeEventListener('mousedown', onCanvasClick);
+                saveCellText();
+                closeActiveDiv();
+                sessionOverlay.remove();
+                document.removeEventListener('mousedown',  onDocDown, true);
+                document.removeEventListener('touchstart', onDocDown, true);
                 document.removeEventListener('keydown', onEsc);
+                reRenderTable(tableObj);
+                saveState();
                 if (window.desactiverOutil) window.desactiverOutil();
                 if (roueConteneur.classList.contains('ouvert')) _fanClose();
+                setTimeout(() => { window.tableEditMode = false; }, 0);
             }
 
-            // Ouvrir la première cellule immédiatement
-            ouvrirCellule(startCol, startRow);
+            // Ouvrir la cellule initiale immédiatement
+            openCell(startCol, startRow);
         }
 
         // ── Redimensionnement via les poignées de coin ────────────────────────
@@ -1944,6 +2154,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ny = activeCorner.includes('n') ? imgOrigY + imgOrigH - nh : imgOrigY;
                 obj.x = nx; obj.y = ny; obj.w = nw; obj.h = nh;
                 if (obj.type === 'text' && obj._text) reRenderText(obj);
+                else if (obj.type === 'table') reRenderTable(obj);
                 appliquerMouvement(obj);
             }
         });
@@ -2455,7 +2666,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.style.cssText = 'position:absolute;z-index:3;pointer-events:none;';
                 const obj = { type: s.type, el, x: s.x, y: s.y, w: s.w, h: s.h, rotation: s.rotation || 0 };
                 if (s._text)  { obj._text = s._text; obj._fontFamily = s._fontFamily; obj._fontSize = s._fontSize; obj._fontWeight = s._fontWeight; obj._color = s._color; }
-                if (s.type === 'table') { obj._cols = s._cols; obj._rows = s._rows; obj._innerPad = s._innerPad; }
+                if (s.type === 'table') {
+                    obj._cols = s._cols; obj._rows = s._rows; obj._innerPad = s._innerPad;
+                    obj._color = s._color; obj._thickness = s._thickness;
+                    obj._cells = s._cells ? JSON.parse(JSON.stringify(s._cells)) : {};
+                }
                 mettreAJourElement(obj);
                 planDeTravail.appendChild(el);
                 placedObjects.push(obj);
@@ -7024,7 +7239,9 @@ function mettreAJourArrondi() {
 
                     const lbl = document.createElement('span');
                     lbl.className = 'arc-collab-item-lbl';
-                    lbl.textContent = abbrevMap[c.id] || c.label.slice(0, 4);
+                    const abbr = abbrevMap[c.id] || c.label.slice(0, 4);
+                    // Premier caractère normal, reste en exposant : T<sup>le</sup>, 1<sup>ère</sup>…
+                    lbl.innerHTML = abbr.charAt(0) + '<sup>' + abbr.slice(1) + '</sup>';
                     item.appendChild(lbl);
 
                     // Sous-menu matières (vers la droite au survol)
@@ -7283,7 +7500,7 @@ function mettreAJourArrondi() {
                   // IDs >= 1000000 : jamais en conflit avec les vrais tableaux
                   let dId  = 1000000;
                   let dNum = 0;
-                  while (arcAllBoards.length < 1) {
+                  while (arcAllBoards.length < 20) {
                       if (!used.has(dId)) {
                           const daysAgo  = (dNum + 1) * 3; // 3 jours d'écart, 100% dans le passé
                           const demoDate = new Date(Date.now() - daysAgo * 86400000);
