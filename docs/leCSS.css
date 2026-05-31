@@ -1445,6 +1445,103 @@ body.mode-sombre .arc-info-pill {
 .arc-sitem { display: none; }
 .arc-ssub  { display: none; }
 
+/* ── Panneau de partage (bouton collaborer) ─────────────────────── */
+.arc-collab-panel {
+    position: absolute;
+    top: calc(12px + 46px + 10px); /* juste sous arc-detail-actions */
+    left: calc(380px + 14px);
+    width: 230px;
+    background: var(--bg);
+    border-radius: 18px;
+    box-shadow: 8px 8px 24px var(--shadow-outer-dark),
+                -3px -3px 10px var(--shadow-outer-light);
+    z-index: 830;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    pointer-events: none;
+    overflow: hidden;
+    display: none;
+}
+.arc-collab-panel.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+.arc-collab-tabs {
+    display: flex;
+    padding: 10px 10px 0;
+    gap: 4px;
+    border-bottom: 1.5px solid rgba(128,128,128,0.12);
+}
+.arc-collab-tab {
+    flex: 1; padding: 7px 4px 8px;
+    border: none; background: transparent;
+    border-radius: 10px 10px 0 0;
+    font-size: 11px; font-weight: 700; letter-spacing: -0.01em;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-mid); cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+.arc-collab-tab:hover { color: var(--text-dark); }
+.arc-collab-tab.active {
+    color: var(--text-dark);
+    box-shadow: inset 0 -2px 0 var(--text-dark);
+}
+.arc-collab-list { padding: 8px; }
+.arc-collab-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 9px; border-radius: 11px;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.arc-collab-row:hover    { background: rgba(128,128,128,0.08); }
+.arc-collab-row.selected { background: rgba(128,128,128,0.12); }
+.arc-collab-dot {
+    width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+}
+.arc-collab-lbl {
+    flex: 1;
+    font-size: 12px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-dark); letter-spacing: -0.015em;
+}
+.arc-collab-share-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: none; background: var(--bg);
+    box-shadow: 3px 3px 8px var(--shadow-outer-dark), -1px -1px 4px var(--shadow-outer-light);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--text-mid); flex-shrink: 0;
+    transition: color 0.12s, transform 0.12s;
+    padding: 0;
+}
+.arc-collab-share-btn:hover { color: var(--bleu-mid, #4f8ef7); transform: scale(1.1); }
+.arc-collab-share-btn svg { width: 14px; height: 14px; display: block; }
+/* Toast confirmation */
+.arc-collab-toast {
+    position: absolute;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--bg);
+    box-shadow: 6px 6px 20px var(--shadow-outer-dark), -2px -2px 8px var(--shadow-outer-light);
+    border-radius: 22px;
+    padding: 11px 22px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: var(--text-dark);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    z-index: 840;
+}
+.arc-collab-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+/* Bouton collaborer actif */
+#btn-arc-collab.active { color: var(--bleu-mid, #4f8ef7) !important; }
+
 /* ── Section "5 derniers" en tête de colonne drum ── */
 .arc-recents {
     width: 100%;

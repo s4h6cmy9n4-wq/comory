@@ -6974,10 +6974,136 @@ function mettreAJourArrondi() {
             container.appendChild(addInline);
         }
 
+        // ── Panneau de partage (bouton collaborer) ───────────────────────
+        function arcInitCollabPanel() {
+            const btn     = document.getElementById('btn-arc-collab');
+            const overlay = document.getElementById('archive-overlay');
+            if (!btn || !overlay) return;
+
+            // Crée le panneau
+            const panel = document.createElement('div');
+            panel.id        = 'arc-collab-panel';
+            panel.className = 'arc-collab-panel';
+            panel.setAttribute('aria-hidden', 'true');
+            overlay.appendChild(panel);
+
+            // Toast de confirmation
+            const toast = document.createElement('div');
+            toast.id        = 'arc-collab-toast';
+            toast.className = 'arc-collab-toast';
+            overlay.appendChild(toast);
+            let toastTimer = null;
+
+            let activeClsIdx = 0;
+            let selectedMat  = null;
+
+            function showToast(msg) {
+                toast.textContent = msg;
+                toast.classList.add('visible');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => toast.classList.remove('visible'), 3500);
+            }
+
+            function buildPanel() {
+                arcLoadGroups();
+                panel.innerHTML = '';
+                const cls  = arcClasses  || [];
+                const mats = arcMatieres || [];
+                if (!cls.length) return;
+
+                // ── Onglets classes ──────────────────────────────────────
+                const tabsEl = document.createElement('div');
+                tabsEl.className = 'arc-collab-tabs';
+                cls.forEach((c, i) => {
+                    const tab = document.createElement('button');
+                    tab.className = 'arc-collab-tab' + (i === activeClsIdx ? ' active' : '');
+                    tab.textContent = c.label;
+                    tab.addEventListener('click', e => {
+                        e.stopPropagation();
+                        activeClsIdx = i; selectedMat = null; buildPanel();
+                    });
+                    tabsEl.appendChild(tab);
+                });
+                panel.appendChild(tabsEl);
+
+                // ── Liste des matières ───────────────────────────────────
+                const listEl = document.createElement('div');
+                listEl.className = 'arc-collab-list';
+                mats.forEach(m => {
+                    const row = document.createElement('div');
+                    row.className = 'arc-collab-row' + (selectedMat === m.id ? ' selected' : '');
+
+                    const dot = document.createElement('span');
+                    dot.className = 'arc-collab-dot';
+                    dot.style.background = m.color || '#94a3b8';
+
+                    const lbl = document.createElement('span');
+                    lbl.className = 'arc-collab-lbl';
+                    lbl.textContent = m.abbr || m.label;
+
+                    row.appendChild(dot);
+                    row.appendChild(lbl);
+
+                    if (selectedMat === m.id) {
+                        const shareBtn = document.createElement('button');
+                        shareBtn.className = 'arc-collab-share-btn';
+                        shareBtn.title     = 'Transmettre le tableau';
+                        shareBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                        </svg>`;
+                        shareBtn.addEventListener('click', e => {
+                            e.stopPropagation();
+                            const c = cls[activeClsIdx];
+                            showToast(`Le tableau a été transmis à ${c.label} dans la matière ${m.abbr || m.label}.`);
+                            closePanel();
+                        });
+                        row.appendChild(shareBtn);
+                    }
+
+                    row.addEventListener('click', e => {
+                        e.stopPropagation();
+                        selectedMat = selectedMat === m.id ? null : m.id;
+                        buildPanel();
+                    });
+                    listEl.appendChild(row);
+                });
+                panel.appendChild(listEl);
+            }
+
+            function openPanel() {
+                buildPanel();
+                panel.style.display = '';
+                panel.setAttribute('aria-hidden', 'false');
+                requestAnimationFrame(() => panel.classList.add('open'));
+                btn.classList.add('active');
+            }
+            function closePanel() {
+                panel.classList.remove('open');
+                btn.classList.remove('active');
+                selectedMat = null;
+                setTimeout(() => {
+                    panel.style.display = 'none';
+                    panel.setAttribute('aria-hidden', 'true');
+                }, 260);
+            }
+
+            btn.addEventListener('click', e => {
+                e.stopPropagation();
+                panel.classList.contains('open') ? closePanel() : openPanel();
+            });
+            document.addEventListener('click', e => {
+                if (panel.classList.contains('open') && !panel.contains(e.target) && e.target !== btn && !btn.contains(e.target))
+                    closePanel();
+            });
+        }
+
         // ── Panneau de tri (pastilles) ────────────────────────────────────
         function arcInitSortPanel() {
             arcLoadGroups();
             arcBuildPills();
+            arcInitCollabPanel();
 
             // Tri fixe : toujours du plus récent au moins récent
             arcSortDir = 'recent';
