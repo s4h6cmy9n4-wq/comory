@@ -3856,7 +3856,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'font-family:\'DM Sans\',sans-serif',
             'font-size:calc(var(--roue-size)*0.042)',
             'font-weight:700', 'letter-spacing:0.03em',
-            'text-transform:uppercase', 'color:var(--bleu-marine)',
+            'text-transform:uppercase', 'color:#1a1a1a',
             'white-space:nowrap', 'overflow:hidden',
         ].join(';');
         const valNumD = document.createElement('div');
@@ -3864,7 +3864,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'font-family:\'DM Sans\',sans-serif',
             'font-size:calc(var(--roue-size)*0.115)',
             'font-weight:900', 'letter-spacing:-0.04em',
-            'color:var(--bleu-marine)', 'line-height:1',
+            'color:#1a1a1a', 'line-height:1',
         ].join(';');
         valDivD.appendChild(valLblD);
         valDivD.appendChild(valNumD);
@@ -4901,6 +4901,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const onMove = e => {
                 if (!activeArc) return;
                 const { dx, dy } = evtRel(e);
+                // Masquer le titre de la fonte pendant le drag
+                if (textCtrl) textCtrl.style.opacity = '0';
                 if (activeArc === 'T') {
                     const a   = Math.atan2(-Math.abs(dy), dx);
                     const raw = Math.max(0, Math.min(1, (a + Math.PI) / Math.PI));
@@ -4923,6 +4925,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!activeArc) return;
                 activeArc = null;
                 hideVal();
+                // Réafficher le titre de la fonte
+                if (textCtrl) textCtrl.style.opacity = '1';
                 if (!mouseOverRoue) scheduleClose();
             };
             addDoc('mousemove', onMove);

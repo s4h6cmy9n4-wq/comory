@@ -1460,7 +1460,7 @@ body.mode-sombre .arc-info-pill {
     width: 38px; /* même largeur que .arc-act-btn */
     box-sizing: border-box;
     background: var(--bg);
-    border-radius: 14px;
+    border-radius: 19px; /* 50% de 38px = même arrondi que le bouton */
     box-shadow: 6px 6px 20px var(--shadow-outer-dark),
                 -2px -2px 8px var(--shadow-outer-light);
     z-index: 900;
