@@ -1436,7 +1436,7 @@ body.mode-sombre .arc-info-pill {
     color: var(--text-mid); white-space: nowrap;
     transition: opacity 0.18s, transform 0.18s, box-shadow 0.14s;
 }
-.arc-pill:hover  { background: var(--orange) !important; color: #fff !important; opacity: 1; transform: scale(1.05); }
+.arc-pill:hover  { color: var(--orange) !important; opacity: 1; transform: scale(1.05); }
 .arc-pill:active { transform: scale(0.97); }
 .arc-pill.active { color: #fff !important; opacity: 1; }
 /* Compat anciens sélecteurs */
