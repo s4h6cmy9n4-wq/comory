@@ -7074,7 +7074,7 @@ function mettreAJourArrondi() {
 
             function openPanel() {
                 buildPanel();
-                panel.style.display = '';
+                panel.style.display = 'block';
                 panel.setAttribute('aria-hidden', 'false');
                 requestAnimationFrame(() => panel.classList.add('open'));
                 btn.classList.add('active');

@@ -169,7 +169,7 @@ body {
 
 /* Header — flottant en haut du canvas, en position absolue */
 .header-wrapper {
-    position: absolute; top: 20px; left: 20px; width: auto; z-index: 15;
+    position: absolute; top: 32px; left: 32px; width: auto; z-index: 15;
     display: flex; align-items: center; gap: 12px; height: 46px;
     background: transparent;
     box-shadow: none;
