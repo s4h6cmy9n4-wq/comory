@@ -396,7 +396,8 @@ body {
 .mon-conteneur.ouverture-bordure::after { height: 120px; top: 40px; }
 /* L'œil donne un effet éthéré au canvas — visible en filigrane, pas effacé */
 #plan-de-travail { transition: opacity 0.5s ease; }
-.mon-conteneur.contenu-masque #plan-de-travail { opacity: 0.08; pointer-events: none; }
+.mon-conteneur.contenu-masque #plan-de-travail { opacity: 0.08; }
+/* pointer-events conservé : l'œil masque uniquement l'affichage partagé, pas les interactions */
 
 
 /* ─────────────────────────────────────────────────────────────

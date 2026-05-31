@@ -5650,14 +5650,6 @@ function mettreAJourArrondi() {
             { id: 'fr',    nom: 'Français',                 color: '#BF5AF2' },
             { id: 'hg',    nom: 'Histoire-Géographie',      color: '#64D2FF' },
         ]},
-        { id: 'commun', label: 'Commun', matieres: [
-            { id: 'eps',   nom: 'EPS',                      color: '#FF2D55' },
-            { id: 'ang',   nom: 'Anglais',                  color: '#007AFF' },
-            { id: 'esp',   nom: 'Espagnol',                 color: '#FF9F0A' },
-            { id: 'emc',   nom: 'EMC',                      color: '#30D158' },
-            { id: 'vie',   nom: 'Vie scolaire',             color: '#BF5AF2' },
-            { id: 'doc',   nom: 'Documentation',            color: '#FFD60A' },
-        ]},
     ];
 
     let archivesSessions = JSON.parse(localStorage.getItem('mory_archives') || '[]');
@@ -7227,13 +7219,19 @@ function mettreAJourArrondi() {
             function buildPanel() {
                 arcLoadGroups();
                 panel.innerHTML = '';
-                const cls  = arcClasses  || [];
-                const mats = arcMatieres || [];
-                if (!cls.length || !mats.length) return;
+                const cls = arcClasses || [];
+                // Filtrer : seulement les classes présentes dans ARCHIVE_NIVEAUX (pas "commun")
+                const clsFiltrees = cls.filter(c => ARCHIVE_NIVEAUX.some(n => n.id === c.id));
+                if (!clsFiltrees.length) return;
 
                 const abbrevMap = { terminale: 'Tle', premiere: '1ère', seconde: '2nde' };
 
-                cls.forEach(c => {
+                clsFiltrees.forEach(c => {
+                    // Matières de cette classe issues de ARCHIVE_NIVEAUX (page de chargement)
+                    const niveauData = ARCHIVE_NIVEAUX.find(n => n.id === c.id);
+                    const mats = (niveauData && niveauData.matieres) || [];
+                    if (!mats.length) return;
+
                     const item = document.createElement('div');
                     item.className = 'arc-collab-item';
 
@@ -7258,7 +7256,7 @@ function mettreAJourArrondi() {
                         dot.style.background = m.color || '#888';
 
                         const matLbl = document.createElement('span');
-                        matLbl.textContent = m.abbr || m.label;
+                        matLbl.textContent = m.nom; // ARCHIVE_NIVEAUX utilise .nom
 
                         matBtn.appendChild(dot);
                         matBtn.appendChild(matLbl);
@@ -7275,7 +7273,7 @@ function mettreAJourArrondi() {
                                     classeId:     c.id,
                                     classeLabel:  c.label,
                                     matiereId:    m.id,
-                                    matiereLabel: m.abbr || m.label,
+                                    matiereLabel: m.nom,
                                     matiereColor: m.color || '#888',
                                     date:         new Date().toISOString(),
                                 };
@@ -7283,7 +7281,7 @@ function mettreAJourArrondi() {
                                 if (idx >= 0) shared[idx] = entry; else shared.unshift(entry);
                                 localStorage.setItem('mory_shared_boards', JSON.stringify(shared));
                             }
-                            showToast(`Transmis à ${c.label} · ${m.abbr || m.label}`);
+                            showToast(`Transmis à ${c.label} · ${m.nom}`);
                             closePanel();
                         });
 
