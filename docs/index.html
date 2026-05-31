@@ -234,26 +234,15 @@
                 </svg>
             </button>
         </div>
-        <!-- Bouton + barre de recherche -->
-        <div class="arc-search-wrapper">
-            <div class="socket-bouton arc-act-socket" id="btn-search-socket">
-                <button class="arc-act-btn" id="btn-search" title="Rechercher">
-                    <svg class="search-icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <svg class="search-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="arc-search-bar" id="arc-search-bar">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;opacity:0.45">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <!-- Pill de recherche expansible -->
+        <div class="arc-search-pill" id="arc-search-bar">
+            <button id="btn-search" title="Rechercher">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
-                <input type="text" id="arc-search-input" placeholder="Rechercher…" autocomplete="off" spellcheck="false">
-            </div>
+            </button>
+            <input type="text" id="arc-search-input" placeholder="Rechercher…" autocomplete="off" spellcheck="false">
         </div>
     </div>
 

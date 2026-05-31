@@ -7037,18 +7037,10 @@ function mettreAJourArrondi() {
 
                 function openSearch() {
                     searchBar.classList.add('active');
-                    const iconSearch = btnSearch.querySelector('.search-icon-search');
-                    const iconClose  = btnSearch.querySelector('.search-icon-close');
-                    if (iconSearch) iconSearch.style.display = 'none';
-                    if (iconClose)  iconClose.style.display  = '';
-                    setTimeout(() => { searchInput.focus(); searchInput.select(); }, 50);
+                    setTimeout(() => { searchInput.focus(); searchInput.select(); }, 360);
                 }
                 function closeSearch() {
                     searchBar.classList.remove('active');
-                    const iconSearch = btnSearch.querySelector('.search-icon-search');
-                    const iconClose  = btnSearch.querySelector('.search-icon-close');
-                    if (iconSearch) iconSearch.style.display = '';
-                    if (iconClose)  iconClose.style.display  = 'none';
                     arcSearchQ = '';
                     searchInput.value = '';
                     arcApplySort();
