@@ -7634,8 +7634,8 @@ function mettreAJourArrondi() {
                               canvasPNG: null,
                               _demo:     true,
                               date:      demoDate,
-                              classeId:  DEMO_CLS[dNum % 3],
-                              matiereId: DEMO_MAT[dNum % DEMO_MAT.length],
+                              classeId:  'terminale',
+                              matiereId: 'atc',
                               resume:    DEMO_RESUMES[dNum] || '',
                           });
                           used.add(dId);
@@ -7646,9 +7646,9 @@ function mettreAJourArrondi() {
                   // Dates par défaut pour les vrais tableaux venant de la DB
                   const DEMO_CLS2 = DEMO_CLS; const DEMO_MAT2 = DEMO_MAT;
                   arcAllBoards.forEach((b, idx) => {
-                      if (!b.date)     b.date     = new Date(Date.now() - (idx + 1) * 86400000 * 2);
-                      if (!b.classeId) b.classeId = DEMO_CLS2[idx % 3];
-                      if (!b.matiereId) b.matiereId = DEMO_MAT2[idx % DEMO_MAT2.length];
+                      if (!b.date)      b.date      = new Date(Date.now() - (idx + 1) * 86400000 * 2);
+                      if (!b.classeId)  b.classeId  = 'terminale';
+                      if (!b.matiereId) b.matiereId = 'atc';
                   });
                   // Appliquer les overrides (renommages / résumés sauvegardés)
                   try {

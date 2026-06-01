@@ -73,9 +73,11 @@
             pointer-events: none;
         }
 
-        /* Quand la roue est ouverte (JS la repositionne) */
+        /* Quand la roue est ouverte (JS la repositionne via left/top) */
         body.mobile-roue-visible .roue-conteneur {
             pointer-events: auto;
+            transform: none;   /* annule translateX(-50%) pour que left JS soit exact */
+            bottom: auto;      /* annule bottom:24px pour que top JS soit exact */
         }
 
         /* ── Bouton tableaux partagés ─────────────────────────────────── */
@@ -153,13 +155,13 @@
             flex-shrink: 0;
         }
         .eleve-pill {
-            padding: 7px 16px; border-radius: 22px;
+            padding: 7px 14px; border-radius: 22px;
             font-size: 12px; font-weight: 700;
             font-family: 'DM Sans', sans-serif;
             letter-spacing: -0.02em;
             border: none; cursor: pointer;
             color: #fff; opacity: 0.7;
-            flex: 1; min-width: 0;
+            flex: 0 0 auto; white-space: nowrap;
             text-align: center;
             transition: opacity 0.15s, transform 0.12s;
             box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
