@@ -29,12 +29,13 @@
     // ID unique pour cette session (évite de s'appliquer ses propres changements)
     const SID = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
-    let dirty           = false;   // état modifié depuis la dernière sync
-    let syncTimer       = null;    // timer debounce
-    let receiving       = false;   // en train d'appliquer un changement distant
-    let initialSyncDone = false;   // vrai après le premier contact Firebase (reçu ou null)
-    let currentBoardId  = null;
-    let boardListener   = null;
+    let dirty                = false;   // état modifié depuis la dernière sync
+    let syncTimer            = null;    // timer debounce
+    let receiving            = false;   // en train d'appliquer un changement distant
+    let initialSyncDone      = false;   // vrai après le premier contact Firebase (reçu ou null)
+    let currentBoardId       = null;
+    let boardListener        = null;
+    let justSwitchedLocally  = false;   // bloque le premier fire Firebase après un switch local
 
     const DEBOUNCE_MS = 4000; // 4 s après la dernière modification locale
 
@@ -139,7 +140,11 @@
     // ── Pull : appliquer un état distant ─────────────────────────────────────
     async function applyRemote(data) {
         // Données absentes ou envoyées par nous-mêmes → marquer init terminée et sortir
-        if (!data || data.sid === SID) { initialSyncDone = true; return; }
+        if (!data || data.sid === SID) { justSwitchedLocally = false; initialSyncDone = true; return; }
+        // Switch local en cours : ignorer le premier fire Firebase (données périmées)
+        // Le push _syncForcePush qui suit envoie la version IDB, après quoi le flag
+        // est effacé par la branche data.sid === SID ci-dessus.
+        if (justSwitchedLocally) { justSwitchedLocally = false; initialSyncDone = true; return; }
         if (!window.setBoardState) return;
 
         receiving = true;
@@ -231,6 +236,10 @@
         initialSyncDone = true; // garantit que le push s'exécute même si le canvas est vide
         return pushState();
     };
+
+    // Marquer qu'un switch de tableau LOCAL est en cours.
+    // Bloque le prochain fire Firebase (données périmées) sur le nouveau tableau.
+    window._syncMarkLocalSwitch = function() { justSwitchedLocally = true; };
 
     // Push la liste de tableaux vers Firebase (appelé depuis saveBoardList).
     // Permet au mobile enseignant de connaître tous les tableaux du desktop.

@@ -6323,6 +6323,7 @@ function mettreAJourArrondi() {
                     isSwitching = false;
                     render();
                     // Sync : écouter le nouveau tableau + notifier les autres appareils immédiatement
+                    window._syncMarkLocalSwitch?.(); // bloque le premier fire Firebase (version périmée)
                     window._syncListenBoard?.(board.id);
                     window._syncPushMeta?.(board.id); // push meta immédiat → desktop suit instantanément
                     // Force-push le canvas vers Firebase → l'ordinateur reçoit le contenu immédiatement
@@ -6509,6 +6510,7 @@ function mettreAJourArrondi() {
             isSwitching = false;
             render();
             // Sync : écouter le nouveau tableau + notifier les autres appareils
+            window._syncMarkLocalSwitch?.();
             window._syncListenBoard?.(id);
             window._syncPushMeta?.(id);
             setTimeout(() => window._syncForcePush?.(), 200);
@@ -6558,6 +6560,7 @@ function mettreAJourArrondi() {
             await openBoard(id);
             isSwitching = false;
             render();
+            window._syncMarkLocalSwitch?.();
             window._syncListenBoard?.(id);
             window._syncPushMeta?.(id);
             setTimeout(() => window._syncForcePush?.(), 200);
