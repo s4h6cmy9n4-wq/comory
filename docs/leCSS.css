@@ -1503,11 +1503,11 @@ body.mode-sombre .arc-info-pill {
     line-height: 0;
     font-weight: 800;
 }
-/* Sous-menu matières — apparaît à droite au survol */
+/* Sous-menu matières — apparaît à droite, s'ouvre vers le bas depuis le cercle */
 .arc-collab-submenu {
     position: absolute;
     left: calc(100% + 10px);
-    top: 50%; transform: translateY(-50%);
+    top: 0; transform: none;
     background: var(--bg);
     border-radius: 14px;
     box-shadow: 6px 6px 20px var(--shadow-outer-dark),

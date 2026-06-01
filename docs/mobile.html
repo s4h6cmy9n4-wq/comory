@@ -439,8 +439,8 @@
 
     function renderPills(matieres, sharedBoards) {
         pillsRow.innerHTML = '';
-        // Toujours afficher toutes les matières (même celles sans tableaux pour le moment)
-        matieres.forEach(m => {
+        // Toutes les matières sauf "Autre" dans la version élève
+        matieres.filter(m => m.id !== 'autre').forEach(m => {
             const pill = document.createElement('button');
             const isActive = activeFilter === m.id;
             pill.className = 'eleve-pill' + (isActive ? ' active' : '');

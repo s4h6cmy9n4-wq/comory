@@ -5631,30 +5631,29 @@ function mettreAJourArrondi() {
     // SYSTÈME D'ARCHIVES — 4 NIVEAUX × MATIÈRES × SESSIONS
     // ══════════════════════════════════════════════════════════════
 
+    // Matières identiques à arcMatieres (DEFAULT_MATIERES), sous-ensembles par classe :
+    // Terminale : 5 (sans Atelier) | Première : 6 (toutes) | Seconde : 4 (Atelier, Autre, ATC, CCDMA)
     const ARCHIVE_NIVEAUX = [
         { id: 'terminale', label: 'Terminale', matieres: [
-            { id: 'daa',   nom: 'Design & Arts Appliqués', color: '#FF9F0A' },
-            { id: 'si',    nom: 'Sciences de l\'ingénieur', color: '#007AFF' },
-            { id: 'maths', nom: 'Mathématiques',            color: '#FF9F0A' },
-            { id: 'philo', nom: 'Philosophie',              color: '#BF5AF2' },
-            { id: 'hda',   nom: 'Histoire des Arts',        color: '#5AC8FA' },
-            { id: 'go',    nom: 'Grand Oral',               color: '#FF453A' },
+            { id: 'atc',  nom: 'Arts, Techniques & Civ.',         color: '#FF9500' },
+            { id: 'oln',  nom: 'Outils & Langages Numériques',    color: '#00C7BE' },
+            { id: 'amd',  nom: 'Analyse & Méthodes en Design',    color: '#0A84FF' },
+            { id: 'ccda', nom: 'Conception & Création',           color: '#FFD60A' },
+            { id: 'autre',nom: 'Autre',                           color: '#8E8E93' },
         ]},
         { id: 'premiere', label: 'Première', matieres: [
-            { id: 'daa',   nom: 'Design & Arts Appliqués', color: '#FF9F0A' },
-            { id: 'pc',    nom: 'Physique-Chimie',          color: '#007AFF' },
-            { id: 'maths', nom: 'Mathématiques',            color: '#FF9F0A' },
-            { id: 'hda',   nom: 'Histoire des Arts',        color: '#5AC8FA' },
-            { id: 'si',    nom: 'Sciences de l\'ingénieur', color: '#BF5AF2' },
-            { id: 'ang',   nom: 'Anglais',                  color: '#FFD60A' },
+            { id: 'atc',  nom: 'Arts, Techniques & Civ.',         color: '#FF9500' },
+            { id: 'oln',  nom: 'Outils & Langages Numériques',    color: '#00C7BE' },
+            { id: 'amd',  nom: 'Analyse & Méthodes en Design',    color: '#0A84FF' },
+            { id: 'ccda', nom: 'Conception & Création',           color: '#FFD60A' },
+            { id: 'atl',  nom: 'Atelier',                         color: '#BF5AF2' },
+            { id: 'autre',nom: 'Autre',                           color: '#8E8E93' },
         ]},
         { id: 'seconde', label: 'Seconde', matieres: [
-            { id: 'ap',    nom: 'Arts Plastiques',          color: '#FF2D55' },
-            { id: 'pc',    nom: 'Physique-Chimie',          color: '#007AFF' },
-            { id: 'maths', nom: 'Mathématiques',            color: '#FF9F0A' },
-            { id: 'st',    nom: 'Sciences & Techno',        color: '#30D158' },
-            { id: 'fr',    nom: 'Français',                 color: '#BF5AF2' },
-            { id: 'hg',    nom: 'Histoire-Géographie',      color: '#64D2FF' },
+            { id: 'atl',  nom: 'Atelier',                         color: '#BF5AF2' },
+            { id: 'autre',nom: 'Autre',                           color: '#8E8E93' },
+            { id: 'atc',  nom: 'Arts, Techniques & Civ.',         color: '#FF9500' },
+            { id: 'ccda', nom: 'Conception & Création',           color: '#FFD60A' },
         ]},
     ];
 
@@ -5783,32 +5782,29 @@ function mettreAJourArrondi() {
     }
 
     // ── Phase 2 : disque sectionné (matières STD2A artistiques) ──
-    // Proportions basées sur les heures du programme STD2A (sur 100h artistiques)
+    // Mêmes matières que arcMatieres (DEFAULT_MATIERES), sous-ensembles par classe.
+    // Terminale : 5 (sans Atelier) | Première : 6 (toutes) | Seconde : 4 (Atelier, Autre, ATC, CCDMA)
     const MATIERES_STD2A = {
         terminale: [
-            { id:'daa',  nom:'Design & Arts Appliqués', abbr:'Design AA',  color:'#FF9F0A', pct:46 },
-            { id:'proj', nom:'Projet en Design',        abbr:'Projet',      color:'#FF9F0A', pct:26 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:12 },
-            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#5AC8FA', pct:6  },
-            { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:10 },
+            { id:'atc',  nom:'Arts, Techniques & Civ.',      abbr:'ATC',     color:'#FF9500', pct:22 },
+            { id:'oln',  nom:'Outils & Langages Numériques', abbr:'OLN',     color:'#00C7BE', pct:22 },
+            { id:'amd',  nom:'Analyse & Méthodes en Design', abbr:'AMD',     color:'#0A84FF', pct:22 },
+            { id:'ccda', nom:'Conception & Création',        abbr:'CCDMA',   color:'#FFD60A', pct:24 },
+            { id:'autre',nom:'Autre',                        abbr:'Autre',   color:'#8E8E93', pct:10 },
         ],
         premiere: [
-            { id:'daa',  nom:'Design & Arts Appliqués', abbr:'Design AA',  color:'#FF9F0A', pct:44 },
-            { id:'crea', nom:'Création en design',      abbr:'Création',    color:'#FF9F0A', pct:28 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:12 },
-            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#5AC8FA', pct:6  },
-            { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:10 },
+            { id:'atc',  nom:'Arts, Techniques & Civ.',      abbr:'ATC',     color:'#FF9500', pct:18 },
+            { id:'oln',  nom:'Outils & Langages Numériques', abbr:'OLN',     color:'#00C7BE', pct:18 },
+            { id:'amd',  nom:'Analyse & Méthodes en Design', abbr:'AMD',     color:'#0A84FF', pct:18 },
+            { id:'ccda', nom:'Conception & Création',        abbr:'CCDMA',   color:'#FFD60A', pct:18 },
+            { id:'atl',  nom:'Atelier',                      abbr:'ATELIER', color:'#BF5AF2', pct:18 },
+            { id:'autre',nom:'Autre',                        abbr:'Autre',   color:'#8E8E93', pct:10 },
         ],
         seconde: [
-            { id:'daa',  nom:'Initiation au Design',    abbr:'Initiation',  color:'#FF9F0A', pct:35 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:22 },
-            { id:'atl',  nom:'Atelier',                 abbr:'ATELIER',     color:'#007AFF', pct:22 },
-            { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:21 },
-        ],
-        commun: [
-            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#5AC8FA', pct:40 },
-            { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:35 },
-            { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:25 },
+            { id:'atl',  nom:'Atelier',                      abbr:'ATELIER', color:'#BF5AF2', pct:25 },
+            { id:'autre',nom:'Autre',                        abbr:'Autre',   color:'#8E8E93', pct:25 },
+            { id:'atc',  nom:'Arts, Techniques & Civ.',      abbr:'ATC',     color:'#FF9500', pct:25 },
+            { id:'ccda', nom:'Conception & Création',        abbr:'CCDMA',   color:'#FFD60A', pct:25 },
         ],
     };
 
@@ -6652,7 +6648,7 @@ function mettreAJourArrondi() {
                 drum.innerHTML = '';
                 if (cntEl)     cntEl.textContent      = '0 / 0';
                 if (detailCol) detailCol.style.visibility  = 'hidden';
-                if (actionsEl) actionsEl.style.visibility  = 'hidden';
+                // actionsEl (recherche + partage) toujours visible pour ne pas casser la saisie
                 if (emptyEl)   emptyEl.classList.add('show');
                 return;
             }
