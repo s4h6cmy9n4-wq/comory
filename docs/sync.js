@@ -224,6 +224,30 @@
         } catch(e) { /* silencieux */ }
     };
 
+    // Push la liste de tableaux vers Firebase (appelé depuis saveBoardList).
+    // Permet au mobile enseignant de connaître tous les tableaux du desktop.
+    window._syncPushBoardList = async function(list, nextId) {
+        if (receiving) return;
+        try {
+            await db.ref(`rooms/${room}/boardList`).set({
+                list:   JSON.stringify(list || []),
+                nextId: nextId || 1,
+                sid:    SID,
+                ts:     firebase.database.ServerValue.TIMESTAMP
+            });
+        } catch(e) { /* silencieux */ }
+    };
+
+    // Écouter les changements de liste de tableaux (autre appareil → met à jour le carrousel)
+    db.ref(`rooms/${room}/boardList`).on('value', snap => {
+        const data = snap.val();
+        if (!data || data.sid === SID) return;
+        try {
+            const list = JSON.parse(data.list || '[]');
+            window._syncApplyBoardList?.(list, data.nextId);
+        } catch(e) { /* silencieux */ }
+    });
+
     // ── Init : démarrer sur le tableau actif ──────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
         const bid = parseInt(localStorage.getItem('mory_active_id') || '1');

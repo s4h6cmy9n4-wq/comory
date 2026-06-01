@@ -6107,12 +6107,15 @@ function mettreAJourArrondi() {
             return [{ id: 1, label: 'Tableau 1', thumbnail: null }];
         }
         function saveBoardList() {
-            localStorage.setItem(LS_BOARD_LIST, JSON.stringify(boards.map(b => ({
+            const listData = boards.map(b => ({
                 id: b.id,
                 label: b.label,
                 nomCours: b.nomCours || window._sessionContext?.nomCours || '',
-            }))));
+            }));
+            localStorage.setItem(LS_BOARD_LIST, JSON.stringify(listData));
             localStorage.setItem(LS_NEXT_ID, String(nextBoardId));
+            // Sync la liste de tableaux vers Firebase pour que le mobile suive
+            window._syncPushBoardList?.(listData, nextBoardId);
         }
 
         const boards      = _loadBoardList();
@@ -6584,6 +6587,32 @@ function mettreAJourArrondi() {
         }
         window._initNomCoursSeq = initNomCoursSeq;
         window._getBoardsForRecents = () => boards; // pour la bande récents de l'archive
+
+        // ── Réception liste de tableaux depuis Firebase (sync mobile↔desktop) ──
+        window._syncApplyBoardList = function(list, nextId) {
+            if (!list || !Array.isArray(list) || list.length === 0) return;
+            let changed = false;
+            list.forEach(bl => {
+                if (!bl || !bl.id) return;
+                const ex = boards.find(b => b.id === bl.id);
+                if (!ex) {
+                    boards.push({ id: bl.id, label: bl.label || `Tableau ${bl.id}`, nomCours: bl.nomCours || '', thumbnail: null });
+                    changed = true;
+                } else if (ex.label !== bl.label) {
+                    ex.label = bl.label;
+                    ex.nomCours = bl.nomCours || ex.nomCours;
+                    changed = true;
+                }
+            });
+            if (nextId && nextId > nextBoardId) { nextBoardId = nextId; changed = true; }
+            if (!changed) return;
+            // Persister dans localStorage (sans re-pusher vers Firebase)
+            localStorage.setItem(LS_BOARD_LIST, JSON.stringify(boards.map(b => ({
+                id: b.id, label: b.label, nomCours: b.nomCours || '',
+            }))));
+            localStorage.setItem(LS_NEXT_ID, String(nextBoardId));
+            loadThumbnails().then(() => render());
+        };
 
         // ── Init — charger les vignettes puis rendre ───────────────────────────
         window._activeBoardIdForResume = activeBoardId;

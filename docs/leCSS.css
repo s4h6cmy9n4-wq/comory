@@ -1470,10 +1470,10 @@ body.mode-sombre .arc-info-pill {
     top: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%) translateY(-5px);
-    width: 38px; /* même largeur que .arc-act-btn */
+    width: 64px;
     box-sizing: border-box;
     background: var(--bg);
-    border-radius: 19px; /* 50% de 38px = même arrondi que le bouton */
+    border-radius: 12px;
     box-shadow: 6px 6px 20px var(--shadow-outer-dark),
                 -2px -2px 8px var(--shadow-outer-light);
     z-index: 900;
@@ -1481,7 +1481,7 @@ body.mode-sombre .arc-info-pill {
     transition: opacity 0.18s ease, transform 0.18s ease;
     pointer-events: none;
     overflow: visible; /* nécessaire pour les sous-menus */
-    padding: 4px 3px;
+    padding: 4px;
     display: none;
 }
 .arc-collab-panel.open {
@@ -1489,33 +1489,29 @@ body.mode-sombre .arc-info-pill {
     transform: translateX(-50%) translateY(0);
     pointer-events: auto;
 }
-/* Item de classe — anneau coloré au repos (forme visible), rempli au survol */
+/* Item de classe — bouton texte plat (comme .arc-collab-mat-btn), couleur au survol */
 .arc-collab-item {
     position: relative;
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    background: #fff;
-    border: 2px solid var(--cls-color, #888);
     display: flex; align-items: center; justify-content: center;
-    cursor: default;
-    transition: background 0.15s, border-color 0.15s, transform 0.12s;
-    flex-shrink: 0;
-    align-self: center;
-    box-sizing: border-box;
-    margin: 2px auto; /* écarte les pastilles verticalement */
+    padding: 7px 8px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 100%; box-sizing: border-box;
+    transition: background 0.12s;
 }
 .arc-collab-item:hover {
     background: var(--cls-color, #888);
-    transform: scale(1.08);
 }
 .arc-collab-item:hover .arc-collab-item-lbl { color: #fff; }
 .arc-collab-item-lbl {
     font-family: 'DM Sans', sans-serif;
-    font-size: 10px; font-weight: 800; letter-spacing: -0.02em;
-    color: var(--cls-color, #555); white-space: nowrap;
+    font-size: 11px; font-weight: 700; letter-spacing: -0.01em;
+    color: var(--text-dark); white-space: nowrap;
     line-height: 1;
     text-align: center;
-    transition: color 0.15s;
+    transition: color 0.12s;
 }
 .arc-collab-item-lbl sup {
     font-size: 0.60em;
