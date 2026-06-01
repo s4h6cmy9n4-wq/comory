@@ -6612,12 +6612,18 @@ function mettreAJourArrondi() {
             });
             if (nextId && nextId > nextBoardId) { nextBoardId = nextId; changed = true; }
             if (!changed) return;
-            // Persister dans localStorage (sans re-pusher vers Firebase)
+            // Persister dans localStorage
             localStorage.setItem(LS_BOARD_LIST, JSON.stringify(boards.map(b => ({
                 id: b.id, label: b.label, nomCours: b.nomCours || '',
             }))));
             localStorage.setItem(LS_NEXT_ID, String(nextBoardId));
-            loadThumbnails().then(() => render());
+            loadThumbnails().then(() => {
+                render();
+                // Re-pousser la liste fusionnée → Firebase stocke l'état complet
+                // pour le prochain appareil qui se connecte
+                const merged = boards.map(b => ({ id: b.id, label: b.label, nomCours: b.nomCours || '' }));
+                window._syncPushBoardList?.(merged, nextBoardId);
+            });
         };
 
         // ── Init — charger les vignettes puis rendre ───────────────────────────
@@ -6627,6 +6633,18 @@ function mettreAJourArrondi() {
             initNomCoursSeq(window._sessionContext?.nomCours || '');
         });
         setTimeout(() => captureActive(), 800); // sauvegarder l'état initial
+
+        // ── Push différé de la liste de tableaux au démarrage ─────────────────
+        // Délai 2000 ms : laisse Firebase répondre d'abord (boardList.on → merge).
+        // Le push se fait sur la liste fusionnée (après réception éventuelle du
+        // bureau). Un appareil sans contenu réel (1 tableau par défaut) ne pousse
+        // pas pour ne pas écraser la liste complète stockée dans Firebase.
+        setTimeout(() => {
+            if (boards.length > 1) {
+                const toSync = boards.map(b => ({ id: b.id, label: b.label, nomCours: b.nomCours || '' }));
+                window._syncPushBoardList?.(toSync, nextBoardId);
+            }
+        }, 2000);
     }
     initCarrousel();
 
