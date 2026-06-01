@@ -5631,18 +5631,18 @@ function mettreAJourArrondi() {
 
     const ARCHIVE_NIVEAUX = [
         { id: 'terminale', label: 'Terminale', matieres: [
-            { id: 'daa',   nom: 'Design & Arts Appliqués', color: '#FF2D55' },
+            { id: 'daa',   nom: 'Design & Arts Appliqués', color: '#FF9F0A' },
             { id: 'si',    nom: 'Sciences de l\'ingénieur', color: '#007AFF' },
             { id: 'maths', nom: 'Mathématiques',            color: '#FF9F0A' },
             { id: 'philo', nom: 'Philosophie',              color: '#BF5AF2' },
-            { id: 'hda',   nom: 'Histoire des Arts',        color: '#30D158' },
+            { id: 'hda',   nom: 'Histoire des Arts',        color: '#5AC8FA' },
             { id: 'go',    nom: 'Grand Oral',               color: '#FF453A' },
         ]},
         { id: 'premiere', label: 'Première', matieres: [
-            { id: 'daa',   nom: 'Design & Arts Appliqués', color: '#FF2D55' },
+            { id: 'daa',   nom: 'Design & Arts Appliqués', color: '#FF9F0A' },
             { id: 'pc',    nom: 'Physique-Chimie',          color: '#007AFF' },
             { id: 'maths', nom: 'Mathématiques',            color: '#FF9F0A' },
-            { id: 'hda',   nom: 'Histoire des Arts',        color: '#30D158' },
+            { id: 'hda',   nom: 'Histoire des Arts',        color: '#5AC8FA' },
             { id: 'si',    nom: 'Sciences de l\'ingénieur', color: '#BF5AF2' },
             { id: 'ang',   nom: 'Anglais',                  color: '#FFD60A' },
         ]},
@@ -5784,17 +5784,17 @@ function mettreAJourArrondi() {
     // Proportions basées sur les heures du programme STD2A (sur 100h artistiques)
     const MATIERES_STD2A = {
         terminale: [
-            { id:'daa',  nom:'Design & Arts Appliqués', abbr:'Design AA',  color:'#FF2D55', pct:46 },
+            { id:'daa',  nom:'Design & Arts Appliqués', abbr:'Design AA',  color:'#FF9F0A', pct:46 },
             { id:'proj', nom:'Projet en Design',        abbr:'Projet',      color:'#FF9F0A', pct:26 },
             { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:12 },
-            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#30D158', pct:6  },
+            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#5AC8FA', pct:6  },
             { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:10 },
         ],
         premiere: [
-            { id:'daa',  nom:'Design & Arts Appliqués', abbr:'Design AA',  color:'#FF2D55', pct:44 },
+            { id:'daa',  nom:'Design & Arts Appliqués', abbr:'Design AA',  color:'#FF9F0A', pct:44 },
             { id:'crea', nom:'Création en design',      abbr:'Création',    color:'#FF9F0A', pct:28 },
             { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:12 },
-            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#30D158', pct:6  },
+            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#5AC8FA', pct:6  },
             { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:10 },
         ],
         seconde: [
@@ -5804,7 +5804,7 @@ function mettreAJourArrondi() {
             { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:21 },
         ],
         commun: [
-            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#30D158', pct:40 },
+            { id:'hda',  nom:'Histoire des Arts',       abbr:'Hist. Arts',  color:'#5AC8FA', pct:40 },
             { id:'atc',  nom:'Arts, Tech. & Civ.',      abbr:'ATC',         color:'#BF5AF2', pct:35 },
             { id:'autre',nom:'Autre',                   abbr:'Autre',       color:'#94a3b8', pct:25 },
         ],
@@ -6935,11 +6935,12 @@ function mettreAJourArrondi() {
                 { id:'seconde',   label:'Seconde',   color:'#30D158' },
             ];
             const DEFAULT_MATIERES = [
-                { id:'atc',  label:'Arts, Techniques & Civilisations',                      abbr:'ATC',     color:'#FF3B30' },
-                { id:'oln',  label:'Outils et Langages Numériques',                         abbr:'OLN',     color:'#30D158' },
+                { id:'atc',  label:'Arts, Techniques & Civilisations',                      abbr:'ATC',     color:'#FF9500' },
+                { id:'oln',  label:'Outils et Langages Numériques',                         abbr:'OLN',     color:'#00C7BE' },
                 { id:'amd',  label:'Analyse et Méthodes en Design',                         abbr:'AMD',     color:'#0A84FF' },
                 { id:'ccda', label:'Conception et Création en Design et Métiers des Arts',  abbr:'CCDMA',   color:'#FFD60A' },
                 { id:'atl',  label:'Atelier',                                               abbr:'ATELIER', color:'#BF5AF2' },
+                { id:'autre',label:'Autre',                                                  abbr:'Autre',   color:'#8E8E93' },
             ];
             arcClasses  = JSON.parse(localStorage.getItem('mory_arc_classes')  || 'null') || DEFAULT_CLASSES;
             arcMatieres = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null') || DEFAULT_MATIERES;
@@ -6965,6 +6966,7 @@ function mettreAJourArrondi() {
         }
 
         // ── Dictionnaire global de toutes les matières connues (MATIERES_STD2A + arcMatieres)
+        // arcMatieres priment sur MATIERES_STD2A pour les couleurs (cohérence avec les pastilles)
         function _arcAllKnownMats() {
             const map = {};
             Object.values(MATIERES_STD2A).flat().forEach(m => {
@@ -6972,6 +6974,7 @@ function mettreAJourArrondi() {
             });
             (arcMatieres || []).forEach(m => {
                 if (!map[m.id]) map[m.id] = { id: m.id, label: m.abbr || m.label, title: m.label, color: m.color };
+                else            map[m.id].color = m.color; // arcMatieres priment toujours
             });
             return map;
         }
@@ -6989,13 +6992,17 @@ function mettreAJourArrondi() {
             const usedMat = new Set(arcAllBoards.map(b => b.matiereId).filter(Boolean));
 
             // Pastilles classes — seulement celles qui matchent des boards
+            const _abbrevMap = { terminale: 'Tle', premiere: '1ère', seconde: '2nde' };
             const _classes = (arcClasses || []).filter(c => usedCls.has(c.id));
             _classes.forEach(cls => {
                 const pill = document.createElement('button');
                 pill.className         = 'arc-pill';
                 pill.dataset.arcGroup  = 'classe';
                 pill.dataset.arcId     = cls.id;
-                pill.textContent       = cls.label;
+                // Abréviation avec exposant : Tle, 1ère, 2nde
+                const _abbr = _abbrevMap[cls.id] || cls.label.slice(0, 4);
+                pill.innerHTML = _abbr.charAt(0) + '<sup>' + _abbr.slice(1) + '</sup>';
+                pill.title = cls.label;
                 const col = cls.color || '#94a3b8';
                 if (arcFilterClasse === cls.id) {
                     pill.classList.add('active');
@@ -7275,6 +7282,7 @@ function mettreAJourArrondi() {
                         const matBtn = document.createElement('button');
                         matBtn.className = 'arc-collab-mat-btn';
                         matBtn.type      = 'button';
+                        matBtn.style.setProperty('--mat-color', m.color || '#888');
 
                         const dot = document.createElement('span');
                         dot.className        = 'arc-collab-mat-dot';
@@ -7472,7 +7480,7 @@ function mettreAJourArrondi() {
 
                 // Démo : 20 tableaux de base, tous dans le passé, avec aperçus
                 { const DEMO_CLS    = ['terminale','premiere','seconde'];
-                  const DEMO_MAT    = ['atc','oln','amd','ccda','atl'];
+                  const DEMO_MAT    = ['atc','oln','amd','ccda','atl','autre'];
                   const DEMO_IMAGES = [
                       'apercu/03-Poles-AA_jpo-site_PAV.png',
                       'apercu/04-Poles-AA_jpo-site_ATC.png',

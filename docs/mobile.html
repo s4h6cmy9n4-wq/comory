@@ -344,9 +344,7 @@
 <!-- ── Bouton accès tableaux partagés (élève) ───────────────────────── -->
 <button id="eleve-boards-btn" title="Tableaux partagés" aria-label="Tableaux partagés par l'enseignant">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-        <polyline points="16 6 12 2 8 6"/>
-        <line x1="12" y1="2" x2="12" y2="15"/>
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
     </svg>
 </button>
 
@@ -385,27 +383,52 @@
     let activeFilter = null; // null = toutes matières
     let searchQ      = '';
 
+    // Matières par défaut — mêmes couleurs que l'espace enseignant
+    const MOBILE_DEFAULT_MATIERES = [
+        { id:'atc',  abbr:'ATC',     color:'#FF9500' },
+        { id:'oln',  abbr:'OLN',     color:'#00C7BE' },
+        { id:'amd',  abbr:'AMD',     color:'#0A84FF' },
+        { id:'ccda', abbr:'CCDMA',   color:'#FFD60A' },
+        { id:'atl',  abbr:'ATELIER', color:'#BF5AF2' },
+        { id:'autre',abbr:'Autre',   color:'#8E8E93' },
+    ];
+
+    // Pré-remplir les tableaux démo si localStorage vide (première ouverture)
+    (function seedDemoBoards() {
+        try {
+            const existing = JSON.parse(localStorage.getItem('mory_shared_boards') || '[]');
+            if (existing.length > 0) return; // déjà des tableaux
+            const DEMO = [
+                { id:'sd1',  label:'Fondements du Bauhaus',       classeId:'terminale', classeLabel:'Terminale', matiereId:'atc',   matiereLabel:'ATC',     matiereColor:'#FF9500', thumbnail:'apercu/03-Poles-AA_jpo-site_PAV.png',                date: new Date(Date.now()-86400000*1).toISOString()  },
+                { id:'sd2',  label:'Couleur & Interaction',        classeId:'terminale', classeLabel:'Terminale', matiereId:'oln',   matiereLabel:'OLN',     matiereColor:'#00C7BE', thumbnail:'apercu/04-Poles-AA_jpo-site_ATC.png',                date: new Date(Date.now()-86400000*2).toISOString()  },
+                { id:'sd3',  label:'Typographie Fonctionnelle',    classeId:'premiere',  classeLabel:'Première',  matiereId:'atc',   matiereLabel:'ATC',     matiereColor:'#FF9500', thumbnail:'apercu/06-Poles-AA_jpo-site_OLN.png',                date: new Date(Date.now()-86400000*3).toISOString()  },
+                { id:'sd4',  label:'Analyse & Méthodes',           classeId:'premiere',  classeLabel:'Première',  matiereId:'amd',   matiereLabel:'AMD',     matiereColor:'#0A84FF', thumbnail:'apercu/1-2-fiche-catherine-de-robert-1200x.jpg',    date: new Date(Date.now()-86400000*4).toISOString()  },
+                { id:'sd5',  label:'Photographie Expérimentale',   classeId:'seconde',   classeLabel:'Seconde',   matiereId:'ccda',  matiereLabel:'CCDMA',   matiereColor:'#FFD60A', thumbnail:'apercu/5bde2b8fbded676d207f632164d513d3.jpg',       date: new Date(Date.now()-86400000*5).toISOString()  },
+                { id:'sd6',  label:'Constructivisme & Affiche',    classeId:'terminale', classeLabel:'Terminale', matiereId:'atl',   matiereLabel:'ATELIER', matiereColor:'#BF5AF2', thumbnail:'apercu/84eb8284c9f5ea0de730e3c1c5eabead.jpg',        date: new Date(Date.now()-86400000*6).toISOString()  },
+                { id:'sd7',  label:'Ornement & Modernité',         classeId:'seconde',   classeLabel:'Seconde',   matiereId:'oln',   matiereLabel:'OLN',     matiereColor:'#00C7BE', thumbnail:'apercu/bacstd2a.svg',                                date: new Date(Date.now()-86400000*7).toISOString()  },
+                { id:'sd8',  label:'Maquettage Architectural',     classeId:'premiere',  classeLabel:'Première',  matiereId:'atl',   matiereLabel:'ATELIER', matiereColor:'#BF5AF2', thumbnail:'apercu/histoire_numerique.png',                      date: new Date(Date.now()-86400000*8).toISOString()  },
+                { id:'sd9',  label:'Design Textile & Surface',     classeId:'terminale', classeLabel:'Terminale', matiereId:'ccda',  matiereLabel:'CCDMA',   matiereColor:'#FFD60A', thumbnail:'apercu/std2a_05-672x672.jpg',                        date: new Date(Date.now()-86400000*9).toISOString()  },
+                { id:'sd10', label:'Design & Écologie',            classeId:'seconde',   classeLabel:'Seconde',   matiereId:'amd',   matiereLabel:'AMD',     matiereColor:'#0A84FF', thumbnail:'apercu/unnamed.jpg',                                 date: new Date(Date.now()-86400000*10).toISOString() },
+            ];
+            localStorage.setItem('mory_shared_boards', JSON.stringify(DEMO));
+        } catch(e) {}
+    })();
+
     // Charger les matières depuis localStorage (même clé que le prof)
     function loadMatieres() {
-        const DEFAULT_MATIERES = [
-            { id:'atc',  abbr:'ATC',     color:'#FF3B30' },
-            { id:'oln',  abbr:'OLN',     color:'#30D158' },
-            { id:'amd',  abbr:'AMD',     color:'#0A84FF' },
-            { id:'ccda', abbr:'CCDMA',   color:'#FFD60A' },
-            { id:'atl',  abbr:'ATELIER', color:'#BF5AF2' },
-        ];
         try {
             const stored = JSON.parse(localStorage.getItem('mory_arc_matieres') || 'null');
             if (stored && Array.isArray(stored)) {
                 // Synchroniser couleurs vives depuis les defaults
-                DEFAULT_MATIERES.forEach(def => {
+                MOBILE_DEFAULT_MATIERES.forEach(def => {
                     const ex = stored.find(m => m.id === def.id);
                     if (ex) ex.color = def.color;
+                    else stored.push(def); // ajouter les nouvelles matières
                 });
                 return stored;
             }
         } catch(e) {}
-        return DEFAULT_MATIERES;
+        return MOBILE_DEFAULT_MATIERES;
     }
 
     function loadSharedBoards() {
@@ -416,15 +439,14 @@
 
     function renderPills(matieres, sharedBoards) {
         pillsRow.innerHTML = '';
-        // Trouver les matières qui ont des tableaux partagés
-        const usedMat = new Set(sharedBoards.map(b => b.matiereId));
-
+        // Toujours afficher toutes les matières (même celles sans tableaux pour le moment)
         matieres.forEach(m => {
-            if (!usedMat.has(m.id)) return; // ne montre que les matières avec des tableaux
             const pill = document.createElement('button');
-            pill.className = 'eleve-pill' + (activeFilter === m.id ? ' active' : '');
+            const isActive = activeFilter === m.id;
+            pill.className = 'eleve-pill' + (isActive ? ' active' : '');
             pill.textContent = m.abbr || m.id;
             pill.style.background = m.color || '#888';
+            pill.style.opacity = isActive ? '1' : '0.72';
             pill.addEventListener('click', () => {
                 activeFilter = (activeFilter === m.id) ? null : m.id;
                 renderBoards(matieres, loadSharedBoards());

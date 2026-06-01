@@ -169,7 +169,7 @@ body {
 
 /* Header — flottant en haut du canvas, en position absolue */
 .header-wrapper {
-    position: absolute; top: 32px; left: 16px; width: auto; z-index: 15;
+    position: absolute; top: 12px; left: 12px; width: auto; z-index: 15;
     display: flex; align-items: center; gap: 12px; height: 46px;
     background: transparent;
     box-shadow: none;
@@ -1525,7 +1525,8 @@ body.mode-sombre .arc-info-pill {
     color: var(--text-dark); text-align: left; white-space: nowrap;
     transition: background 0.12s, color 0.12s;
 }
-.arc-collab-mat-btn:hover { background: rgba(128,128,128,0.10); color: var(--orange); }
+.arc-collab-mat-btn:hover { background: var(--mat-color, #888) !important; color: #fff !important; border-radius: 10px; }
+.arc-collab-mat-btn:hover .arc-collab-mat-dot { background: rgba(255,255,255,0.65) !important; }
 .arc-collab-mat-dot {
     width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
 }
