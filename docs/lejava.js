@@ -6325,6 +6325,8 @@ function mettreAJourArrondi() {
                     // Sync : écouter le nouveau tableau + notifier les autres appareils immédiatement
                     window._syncListenBoard?.(board.id);
                     window._syncPushMeta?.(board.id); // push meta immédiat → desktop suit instantanément
+                    // Force-push le canvas vers Firebase → l'ordinateur reçoit le contenu immédiatement
+                    setTimeout(() => window._syncForcePush?.(), 200);
                     document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: board.id } }));
                 });
 
@@ -6508,6 +6510,8 @@ function mettreAJourArrondi() {
             render();
             // Sync : écouter le nouveau tableau + notifier les autres appareils
             window._syncListenBoard?.(id);
+            window._syncPushMeta?.(id);
+            setTimeout(() => window._syncForcePush?.(), 200);
             document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: id } }));
         };
 
@@ -6555,6 +6559,8 @@ function mettreAJourArrondi() {
             isSwitching = false;
             render();
             window._syncListenBoard?.(id);
+            window._syncPushMeta?.(id);
+            setTimeout(() => window._syncForcePush?.(), 200);
             document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: id } }));
         };
 

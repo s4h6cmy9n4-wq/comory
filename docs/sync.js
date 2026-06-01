@@ -224,6 +224,14 @@
         } catch(e) { /* silencieux */ }
     };
 
+    // Push immédiat du canvas après un changement de tableau local.
+    // Contourne le debounce de 4 s pour que les autres appareils (ex: ordinateur)
+    // reçoivent immédiatement le contenu du tableau sélectionné.
+    window._syncForcePush = function() {
+        initialSyncDone = true; // garantit que le push s'exécute même si le canvas est vide
+        return pushState();
+    };
+
     // Push la liste de tableaux vers Firebase (appelé depuis saveBoardList).
     // Permet au mobile enseignant de connaître tous les tableaux du desktop.
     window._syncPushBoardList = async function(list, nextId) {
