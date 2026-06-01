@@ -1483,26 +1483,32 @@ body.mode-sombre .arc-info-pill {
     transform: translateX(-50%) translateY(0);
     pointer-events: auto;
 }
-/* Item de classe — cercle coloré */
+/* Item de classe — cercle neutre au repos, coloré au survol */
 .arc-collab-item {
     position: relative;
     width: 32px; height: 32px;
     border-radius: 50%;
-    background: var(--cls-color, #888);
+    background: var(--bg, #e0e5ec);
+    box-shadow: var(--neu-flat, 3px 3px 6px #b8bec7,-3px -3px 6px #fff);
     display: flex; align-items: center; justify-content: center;
     cursor: default;
-    transition: filter 0.12s, transform 0.12s;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
     flex-shrink: 0;
     align-self: center;
 }
-.arc-collab-item:hover { filter: brightness(1.18); transform: scale(1.06); }
+.arc-collab-item:hover {
+    background: var(--cls-color, #888);
+    box-shadow: none;
+    transform: scale(1.06);
+}
 .arc-collab-item:hover .arc-collab-item-lbl { color: #fff; }
 .arc-collab-item-lbl {
     font-family: 'DM Sans', sans-serif;
     font-size: 11px; font-weight: 800; letter-spacing: -0.02em;
-    color: #fff; white-space: nowrap;
+    color: var(--text-dark, #555); white-space: nowrap;
     line-height: 1;
     text-align: center;
+    transition: color 0.15s;
 }
 .arc-collab-item-lbl sup {
     font-size: 0.60em;

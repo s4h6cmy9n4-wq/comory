@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── ÉTAT GLOBAL ──────────────────────────────────────────────────────────
     const paintState = { color: '#000000', thicknessPercent: 50, opacity: 1 };
-    window.etatForme    = { type: 'rectangle', color: '#000000', thickness: 50, mode: 'fill', opacity: 1 };
+    window.etatForme    = { type: 'rectangle', color: '#ffffff', thickness: 50, mode: 'fill', opacity: 1 };
     window.etatTableau  = { cols: 3, rows: 3, color: 'hsl(220,60%,25%)', thickness: 1.5 };
     window.activeToolMode  = null;
     window.tableEditMode   = false;
@@ -1070,6 +1070,19 @@ document.addEventListener('DOMContentLoaded', () => {
         let rotStartAngle    = 0, rotOrigRotation = 0;
         let rotCenterX       = 0, rotCenterY = 0;
 
+        // Supprime les objets entièrement hors du canvas (inaccessibles à la sélection)
+        function supprimerHorsCanvas() {
+            const hors = placedObjects.filter(o =>
+                o.x + o.w <= 0 || o.x >= CANVAS_SIZE ||
+                o.y + o.h <= 0 || o.y >= CANVAS_SIZE
+            );
+            hors.forEach(o => {
+                o.el.remove();
+                placedObjects.splice(placedObjects.indexOf(o), 1);
+            });
+            if (selectedObjects.some(o => hors.includes(o))) masquerSelection();
+        }
+
         // Met à jour la position/taille/rotation CSS d'un objet
         function mettreAJourElement(obj) {
             obj.el.style.left      = obj.x + 'px';
@@ -1808,6 +1821,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isDraggingImage || isResizingImage || isPinchResizing) {
                 isDraggingImage = false; isResizingImage = false; isPinchResizing = false; activeCorner = null;
                 window.mobileObjectDragging = false;
+                supprimerHorsCanvas();
                 saveState();
                 _overlayLastTap = 0;
                 return;
@@ -1824,7 +1838,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         imgOverlay.addEventListener('touchcancel', () => {
             // Sauvegarder même si le système a annulé le geste (doigt hors écran)
-            if (isDraggingImage || isResizingImage || isPinchResizing) saveState();
+            if (isDraggingImage || isResizingImage || isPinchResizing) {
+                supprimerHorsCanvas();
+                saveState();
+            }
             isDraggingImage = false; isResizingImage = false; isPinchResizing = false; activeCorner = null;
             window.mobileObjectDragging = false;
         });
@@ -1844,6 +1861,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.etatTexte.fontWeight = obj._fontWeight || 400;
                 window.etatTexte.color      = obj._color      || '#000000';
                 window.etatTexte.align      = obj._textAlign  || 'left';
+                // Flag : aller directement aux sliders (pas au sélecteur de fonte)
+                window._textEditFromObject = true;
                 // Retirer l'objet du canvas (sera recréé après validation)
                 const idx = placedObjects.indexOf(obj);
                 if (idx !== -1) placedObjects.splice(idx, 1);
@@ -2161,8 +2180,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         document.addEventListener('mouseup', (e) => {
-            if (isDraggingImage) { isDraggingImage = false; saveState(); }
-            if (isResizingImage) { isResizingImage = false; activeCorner = null; saveState(); }
+            if (isDraggingImage) { isDraggingImage = false; supprimerHorsCanvas(); saveState(); }
+            if (isResizingImage) { isResizingImage = false; activeCorner = null; supprimerHorsCanvas(); saveState(); }
             if (isRotatingImage) { isRotatingImage = false; saveState(); }
             // Relâchement du pan (clic droit) depuis n'importe où
             if (isPanning && e.button === 2) {
@@ -2683,6 +2702,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // L'œil (masque) reste lui aussi global entre les tableaux (déjà géré par son propre bouton)
             if (state.ui?._fromSync && typeof state.ui.masque === 'boolean' && window._setMasqueUI) window._setMasqueUI(state.ui.masque);
             history.length = 0; historyStep = -1;
+            supprimerHorsCanvas(); // purge les objets hors-canvas persistés
             saveState();
         };
         window.generateThumbnail = () => {
@@ -3449,6 +3469,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const rouePanel = document.getElementById('roue-panel');
         if (roueConteneur.contains(e.target)) return;
         if (rouePanel && rouePanel.contains(e.target)) return;
+        // Ne pas désactiver si un outil de tracé est actif : le clic est sur le canvas
+        if (window.activeToolMode === 'draw' || window.activeToolMode === 'shape' ||
+            window.activeToolMode === 'table' || window.activeToolMode === 'text') return;
         window.desactiverOutil();
     });
 
@@ -4712,18 +4735,18 @@ document.addEventListener('DOMContentLoaded', () => {
         ].join(';');
         const valLblT = document.createElement('div');
         valLblT.style.cssText = [
-            'font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif',
+            'font-family:\'DM Sans\',sans-serif',
             'font-size:calc(var(--roue-size)*0.042)',
             'font-weight:700', 'letter-spacing:0.03em',
-            'text-transform:uppercase', 'color:white',
+            'text-transform:uppercase', 'color:var(--bleu-marine)',
             'white-space:nowrap', 'overflow:hidden',
         ].join(';');
         const valNumT = document.createElement('div');
         valNumT.style.cssText = [
-            'font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif',
+            'font-family:\'DM Sans\',sans-serif',
             'font-size:calc(var(--roue-size)*0.115)',
             'font-weight:900', 'letter-spacing:-0.04em',
-            'color:white', 'line-height:1',
+            'color:var(--bleu-marine)', 'line-height:1',
         ].join(';');
         valDiv.appendChild(valLblT);
         valDiv.appendChild(valNumT);
@@ -4938,8 +4961,14 @@ document.addEventListener('DOMContentLoaded', () => {
             addDoc('touchend',  onUp);
         }
 
-        // Démarrer avec le sélecteur de fonte
-        buildFontPicker();
+        // Si on édite un objet texte existant : aller directement aux sliders
+        // (la fonte est déjà chargée dans etatTexte depuis l'objet)
+        if (window._textEditFromObject) {
+            window._textEditFromObject = false;
+            buildSliders();
+        } else {
+            buildFontPicker();
+        }
 
         const prevCleanup = panelCleanup;
         panelCleanup = () => {
@@ -5400,10 +5429,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const blocColor2 = document.createElement('div');
     blocColor2.style.cssText = 'flex:0 0 55px;border-radius:10px;position:relative;overflow:hidden;cursor:crosshair;margin:0 8px;border:3px solid var(--flamme);box-shadow:none;';
-    blocColor2.style.background = `linear-gradient(to right, hsl(0,100%,50%) 0%, hsl(60,100%,50%) 13.3%, hsl(120,100%,50%) 26.6%, hsl(180,100%,50%) 40%, hsl(240,100%,50%) 53.3%, hsl(300,100%,50%) 66.6%, hsl(360,100%,50%) 80%, #000000 100%)`;
+    blocColor2.style.background = `linear-gradient(to right, #ffffff 0%, hsl(0,100%,50%) 10%, hsl(60,100%,50%) 23%, hsl(120,100%,50%) 37%, hsl(180,100%,50%) 50%, hsl(240,100%,50%) 63%, hsl(300,100%,50%) 76%, hsl(360,100%,50%) 88%, #000000 100%)`;
 
     const sel2 = document.createElement('div');
-    sel2.style.cssText = 'position:absolute;width:26px;height:26px;border:3px solid white;border-radius:50%;box-shadow:none;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;';
+    sel2.style.cssText = 'position:absolute;width:26px;height:26px;border:3px solid var(--bleu-marine,#1a2535);border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,0.6);left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;';
     sel2.style.backgroundColor = window.etatForme.color;
     blocColor2.appendChild(sel2);
 
@@ -5413,10 +5442,20 @@ document.addEventListener('DOMContentLoaded', () => {
         let x = Math.max(0, Math.min(e.clientX - r.left, r.width));
         gsap.to(sel2, { left: x, top: '50%', duration: 0.1 });
         const ratio = x / r.width;
-        let hue, lightness;
-        if (ratio <= 0.8) { hue = (ratio / 0.8) * 360; lightness = 50; }
-        else { hue = 360; lightness = 50 - ((ratio - 0.8) / 0.2) * 50; }
-        const color = `hsl(${hue}, 100%, ${lightness}%)`;
+        let color;
+        if (ratio <= 0.10) {
+            // Blanc → rouge pur : saturation 0% → 100%, lightness 100% → 50%
+            const t = ratio / 0.10;
+            color = `hsl(0, ${Math.round(t * 100)}%, ${Math.round(100 - t * 50)}%)`;
+        } else if (ratio <= 0.88) {
+            // Spectre de couleurs (hue 0→360, lightness 50%)
+            const hue = Math.round(((ratio - 0.10) / 0.78) * 360);
+            color = `hsl(${hue}, 100%, 50%)`;
+        } else {
+            // Rouge → noir
+            const lightness = Math.round(50 - ((ratio - 0.88) / 0.12) * 50);
+            color = `hsl(0, 100%, ${lightness}%)`;
+        }
         sel2.style.backgroundColor = color; window.etatForme.color = color;
     };
     blocColor2.addEventListener('mousedown', (e) => { e.stopPropagation(); dragging2 = true; moveSel2(e); });
@@ -7286,7 +7325,6 @@ function mettreAJourArrondi() {
                     const item = document.createElement('div');
                     item.className = 'arc-collab-item';
                     item.style.setProperty('--cls-color', c.color || '#888');
-                    item.style.background = c.color || '#888';
 
                     const lbl = document.createElement('span');
                     lbl.className = 'arc-collab-item-lbl';
