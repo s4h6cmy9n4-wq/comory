@@ -899,17 +899,22 @@ body {
         left: auto;
         z-index: 1000;
     }
-    /* De droite à gauche : archive 14px | oeil 62px | lumière 110px | import 158px */
+    /* Bouton lumière (mode sombre) : masqué sur mobile */
+    .socket-bouton:has(#conteneur-lumiere) { display: none !important; }
+
+    /* De droite à gauche : archive 14px | oeil 62px | import 110px */
     .socket-bouton:has(#btn-archive)        { right: 14px; }
     .socket-bouton:has(#conteneur-oeil)     { right: 62px; }
-    .socket-bouton:has(#conteneur-lumiere)  { right: 110px; }
-    .socket-bouton:has(#conteneur-fichier)  { right: 158px; }
+    .socket-bouton:has(#conteneur-fichier)  { right: 110px; }
+
+    /* Boutons nouveau tableau et archive complète : masqués sur mobile */
+    #tableau-nouveau-btn,
+    #tableau-arc-full-btn { display: none !important; }
 
     /* Style des boutons de la barre mobile */
     #btn-mobile-logo,
     .socket-bouton:has(#btn-archive) button,
     .socket-bouton:has(#conteneur-oeil) button,
-    .socket-bouton:has(#conteneur-lumiere) button,
     .socket-bouton:has(#conteneur-fichier) button {
         width: 38px; height: 38px;
         border-radius: 50%;
@@ -928,17 +933,18 @@ body {
     #btn-mobile-logo svg { width: 26px; height: auto; display: block; }
     #btn-mobile-logo:active { box-shadow: var(--neu-pressed); color: var(--flamme); }
 
-    /* Roue : toujours visible en bas-gauche sur mobile (comme desktop) */
+    /* Roue : cachée sur mobile, apparaît uniquement pendant le hold */
     #roue-conteneur {
-        visibility: visible;
+        visibility: hidden;
         position: fixed !important;
         bottom: 16px !important;
         left: 16px !important;
         top: unset !important;
         z-index: 500;
     }
-    /* Lors du hold, JS surcharge left/top !important via style inline */
-    body.mobile-roue-visible #roue-conteneur {
+    /* Hold actif (body.mobile-roue-visible) OU outil épinglé → roue visible */
+    body.mobile-roue-visible #roue-conteneur,
+    body.mobile-roue-pinned  #roue-conteneur {
         visibility: visible;
     }
 
@@ -1483,29 +1489,30 @@ body.mode-sombre .arc-info-pill {
     transform: translateX(-50%) translateY(0);
     pointer-events: auto;
 }
-/* Item de classe — cercle neutre au repos, coloré au survol */
+/* Item de classe — anneau coloré au repos (forme visible), rempli au survol */
 .arc-collab-item {
     position: relative;
-    width: 32px; height: 32px;
+    width: 30px; height: 30px;
     border-radius: 50%;
-    background: var(--bg, #e0e5ec);
-    box-shadow: var(--neu-flat, 3px 3px 6px #b8bec7,-3px -3px 6px #fff);
+    background: #fff;
+    border: 2px solid var(--cls-color, #888);
     display: flex; align-items: center; justify-content: center;
     cursor: default;
-    transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
+    transition: background 0.15s, border-color 0.15s, transform 0.12s;
     flex-shrink: 0;
     align-self: center;
+    box-sizing: border-box;
+    margin: 2px auto; /* écarte les pastilles verticalement */
 }
 .arc-collab-item:hover {
     background: var(--cls-color, #888);
-    box-shadow: none;
-    transform: scale(1.06);
+    transform: scale(1.08);
 }
 .arc-collab-item:hover .arc-collab-item-lbl { color: #fff; }
 .arc-collab-item-lbl {
     font-family: 'DM Sans', sans-serif;
-    font-size: 11px; font-weight: 800; letter-spacing: -0.02em;
-    color: var(--text-dark, #555); white-space: nowrap;
+    font-size: 10px; font-weight: 800; letter-spacing: -0.02em;
+    color: var(--cls-color, #555); white-space: nowrap;
     line-height: 1;
     text-align: center;
     transition: color 0.15s;

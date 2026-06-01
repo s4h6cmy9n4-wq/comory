@@ -207,8 +207,22 @@
     }
 
     // ── Points d'entrée exposés à lejava.js ───────────────────────────────────
-    window._syncSchedule   = schedulePush;   // appelé par saveState()
+    window._syncSchedule    = schedulePush;  // appelé par saveState()
     window._syncListenBoard = listenBoard;   // appelé au changement de tableau
+
+    // Push immédiat du meta (active board) sans attendre le debounce canvas.
+    // Utilisé au changement de tableau : les autres appareils reçoivent l'info
+    // instantanément et basculent sur le bon tableau.
+    window._syncPushMeta = async function(bid) {
+        if (receiving) return;
+        try {
+            await db.ref(`rooms/${room}/meta`).set({
+                active: bid,
+                sid:    SID,
+                ts:     firebase.database.ServerValue.TIMESTAMP
+            });
+        } catch(e) { /* silencieux */ }
+    };
 
     // ── Init : démarrer sur le tableau actif ──────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {

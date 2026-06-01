@@ -6319,8 +6319,9 @@ function mettreAJourArrondi() {
                     await openBoard(board.id);
                     isSwitching = false;
                     render();
-                    // Sync : écouter le nouveau tableau + notifier les autres appareils
+                    // Sync : écouter le nouveau tableau + notifier les autres appareils immédiatement
                     window._syncListenBoard?.(board.id);
+                    window._syncPushMeta?.(board.id); // push meta immédiat → desktop suit instantanément
                     document.dispatchEvent(new CustomEvent('comory-board-changed', { detail: { boardId: board.id } }));
                 });
 
@@ -8002,26 +8003,13 @@ function mettreAJourArrondi() {
             holdTimer = null;
             rouePinned = false;
             document.body.classList.remove('mobile-roue-visible');
+            document.body.classList.remove('mobile-roue-pinned');
             // Réinitialiser la position (annule le déplacement sous le doigt)
             roue.style.removeProperty('left');
             roue.style.removeProperty('top');
-            // Roue toujours ouverte sur mobile enseignant (comme desktop)
-            setTimeout(() => roue.classList.add('ouvert'), 160);
         }
         // Exposer pour que stopInteraction puisse fermer la roue après un tracé
         window._fermerRoueMobile = fermerRoueMobile;
-
-        // Roue ouverte dès le départ (segments visibles, tap direct possible)
-        roue.classList.add('ouvert');
-
-        // Sur mobile : le centre ne ferme plus la roue (on veut qu'elle reste toujours ouverte)
-        const roueCentreEl = document.getElementById('roue-centre');
-        if (roueCentreEl) {
-            roueCentreEl.addEventListener('click', (e) => {
-                e.stopImmediatePropagation(); // annuler le toggle fanPinned de l'handler original
-                roue.classList.add('ouvert'); // garantir qu'elle reste ouverte
-            }, { capture: true });
-        }
 
         document.addEventListener('touchstart', (e) => {
             // Roue épinglée (mode hold) → tap hors de la roue ET du panel = fermer mode hold
@@ -8095,6 +8083,7 @@ function mettreAJourArrondi() {
             const p = pathUnder(touch.clientX, touch.clientY);
             if (p) {
                 rouePinned = true;
+                document.body.classList.add('mobile-roue-pinned'); // garder la roue visible
                 if (window._roueEpingle) window._roueEpingle(true);
                 fireMouseOn(lastPath, 'mouseleave'); lastPath = null;
                 fireMouseOn(p, 'click');
