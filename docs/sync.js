@@ -149,7 +149,7 @@
                 data.canvas, data.cw || 3500, data.ch || 3500
             );
             const objs = JSON.parse(data.objs || '[]');
-            const ui   = JSON.parse(data.ui   || '{}');
+            const ui   = { ...JSON.parse(data.ui || '{}'), _fromSync: true };
             // On applique TOUJOURS l'état reçu, y compris un canvas vide :
             // si l'expéditeur a envoyé un canvas vide c'est intentionnel
             // (suppression de tous les objets). La protection côté push

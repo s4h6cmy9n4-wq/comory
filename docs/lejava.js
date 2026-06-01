@@ -2676,9 +2676,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 placedObjects.push(obj);
                 el.src = s.src;
             });
-            // Appliquer l'état UI chrono/horloge/oeil si fourni (sync cross-device)
-            if (state.ui && window._setChronoUI) window._setChronoUI(state.ui.chrono, state.ui.horloge);
-            if (state.ui && typeof state.ui.masque === 'boolean' && window._setMasqueUI) window._setMasqueUI(state.ui.masque);
+            // Chrono / horloge : persistants entre les tableaux (globaux).
+            // Ils ne sont modifiés que pour la synchronisation cross-device (_fromSync).
+            if (state.ui?._fromSync && window._setChronoUI) window._setChronoUI(state.ui.chrono, state.ui.horloge);
+            // L'œil (masque) reste lui aussi global entre les tableaux (déjà géré par son propre bouton)
+            if (state.ui?._fromSync && typeof state.ui.masque === 'boolean' && window._setMasqueUI) window._setMasqueUI(state.ui.masque);
             history.length = 0; historyStep = -1;
             saveState();
         };
@@ -7004,6 +7006,7 @@ function mettreAJourArrondi() {
                 pill.innerHTML = _abbr.charAt(0) + '<sup>' + _abbr.slice(1) + '</sup>';
                 pill.title = cls.label;
                 const col = cls.color || '#94a3b8';
+                pill.style.setProperty('--pill-color', col);
                 if (arcFilterClasse === cls.id) {
                     pill.classList.add('active');
                     pill.style.background = col;
@@ -7051,6 +7054,7 @@ function mettreAJourArrondi() {
                 pill.textContent       = mat.label;
                 if (mat.title && mat.title !== mat.label) pill.title = mat.title;
                 const col = mat.color || '#94a3b8';
+                pill.style.setProperty('--pill-color', col);
                 if (arcFilterMat === mat.id) {
                     pill.classList.add('active');
                     pill.style.background = col;
@@ -7266,6 +7270,7 @@ function mettreAJourArrondi() {
 
                     const item = document.createElement('div');
                     item.className = 'arc-collab-item';
+                    item.style.setProperty('--cls-color', c.color || '#888');
 
                     const lbl = document.createElement('span');
                     lbl.className = 'arc-collab-item-lbl';

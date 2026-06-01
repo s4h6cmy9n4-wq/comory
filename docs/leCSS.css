@@ -396,7 +396,7 @@ body {
 .mon-conteneur.ouverture-bordure::after { height: 120px; top: 40px; }
 /* L'œil donne un effet éthéré au canvas — visible en filigrane, pas effacé */
 #plan-de-travail { transition: opacity 0.5s ease; }
-.mon-conteneur.contenu-masque #plan-de-travail { opacity: 0.08; }
+.mon-conteneur.contenu-masque #plan-de-travail { opacity: 0.30; }
 /* pointer-events conservé : l'œil masque uniquement l'affichage partagé, pas les interactions */
 
 
@@ -1437,7 +1437,7 @@ body.mode-sombre .arc-info-pill {
     color: var(--text-mid); white-space: nowrap;
     transition: opacity 0.18s, transform 0.18s, box-shadow 0.14s;
 }
-.arc-pill:hover  { color: var(--orange) !important; opacity: 1; transform: scale(1.05); }
+.arc-pill:hover  { background: var(--pill-color, var(--orange)) !important; color: #fff !important; opacity: 1; transform: scale(1.05); }
 .arc-pill:active { transform: scale(0.97); }
 .arc-pill.active { color: #fff !important; opacity: 1; }
 /* Compat anciens sélecteurs */
@@ -1485,7 +1485,8 @@ body.mode-sombre .arc-info-pill {
     cursor: default;
     transition: background 0.12s;
 }
-.arc-collab-item:hover { background: rgba(128,128,128,0.10); }
+.arc-collab-item:hover { background: var(--cls-color, rgba(128,128,128,0.10)); }
+.arc-collab-item:hover .arc-collab-item-lbl { color: #fff; }
 .arc-collab-item-lbl {
     font-family: 'DM Sans', sans-serif;
     font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
