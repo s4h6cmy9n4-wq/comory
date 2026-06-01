@@ -1476,34 +1476,38 @@ body.mode-sombre .arc-info-pill {
     transform: translateX(-50%) translateY(0);
     pointer-events: auto;
 }
-/* Item de classe (Tle / 1ère / 2nde) */
+/* Item de classe — cercle coloré */
 .arc-collab-item {
     position: relative;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--cls-color, #888);
     display: flex; align-items: center; justify-content: center;
-    padding: 7px 0;
-    border-radius: 10px;
     cursor: default;
-    transition: background 0.12s;
+    transition: filter 0.12s, transform 0.12s;
+    flex-shrink: 0;
+    align-self: center;
 }
-.arc-collab-item:hover { background: var(--cls-color, rgba(128,128,128,0.10)); }
+.arc-collab-item:hover { filter: brightness(1.18); transform: scale(1.06); }
 .arc-collab-item:hover .arc-collab-item-lbl { color: #fff; }
 .arc-collab-item-lbl {
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
-    color: var(--text-dark); white-space: nowrap;
+    font-size: 11px; font-weight: 800; letter-spacing: -0.02em;
+    color: #fff; white-space: nowrap;
     line-height: 1;
+    text-align: center;
 }
 .arc-collab-item-lbl sup {
-    font-size: 0.62em;
+    font-size: 0.60em;
     vertical-align: super;
     line-height: 0;
-    font-weight: 700;
+    font-weight: 800;
 }
 /* Sous-menu matières — apparaît à droite au survol */
 .arc-collab-submenu {
     position: absolute;
     left: calc(100% + 10px);
-    top: 0;
+    top: 50%; transform: translateY(-50%);
     background: var(--bg);
     border-radius: 14px;
     box-shadow: 6px 6px 20px var(--shadow-outer-dark),
@@ -1516,21 +1520,37 @@ body.mode-sombre .arc-info-pill {
     z-index: 901;
     min-width: 96px;
 }
-/* Bouton matière dans le sous-menu */
+/* Bouton matière dans le sous-menu — sans point, juste le texte */
 .arc-collab-mat-btn {
-    display: flex; align-items: center; gap: 7px;
-    padding: 8px 11px; border-radius: 10px;
+    display: flex; align-items: center;
+    padding: 8px 14px; border-radius: 10px;
     border: none; background: transparent; cursor: pointer;
     font-family: 'DM Sans', sans-serif;
     font-size: 11px; font-weight: 700; letter-spacing: -0.01em;
     color: var(--text-dark); text-align: left; white-space: nowrap;
     transition: background 0.12s, color 0.12s;
+    width: 100%;
 }
 .arc-collab-mat-btn:hover { background: var(--mat-color, #888) !important; color: #fff !important; border-radius: 10px; }
-.arc-collab-mat-btn:hover .arc-collab-mat-dot { background: rgba(255,255,255,0.65) !important; }
-.arc-collab-mat-dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+/* .arc-collab-mat-dot est désactivé — plus de point devant les matières */
+.arc-collab-mat-dot { display: none; }
+
+/* ── Badge "Partagé" sur les cartes du drum ────────────────────────── */
+.arc-drum-shared-badge {
+    position: absolute;
+    top: 7px; right: 7px;
+    background: rgba(255,255,255,0.92);
+    color: #333;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.01em;
+    padding: 3px 7px;
+    border-radius: 10px;
+    display: flex; align-items: center; gap: 4px;
+    pointer-events: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    z-index: 2;
 }
+.arc-drum-shared-badge svg { width: 9px; height: 9px; flex-shrink: 0; }
 /* Toast confirmation */
 .arc-collab-toast {
     position: absolute;

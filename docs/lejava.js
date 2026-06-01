@@ -6840,6 +6840,10 @@ function mettreAJourArrondi() {
 
             // Construire les cartes
             drum.innerHTML = '';
+            // Charger les IDs déjà partagés pour afficher le badge
+            let _sharedIds = new Set();
+            try { _sharedIds = new Set(JSON.parse(localStorage.getItem('mory_shared_boards') || '[]').map(s => String(s.id))); } catch(e) {}
+
             arcDisplay.forEach((board, i) => {
                 const d    = i - arcDrumIdx;
                 const card = document.createElement('div');
@@ -6858,6 +6862,14 @@ function mettreAJourArrondi() {
                     const col = arcMatieres?.find(m => m.id === board.matiereId)?.color;
                     if (col) ph.style.background = col;
                     card.appendChild(ph);
+                }
+
+                // Badge "Partagé" si ce tableau a été transmis à des élèves
+                if (_sharedIds.has(String(board.id))) {
+                    const badge = document.createElement('div');
+                    badge.className = 'arc-drum-shared-badge';
+                    badge.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>Partagé`;
+                    card.appendChild(badge);
                 }
 
                 posCard(card, d);
@@ -6994,17 +7006,13 @@ function mettreAJourArrondi() {
             const usedMat = new Set(arcAllBoards.map(b => b.matiereId).filter(Boolean));
 
             // Pastilles classes — seulement celles qui matchent des boards
-            const _abbrevMap = { terminale: 'Tle', premiere: '1ère', seconde: '2nde' };
             const _classes = (arcClasses || []).filter(c => usedCls.has(c.id));
             _classes.forEach(cls => {
                 const pill = document.createElement('button');
                 pill.className         = 'arc-pill';
                 pill.dataset.arcGroup  = 'classe';
                 pill.dataset.arcId     = cls.id;
-                // Abréviation avec exposant : Tle, 1ère, 2nde
-                const _abbr = _abbrevMap[cls.id] || cls.label.slice(0, 4);
-                pill.innerHTML = _abbr.charAt(0) + '<sup>' + _abbr.slice(1) + '</sup>';
-                pill.title = cls.label;
+                pill.textContent       = cls.label;
                 const col = cls.color || '#94a3b8';
                 pill.style.setProperty('--pill-color', col);
                 if (arcFilterClasse === cls.id) {
@@ -7271,6 +7279,7 @@ function mettreAJourArrondi() {
                     const item = document.createElement('div');
                     item.className = 'arc-collab-item';
                     item.style.setProperty('--cls-color', c.color || '#888');
+                    item.style.background = c.color || '#888';
 
                     const lbl = document.createElement('span');
                     lbl.className = 'arc-collab-item-lbl';
@@ -7289,14 +7298,9 @@ function mettreAJourArrondi() {
                         matBtn.type      = 'button';
                         matBtn.style.setProperty('--mat-color', m.color || '#888');
 
-                        const dot = document.createElement('span');
-                        dot.className        = 'arc-collab-mat-dot';
-                        dot.style.background = m.color || '#888';
-
                         const matLbl = document.createElement('span');
                         matLbl.textContent = m.abbr || m.nom; // MATIERES_STD2A a abbr + nom
 
-                        matBtn.appendChild(dot);
                         matBtn.appendChild(matLbl);
 
                         matBtn.addEventListener('click', e => {
