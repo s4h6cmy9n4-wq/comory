@@ -8172,6 +8172,8 @@ function mettreAJourArrondi() {
                 o.value = m.id; o.textContent = m.nom;
                 selMat.appendChild(o);
             });
+            // Sélectionner la première matière par défaut
+            if (selMat.options.length > 0) selMat.selectedIndex = 0;
         }
         majMatieres(ARCHIVE_NIVEAUX[0].id);
         if (selClasse) selClasse.addEventListener('change', () => majMatieres(selClasse.value));
