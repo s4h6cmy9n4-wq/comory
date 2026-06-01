@@ -871,6 +871,12 @@ body {
         background: transparent;
         box-shadow: none;
         z-index: 998;
+        pointer-events: none; /* laisser passer les taps vers les boutons en dessous */
+    }
+
+    /* Canvas de dessin : désactiver le scroll natif pour ne pas interférer avec le tracé */
+    #draft-canvas, #plan-de-travail {
+        touch-action: none;
     }
 
     /* Logo : gauche */
@@ -922,15 +928,16 @@ body {
     #btn-mobile-logo svg { width: 26px; height: auto; display: block; }
     #btn-mobile-logo:active { box-shadow: var(--neu-pressed); color: var(--flamme); }
 
-    /* Roue : cachée par défaut, positionnée par JS sous le doigt */
+    /* Roue : toujours visible en bas-gauche sur mobile (comme desktop) */
     #roue-conteneur {
-        visibility: hidden;
+        visibility: visible;
         position: fixed !important;
-        bottom: unset !important;
-        left: unset !important;
+        bottom: 16px !important;
+        left: 16px !important;
         top: unset !important;
         z-index: 500;
     }
+    /* Lors du hold, JS surcharge left/top !important via style inline */
     body.mobile-roue-visible #roue-conteneur {
         visibility: visible;
     }

@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.mainCanvas = mainCanvas; // Exposé pour l'export
 
         const draftCanvas = document.createElement('canvas');
+        draftCanvas.id = 'draft-canvas';
         draftCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border-radius:1.5mm;cursor:default;z-index:5;';
         planDeTravail.appendChild(draftCanvas);
         const draftCtx = draftCanvas.getContext('2d');
@@ -7921,14 +7922,18 @@ function mettreAJourArrondi() {
 
     })();
 
-    // ── Mobile : roue sous le doigt (0.25 s) + sélection par glissement ────
+    // ── Mobile : roue toujours visible (tap direct) + hold pour déplacer ────
+    // Sur mobile enseignant, la roue est visible en bas-gauche comme sur desktop.
+    // • Tap sur un segment → sélectionne l'outil (le navigateur génère un click)
+    // • Hold 250 ms sur le canvas → déplace la roue sous le doigt (bonus)
+    // • Glissement sans outil actif → pan du canvas
     (function initMobileTouch() {
         if (!ELEVE_MODE && !window.matchMedia('(max-width: 768px)').matches) return;
         const roue = document.getElementById('roue-conteneur');
         let holdTimer  = null;
         let startX = 0, startY = 0;
-        let lastPath   = null;   // segment survolé
-        let rouePinned = false;  // roue épinglée après sélection d'outil
+        let lastPath   = null;   // segment survolé (mode hold)
+        let rouePinned = false;  // roue épinglée en mode hold
 
         function fireMouseOn(el, type) {
             if (el) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
@@ -7949,59 +7954,75 @@ function mettreAJourArrondi() {
             holdTimer = null;
             rouePinned = false;
             document.body.classList.remove('mobile-roue-visible');
-            roue.classList.remove('ouvert');
+            // Réinitialiser la position (annule le déplacement sous le doigt)
+            roue.style.removeProperty('left');
+            roue.style.removeProperty('top');
+            // Roue toujours ouverte sur mobile enseignant (comme desktop)
+            setTimeout(() => roue.classList.add('ouvert'), 160);
         }
         // Exposer pour que stopInteraction puisse fermer la roue après un tracé
         window._fermerRoueMobile = fermerRoueMobile;
 
+        // Roue ouverte dès le départ (segments visibles, tap direct possible)
+        roue.classList.add('ouvert');
+
+        // Sur mobile : le centre ne ferme plus la roue (on veut qu'elle reste toujours ouverte)
+        const roueCentreEl = document.getElementById('roue-centre');
+        if (roueCentreEl) {
+            roueCentreEl.addEventListener('click', (e) => {
+                e.stopImmediatePropagation(); // annuler le toggle fanPinned de l'handler original
+                roue.classList.add('ouvert'); // garantir qu'elle reste ouverte
+            }, { capture: true });
+        }
+
         document.addEventListener('touchstart', (e) => {
-            // Roue épinglée → tap hors de la roue ET du panel = fermer
+            // Roue épinglée (mode hold) → tap hors de la roue ET du panel = fermer mode hold
             if (rouePinned) {
                 const el = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
                 const rp = document.getElementById('roue-panel');
                 if (!roue.contains(el) && !(rp && rp.contains(el))) {
-                    // Outil de dessin actif → ne pas fermer la roue maintenant,
-                    // laisser le canvas gérer le tracé ; la roue se fermera après touchend
                     const drawingActive = window.activeToolMode && window.activeToolMode !== 'hand';
                     if (!drawingActive) fermerRoueMobile();
                 }
                 return;
             }
-            // Pinch (2 doigts) → annuler le holdTimer, ne pas déclencher la roue
+            // Pinch (2 doigts) → annuler le holdTimer
             if (e.touches.length >= 2) { clearTimeout(holdTimer); holdTimer = null; return; }
-            // Bouton UI → laisser le clic se déclencher normalement sans afficher la roue
-            if (e.target && e.target.closest && e.target.closest('button, [role="button"], a, input, select, textarea')) return;
+            // Bouton UI ou roue → tap direct, pas de hold de déplacement
+            if (e.target && e.target.closest && e.target.closest('button, [role="button"], a, input, select, textarea, #roue-conteneur')) return;
+            // Outil actif (dessin/forme/texte/tableau) → le canvas gère le touch, pas de hold-roue
+            if (window.activeToolMode && window.activeToolMode !== 'hand') return;
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
             holdTimer = setTimeout(() => {
+                // Déplacer la roue sous le doigt après 250 ms (mode hold)
                 const half = (roue.offsetWidth || 180) / 2;
                 roue.style.setProperty('left', (startX - half) + 'px', 'important');
                 roue.style.setProperty('top',  (startY - half) + 'px', 'important');
                 document.body.classList.add('mobile-roue-visible');
                 roue.classList.add('ouvert');
-            }, 250); // 0.25 s
+            }, 250);
         }, { passive: true });
 
         document.addEventListener('touchmove', (e) => {
-            if (rouePinned) return; // roue épinglée → ignorer les mouvements
-            if (e.touches.length >= 2) return; // pinch géré par le canvas directement
+            if (rouePinned) return; // mode hold épinglé → ignorer
+            if (e.touches.length >= 2) return; // pinch géré par le canvas
             const x = e.touches[0].clientX;
             const y = e.touches[0].clientY;
             if (!document.body.classList.contains('mobile-roue-visible')) {
                 if (holdTimer && Math.hypot(x - startX, y - startY) > 10) {
-                    // Mouvement > 10px : annuler le timer de la roue, démarrer le pan
+                    // Mouvement > 10px : annuler le hold, démarrer le pan
                     clearTimeout(holdTimer); holdTimer = null;
                     if (window.mobileStartPan && !window.activeToolMode) {
                         window.mobileStartPan(startX, startY);
                     }
                 }
-                // Continuer le pan si actif (sauf si on déplace/redimensionne un objet)
                 if (!holdTimer && window.mobileUpdatePan && !window.activeToolMode && !window.mobileObjectDragging) {
                     window.mobileUpdatePan(x, y);
                 }
                 return;
             }
-            // Roue visible → simuler le survol du segment sous le doigt
+            // Mode hold : simuler le survol du segment sous le doigt
             const p = pathUnder(x, y);
             if (p !== lastPath) {
                 fireMouseOn(lastPath, 'mouseleave');
@@ -8011,28 +8032,27 @@ function mettreAJourArrondi() {
         }, { passive: true });
 
         document.addEventListener('touchend', (e) => {
-            // Arrêter le pan mobile si actif
             if (window.mobileStopPan) window.mobileStopPan();
             if (!document.body.classList.contains('mobile-roue-visible')) {
                 const wasTap = holdTimer !== null;
                 clearTimeout(holdTimer); holdTimer = null;
-                // Tap rapide (doigt posé/levé sans bouger) → sélectionner l'objet sous le doigt
+                // Tap rapide hors roue → sélectionner l'objet canvas sous le doigt
                 if (wasTap && e.changedTouches[0] && window.mobileTap) {
                     window.mobileTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
                 }
                 return;
             }
+            // Mode hold : sélectionner l'outil sous le doigt au relâchement
             const touch = e.changedTouches[0];
             const p = pathUnder(touch.clientX, touch.clientY);
             if (p) {
-                // Épingler AVANT le mouseleave pour que _fanClose soit no-op
                 rouePinned = true;
                 if (window._roueEpingle) window._roueEpingle(true);
                 fireMouseOn(lastPath, 'mouseleave'); lastPath = null;
                 fireMouseOn(p, 'click');
                 clearTimeout(holdTimer); holdTimer = null;
             } else {
-                fermerRoueMobile(); // relâchement dans le vide → fermer
+                fermerRoueMobile(); // relâchement dans le vide → quitter mode hold
             }
         });
 
