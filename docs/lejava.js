@@ -6040,6 +6040,14 @@ function mettreAJourArrondi() {
                 req.onerror   = () => r([]);
             });
         }
+        async function dbDelete(id) {
+            const d = await dbReady; if (!d) return;
+            return new Promise(r => {
+                const tx = d.transaction(DB_STORE, 'readwrite');
+                tx.objectStore(DB_STORE).delete(id);
+                tx.oncomplete = r; tx.onerror = r;
+            });
+        }
 
         // ── LocalStorage — persistance de la liste et du compteur ───────────
         const LS_BOARD_LIST = 'mory_board_list';
@@ -6132,11 +6140,13 @@ function mettreAJourArrondi() {
 
             const hasObjs = state.objs && state.objs.length > 0;
 
-            // Si le tableau est vide : effacer cache et thumbnail éventuellement obsolètes
+            // Si le tableau est vide : effacer cache, thumbnail ET IndexedDB
+            // (sans purger IDB, openBoard chargerait l'ancien contenu depuis IDB)
             if (isBlankImageData(state.imageData) && !hasObjs) {
                 delete boardCache[activeBoardId];
                 const bEmpty = boards.find(b => b.id === activeBoardId);
                 if (bEmpty) bEmpty.thumbnail = null;
+                dbDelete(activeBoardId).catch(() => {});
                 return;
             }
 
