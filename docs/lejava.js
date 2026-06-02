@@ -6615,6 +6615,12 @@ function mettreAJourArrondi() {
             });
             if (nextId && nextId > nextBoardId) { nextBoardId = nextId; changed = true; }
             if (!changed) return;
+            // Écrêter à 5 : retirer les plus anciens (plus petit id = plus vieux)
+            // Évite qu'un tableau par défaut du mobile s'ajoute aux 5 du bureau
+            if (boards.length > 5) {
+                boards.sort((a, b) => a.id - b.id); // du plus vieux au plus récent
+                boards.splice(0, boards.length - 5); // garder les 5 plus récents
+            }
             // Persister dans localStorage
             localStorage.setItem(LS_BOARD_LIST, JSON.stringify(boards.map(b => ({
                 id: b.id, label: b.label, nomCours: b.nomCours || '',
