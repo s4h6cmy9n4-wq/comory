@@ -5195,7 +5195,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const sw = `fill:none;stroke:${fg};stroke-width:18;stroke-miterlimit:10`;
                 const fi = `fill:${fg};stroke:none`;
                 const toolInner = {
-                    6: `<rect style="${sw}" x="18.25" y="73.17" width="132.58" height="27.96" transform="translate(-36.86 85.3) rotate(-45)"/><path style="${fi}" d="M136.5,8.61h26c.15,0,.27.12.27.27v27.4c0,.16-.13.29-.29.29h-25.98c-.16,0-.29-.13-.29-.29V8.9c0-.16.13-.29.29-.29Z" transform="translate(27.69 112.04) rotate(-45)"/><polygon style="${fi}" points="27.72 124.07 47.61 143.97 9 162.68 27.72 124.07"/>`,
+                    6: `<rect style="${fi}" x="18.25" y="73.17" width="132.58" height="27.96" transform="translate(-36.86 85.3) rotate(-45)"/><path style="${fi}" d="M136.5,8.61h26c.15,0,.27.12.27.27v27.4c0,.16-.13.29-.29.29h-25.98c-.16,0-.29-.13-.29-.29V8.9c0-.16.13-.29.29-.29Z" transform="translate(27.69 112.04) rotate(-45)"/><polygon style="${fi}" points="27.72 124.07 47.61 143.97 9 162.68 27.72 124.07"/>`,
                     4: `<rect style="${sw}" x="10" y="10" width="160" height="160"/><line style="${sw}" x1="10" y1="55" x2="170" y2="55"/><line style="${sw}" x1="63.3" y1="55" x2="63.3" y2="170"/><line style="${sw}" x1="116.7" y1="55" x2="116.7" y2="170"/>`,
                     5: `<circle style="fill:var(--bg);stroke:${fg};stroke-width:18;stroke-miterlimit:10" cx="60.26" cy="71.36" r="50.26"/><rect style="fill:var(--bg);stroke:${fg};stroke-width:18;stroke-miterlimit:10" x="83.99" y="20.96" width="95.24" height="95.24" transform="translate(-11.6 29.64) rotate(-12.31)"/><polygon style="fill:var(--bg);stroke:${fg};stroke-width:18;stroke-miterlimit:10" points="147.85 158.49 100.24 64.74 52.62 158.49 147.85 158.49"/>`,
                 };
@@ -7114,8 +7114,8 @@ function mettreAJourArrondi() {
             const usedCls = new Set(arcAllBoards.map(b => b.classeId).filter(Boolean));
             const usedMat = new Set(arcAllBoards.map(b => b.matiereId).filter(Boolean));
 
-            // Pastilles classes — seulement celles qui matchent des boards
-            const _classes = (arcClasses || []).filter(c => usedCls.has(c.id));
+            // Pastilles classes — toujours afficher tous les niveaux configurés
+            const _classes = arcClasses || [];
             _classes.forEach(cls => {
                 const pill = document.createElement('button');
                 pill.className         = 'arc-pill';
