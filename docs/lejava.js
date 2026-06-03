@@ -389,9 +389,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // ── Blocage pendant l'édition de tableau ─────────────────────
             if (window.tableEditMode) return;
 
-            // ── Clic DROIT → pan (quel que soit l'outil actif) ──────────────
+            // ── Clic DROIT ──────────────────────────────────────────────────
             if (e.type === 'mousedown' && e.button === 2) {
                 e.preventDefault();
+                // Outil stylo : le clic droit relâche l'outil (au lieu de paner).
+                // Le stylo reste sinon actif tant qu'on ne fait pas de clic droit,
+                // ce qui permet d'enchaîner plusieurs tracés sans le re-sélectionner.
+                if (window.activeToolMode === 'draw') {
+                    if (window.desactiverOutil) window.desactiverOutil();
+                    if (window._fermerRoueMobile) window._fermerRoueMobile();
+                    return;
+                }
+                // Autres outils → pan
                 isPanning = true;
                 draftCanvas.style.cursor = 'grabbing';
                 const cx = e.clientX, cy = e.clientY;
@@ -688,11 +697,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         const last = placedObjects.length > 0 ? placedObjects[placedObjects.length - 1] : null;
                         if (last && last.type === 'table') afficherSelection([last]);
                         if (window.desactiverOutil) window.desactiverOutil();
-                    } else if ((wasDrawing || wasShape) && window.desactiverOutil) {
+                    } else if (wasShape && window.desactiverOutil) {
                         window.desactiverOutil();
                         // Fermer la roue mobile si elle était épinglée pour ce tracé
                         if (window._fermerRoueMobile) window._fermerRoueMobile();
                     }
+                    // Outil stylo (draw) : NE PAS désactiver — il reste actif pour
+                    // enchaîner les tracés. Il ne se relâche qu'au clic droit.
+                    void wasDrawing;
                 }
             }
             else if (isSelecting) {
@@ -6743,9 +6755,14 @@ function mettreAJourArrondi() {
 
 
         // ── IndexedDB ────────────────────────────────────────────────────
+        // IMPORTANT : ouvrir SANS numéro de version → on récupère la version
+        // courante de la base (créée par le store principal en v3). Ouvrir une
+        // version inférieure (anciennement 2) levait un VersionError, donc
+        // arcLoadFromDB renvoyait [] et AUCUN tableau réel n'apparaissait dans
+        // l'archive complète (seulement les tableaux de démo).
         function arcOpenDB() {
             return new Promise((res, rej) => {
-                const r = indexedDB.open('mory_boards_db', 2);
+                const r = indexedDB.open('mory_boards_db');
                 r.onsuccess = () => res(r.result);
                 r.onerror   = () => rej(r.error);
                 r.onupgradeneeded = e => {
