@@ -8240,11 +8240,11 @@ function mettreAJourArrondi() {
         majMatieres(ARCHIVE_NIVEAUX[0].id);
         if (selClasse) selClasse.addEventListener('change', () => majMatieres(selClasse.value));
 
-        // ── Session récente (< 4 h) ? Proposer reprise ────────────
-        const RECENT_MS = 4 * 60 * 60 * 1000;
+        // ── Une session enregistrée existe ? Toujours proposer la reprise ──
+        // (plus de fenêtre de 4 h : la dernière session est toujours reprenable)
         let ctx = null;
         try { ctx = JSON.parse(localStorage.getItem(LS_CONTEXT)); } catch (_) {}
-        const sessionRecente = ctx && (Date.now() - (ctx.startTime || 0)) < RECENT_MS;
+        const sessionRecente = !!ctx;
 
         if (sessionRecente) {
             btnReprise.classList.remove('accueil-hidden');
