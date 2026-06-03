@@ -3417,6 +3417,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     window._roueFermerPanel = () => fermerPanel();
 
+    // Sélection immédiate d'un outil depuis un segment (mobile/élève).
+    // IMPORTANT : passe par selectionnerOutil(..., avecRotation=false) qui est
+    // SYNCHRONE. L'ancien chemin (fireMouseOn click → tournerVersIndex →
+    // animerVers) dépendait d'une animation requestAnimationFrame ; si le rAF
+    // était ralenti/suspendu (onglet en arrière-plan, appareil lent), le callback
+    // ne se déclenchait jamais et l'outil n'était jamais activé → impossible de
+    // dessiner ni d'écrire côté élève. Ici on active l'outil tout de suite.
+    window._roueSelectByPath = (pathEl) => {
+        const idx = segmentsEls.indexOf(pathEl);
+        if (idx < 0 || !OUTILS[idx]) return false;
+        // Rotation purement visuelle (callback vide → ne re-sélectionne pas,
+        // sinon double-sélection qui retoggle l'outil quand le rAF se déclenche).
+        try { animerVers(angleVersTete(idx), () => {}); } catch (_) {}
+        // Activation immédiate, synchrone (ne dépend pas du rAF).
+        selectionnerOutil(OUTILS[idx].num, idx, false);
+        return true;
+    };
+
     // Ouvrir quand la souris entre sur le centre (toujours visible) ou sur le disque (quand ouvert)
     roueCentre.addEventListener('mouseenter', _fanOpen);
     roueConteneur.addEventListener('mouseenter', _fanOpen);
@@ -8213,7 +8231,11 @@ function mettreAJourArrondi() {
                 document.body.classList.add('mobile-roue-pinned'); // garder la roue visible
                 if (window._roueEpingle) window._roueEpingle(true);
                 fireMouseOn(lastPath, 'mouseleave'); lastPath = null;
-                fireMouseOn(p, 'click');
+                // Sélection immédiate (sans dépendre du rAF). Repli sur le click
+                // si le helper n'est pas dispo.
+                if (!(window._roueSelectByPath && window._roueSelectByPath(p))) {
+                    fireMouseOn(p, 'click');
+                }
                 clearTimeout(holdTimer); holdTimer = null;
             } else {
                 fermerRoueMobile(); // relâchement dans le vide → quitter mode hold
