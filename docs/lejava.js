@@ -6029,6 +6029,18 @@ function mettreAJourArrondi() {
         const headerWrapper = document.querySelector('.header-wrapper');
         if (!carrousel || !liste || !btnArchive) return;
 
+        // ── Restaurer le contexte de session le plus tôt possible ─────────────
+        // Sans ça, window._sessionContext reste undefined au démarrage (il n'est
+        // posé qu'au clic « Commencer »/« Reprendre »). Conséquence : les nouveaux
+        // tableaux ne reprenaient pas le nom du cours et l'archive ne recevait pas
+        // les pastilles classe/matière choisies à l'ouverture du cours.
+        // L'overlay d'accueil écrasera cette valeur dès qu'on (re)valide un cours.
+        if (!window._sessionContext) {
+            try {
+                const _restored = JSON.parse(localStorage.getItem('mory_session_ctx'));
+                if (_restored) window._sessionContext = _restored;
+            } catch (_) {}
+        }
 
         // ── Largeur = largeur du header-wrapper ───────────────────────────────
         function syncWidth() {
@@ -6196,9 +6208,18 @@ function mettreAJourArrondi() {
             boardCache[activeBoardId] = { imageData: state.imageData, objs: state.objs };
             const thumbnail = window.generateThumbnail();
             const b = boards.find(b => b.id === activeBoardId);
-            if (b) b.thumbnail = thumbnail;
+            const _ctx = window._sessionContext;
+            if (b) {
+                b.thumbnail = thumbnail;
+                // Estampiller la classe/matière du cours en cours (cohérent avec le
+                // relabellisage par nom de cours). Conserve l'existant si pas de session.
+                if (_ctx?.niveauId)  b.classeId  = _ctx.niveauId;
+                if (_ctx?.matiereId) b.matiereId = _ctx.matiereId;
+            }
             const canvasPNG = imageDataToPNG(state.imageData);
-            dbPut({ id: activeBoardId, thumbnail, canvasPNG, objs: state.objs }).catch(() => {});
+            dbPut({ id: activeBoardId, thumbnail, canvasPNG, objs: state.objs,
+                    classeId:  b?.classeId  || _ctx?.niveauId  || null,
+                    matiereId: b?.matiereId || _ctx?.matiereId || null }).catch(() => {});
         }
 
         // ── Charger un tableau → canvas ───────────────────────────────────────
@@ -6457,9 +6478,15 @@ function mettreAJourArrondi() {
                 } else {
                     _newLabel = `Tableau ${newId}`;
                 }
-                const newBoard = { id: newId, label: _newLabel, nomCours: _nc, thumbnail: null };
+                const newBoard = { id: newId, label: _newLabel, nomCours: _nc, thumbnail: null,
+                                   classeId:  window._sessionContext?.niveauId  || null,
+                                   matiereId: window._sessionContext?.matiereId || null };
                 if (boards.length >= 5) {
                     const oldest = boards[0];
+                    // Pastilles classe/matière du tableau archivé : celles du tableau,
+                    // sinon celles du cours en cours d'ouverture.
+                    const _oCls = oldest.classeId  || window._sessionContext?.niveauId  || null;
+                    const _oMat = oldest.matiereId || window._sessionContext?.matiereId || null;
                     // Vérifier si le tableau est vide (jamais dessiné dessus)
                     const cachedOldest = oldest && boardCache[oldest.id];
                     const oldestEmpty  = !oldest.thumbnail &&
@@ -6470,13 +6497,16 @@ function mettreAJourArrondi() {
                         // Tableau non vide → archiver
                         if (cachedOldest) {
                             const canvasPNG = imageDataToPNG(cachedOldest.imageData);
-                            dbPut({ id: oldest.id, thumbnail: oldest.thumbnail, canvasPNG, objs: cachedOldest.objs }).catch(() => {});
+                            dbPut({ id: oldest.id, thumbnail: oldest.thumbnail, canvasPNG, objs: cachedOldest.objs,
+                                    classeId: _oCls, matiereId: _oMat }).catch(() => {});
                         }
                         window._arcNotifyBoardArchived?.({
                             id: oldest.id,
                             label: oldest.label,
                             nomCours: oldest.nomCours || '',
                             thumbnail: oldest.thumbnail || null,
+                            classeId: _oCls,
+                            matiereId: _oMat,
                             date: new Date(),
                         });
                     }
@@ -6528,10 +6558,13 @@ function mettreAJourArrondi() {
                 // Persister le plus ancien dans IndexedDB avant de le retirer du carrousel
                 if (boards.length >= 5) {
                     const oldest = boards[0];
+                    const _oCls = oldest?.classeId  || window._sessionContext?.niveauId  || null;
+                    const _oMat = oldest?.matiereId || window._sessionContext?.matiereId || null;
                     if (oldest && boardCache[oldest.id]) {
                         const cached = boardCache[oldest.id];
                         const canvasPNG = imageDataToPNG(cached.imageData);
-                        dbPut({ id: oldest.id, thumbnail: oldest.thumbnail, canvasPNG, objs: cached.objs }).catch(() => {});
+                        dbPut({ id: oldest.id, thumbnail: oldest.thumbnail, canvasPNG, objs: cached.objs,
+                                classeId: _oCls, matiereId: _oMat }).catch(() => {});
                     }
                     if (oldest) {
                         window._arcNotifyBoardArchived?.({
@@ -6539,6 +6572,8 @@ function mettreAJourArrondi() {
                             label: oldest.label,
                             nomCours: oldest.nomCours || '',
                             thumbnail: oldest.thumbnail || null,
+                            classeId: _oCls,
+                            matiereId: _oMat,
                             date: new Date(),
                         });
                     }
@@ -6549,6 +6584,8 @@ function mettreAJourArrondi() {
                     label:     boardMeta?.label     || `Tableau ${id}`,
                     nomCours:  boardMeta?.nomCours   || '',
                     thumbnail: boardMeta?.thumbnail  || null,
+                    classeId:  boardMeta?.classeId   || window._sessionContext?.niveauId  || null,
+                    matiereId: boardMeta?.matiereId  || window._sessionContext?.matiereId || null,
                 });
                 saveBoardList();
             }
@@ -6580,12 +6617,23 @@ function mettreAJourArrondi() {
 
         // ── Init séquence par nomCours (appelé au login) ──────────────────────
         function initNomCoursSeq(nc) {
-            if (!nc) { render(); return; }
+            const _ctx = window._sessionContext;
+            // Propager les pastilles classe/matière du cours aux tableaux courants,
+            // même quand le nom de cours est vide (cours sans nom mais avec classe/matière).
+            const _stampTags = b => {
+                if (_ctx?.niveauId)  b.classeId  = _ctx.niveauId;
+                if (_ctx?.matiereId) b.matiereId = _ctx.matiereId;
+            };
+            if (!nc) {
+                if (_ctx?.niveauId || _ctx?.matiereId) { boards.forEach(_stampTags); saveBoardList(); }
+                render(); return;
+            }
             const seqKey = 'mory_nc_seq_' + nc;
             // Re-labelliser tous les tableaux oldest→newest avec le nomCours actuel
             boards.forEach((b, i) => {
                 b.nomCours = nc;
                 b.label    = `${nc} ${i + 1}`;
+                _stampTags(b);
             });
             saveBoardList();
             // Initialiser le compteur seulement s'il n'existe pas encore
