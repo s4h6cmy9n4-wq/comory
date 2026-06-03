@@ -7661,8 +7661,8 @@ function mettreAJourArrondi() {
                               canvasPNG: null,
                               _demo:     true,
                               date:      demoDate,
-                              classeId:  'terminale',
-                              matiereId: 'atc',
+                              classeId:  DEMO_CLS[dNum % DEMO_CLS.length],
+                              matiereId: DEMO_MAT[dNum % DEMO_MAT.length],
                               resume:    DEMO_RESUMES[dNum] || '',
                           });
                           used.add(dId);
