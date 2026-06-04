@@ -2719,7 +2719,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         window.generateThumbnail = () => {
             const W = mainCanvas.width, H = mainCanvas.height;
-            const TW = 220, TH = Math.round(220 * H / W); // ratio réel du canvas
+            // 480px : assez net pour l'aperçu détaillé de l'archive (jusqu'à 680px)
+            // tout en restant léger (JPEG). Sert aussi de miniature carrousel/drum.
+            const TW = 480, TH = Math.round(480 * H / W); // ratio réel du canvas
             const tmp  = document.createElement('canvas');
             tmp.width = TW; tmp.height = TH;
             const tctx = tmp.getContext('2d');
@@ -6899,8 +6901,13 @@ function mettreAJourArrondi() {
                 }
 
                 // ── Aperçu (thumbnail) ───────────────────────────────────────
+                // On privilégie le thumbnail : il composite le fond + les traits
+                // permanents + les objets placés (coups de crayon, formes, texte).
+                // canvasPNG ne contient QUE le canvas principal (utilisé pour la
+                // restauration du tableau), or les tracés sont des objets placés →
+                // canvasPNG est quasi toujours vide et donnait un aperçu blanc.
                 prevEl.innerHTML = '';
-                const src = board.canvasPNG || board.thumbnail;
+                const src = board.thumbnail || board.canvasPNG;
                 if (src) {
                     const img = document.createElement('img');
                     img.src = typeof src === 'string' ? src : URL.createObjectURL(src);
@@ -7041,7 +7048,8 @@ function mettreAJourArrondi() {
                 const card = document.createElement('div');
                 card.className = 'arc-drum-card' + (i === arcDrumIdx ? ' actif' : '');
 
-                const src = board.canvasPNG || board.thumbnail;
+                // thumbnail d'abord (composite complet) — voir note dans updateDetail
+                const src = board.thumbnail || board.canvasPNG;
                 if (src) {
                     const img = document.createElement('img');
                     img.className = 'arc-drum-thumb';
