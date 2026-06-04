@@ -7759,6 +7759,14 @@ function mettreAJourArrondi() {
                       if (!b.date)      b.date      = new Date(Date.now() - (idx + 1) * 86400000 * 2);
                       if (!b.classeId)  b.classeId  = 'terminale';
                       if (!b.matiereId) b.matiereId = 'atc';
+                      // Aperçu de l'archive complète : on utilise UNIQUEMENT les images
+                      // du dossier "apercu" (DEMO_IMAGES), pour TOUS les tableaux (vrais
+                      // + démos). On écrase donc la miniature générée et on vide
+                      // canvasPNG pour que le rendu (canvasPNG || thumbnail) prenne
+                      // l'image d'aperçu. N'affecte QUE l'affichage de l'archive
+                      // (arcAllBoards), pas le carrousel ni le chargement des tableaux.
+                      b.thumbnail = DEMO_IMAGES[idx % DEMO_IMAGES.length];
+                      b.canvasPNG = null;
                   });
                   // Appliquer les overrides (renommages / résumés sauvegardés)
                   try {
