@@ -7767,6 +7767,10 @@ function mettreAJourArrondi() {
                       // (arcAllBoards), pas le carrousel ni le chargement des tableaux.
                       b.thumbnail = DEMO_IMAGES[idx % DEMO_IMAGES.length];
                       b.canvasPNG = null;
+                      // Résumé pour chaque tableau : on garde celui déjà présent
+                      // (démos + résumés saisis, restaurés juste après via _rOv) et
+                      // on en attribue un du jeu existant aux tableaux qui n'en ont pas.
+                      if (!b.resume) b.resume = DEMO_RESUMES[idx % DEMO_RESUMES.length];
                   });
                   // Appliquer les overrides (renommages / résumés sauvegardés)
                   try {
