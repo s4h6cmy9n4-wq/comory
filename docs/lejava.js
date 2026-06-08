@@ -7665,13 +7665,22 @@ function mettreAJourArrondi() {
         async function arcLoadAndRender() {
             if (!arcLoaded) {
                 const labels   = arcLabelMap();
+                // Métadonnées persistées au moment de l'archivage (label, date, classe,
+                // matière…) — survivent au rechargement même si l'archive n'a jamais été
+                // ouverte. Sans elles, un tableau archivé perd son nom/sa date dès qu'il
+                // sort du carrousel (il n'est plus dans mory_board_list).
+                const arcMeta  = (() => { try { return JSON.parse(localStorage.getItem('mory_arc_metadata') || '{}'); } catch(e) { return {}; } })();
                 const dbBoards = await arcLoadFromDB();
                 arcAllBoards   = dbBoards.map(b => {
                     const entry = labels[b.id];
+                    const meta  = arcMeta[String(b.id)];
                     return {
                         ...b,
-                        label:    (entry?.label)    || b.label    || `Tableau ${b.id}`,
-                        nomCours: (entry?.nomCours) || b.nomCours || '',
+                        label:     meta?.label    || entry?.label    || b.label    || `Tableau ${b.id}`,
+                        nomCours:  meta?.nomCours || entry?.nomCours || b.nomCours || '',
+                        date:      meta?.date ? new Date(meta.date) : (b.date ? new Date(b.date) : null),
+                        classeId:  (meta?.classeId  != null) ? meta.classeId  : (b.classeId  || null),
+                        matiereId: (meta?.matiereId != null) ? meta.matiereId : (b.matiereId || null),
                     };
                 });
                 // Note : on ne charge PAS le localStorage ici — les tableaux du carrousel
@@ -7859,6 +7868,22 @@ function mettreAJourArrondi() {
 
         // Appelé par le carrousel quand il archive un tableau (maj compteur + vignette)
         window._arcNotifyBoardArchived = function(board) {
+            // Persister les métadonnées AVANT tout (même si l'archive n'est pas ouverte) :
+            // dès qu'un tableau est archivé il quitte mory_board_list, donc son nom / sa
+            // date / ses pastilles ne sont plus récupérables ailleurs. On les sauve ici
+            // pour que arcLoadAndRender puisse les restaurer à la prochaine ouverture.
+            try {
+                const _meta = JSON.parse(localStorage.getItem('mory_arc_metadata') || '{}');
+                _meta[String(board.id)] = {
+                    label:     board.label    || `Tableau ${board.id}`,
+                    nomCours:  board.nomCours || '',
+                    date:      board.date ? new Date(board.date).toISOString() : new Date().toISOString(),
+                    classeId:  board.classeId  || null,
+                    matiereId: board.matiereId || null,
+                };
+                localStorage.setItem('mory_arc_metadata', JSON.stringify(_meta));
+            } catch(e) {}
+
             if (!arcLoaded) return; // archive pas encore ouverte → sera chargé à la prochaine ouverture
             const idx = arcAllBoards.findIndex(b => b.id === board.id);
             const entry = { ...board, canvasPNG: null };
